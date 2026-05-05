@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { getBrowserUserSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import { isProfileComplete, normalizeRoasterProfileRow, type RoasterProfile } from '@/src/lib/roasterProfile';
 
@@ -16,7 +17,7 @@ type UseRoasterProfileState = {
 };
 
 const PROFILE_SELECT =
-  'id,user_id,company_name,roaster_short_name,city,website,subscription_status';
+  'id,user_id,company_name,roaster_short_name,country,city,description,website,logo_url,subscription_status,verification_status';
 
 export function useRoasterProfile(): UseRoasterProfileState {
   const [loading, setLoading] = useState(true);
@@ -28,13 +29,11 @@ export function useRoasterProfile(): UseRoasterProfileState {
     setLoading(true);
     setError(null);
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseBrowser.auth.getUser();
-
-    if (userError) {
-      setError(userError.message);
+    let user = null;
+    try {
+      user = await getBrowserUserSafely();
+    } catch (userError) {
+      setError(userError instanceof Error ? userError.message : 'Auth error');
       setUserId(null);
       setProfile(null);
       setLoading(false);

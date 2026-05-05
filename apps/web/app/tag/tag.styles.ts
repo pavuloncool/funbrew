@@ -9,6 +9,10 @@ export const tagStyles = {
   contentInner: 'mx-auto w-full max-w-4xl px-4 pt-2',
   pageTitle: 'mb-2 mt-2 text-[22px] font-bold text-neutral-900',
   backToHub: 'mb-5 inline-block text-sm font-semibold text-neutral-900 underline',
+  compatibilityBox: 'mb-4 rounded border border-blue-200 bg-blue-50 p-3',
+  compatibilityTitle: 'text-sm font-semibold text-blue-900',
+  compatibilityBody: 'mt-1 text-[13px] leading-relaxed text-neutral-900',
+  compatibilityLink: 'font-semibold underline',
 
   authGateBox: 'mb-4 rounded border border-amber-300 bg-amber-50 p-3',
   authGateTitle: 'text-sm font-semibold text-amber-900',

@@ -45,6 +45,12 @@ export type ScanQrBatchResponse = {
 export type ScanQrTagResponse = {
   kind: 'tag';
   tag: RoasterCoffeeTagRow;
+  tasting_notes?: Array<{
+    id: string;
+    name: string;
+    label: string;
+    category: string;
+  }>;
   archived: false;
 };
 

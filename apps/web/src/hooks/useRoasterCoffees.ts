@@ -2,7 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
+import {
+  getBrowserSessionSafely,
+  getBrowserUserSafely,
+} from '@/src/lib/supabase/browserAuth';
 
 export type RoasterCoffee = {
   id: string;
@@ -11,16 +14,12 @@ export type RoasterCoffee = {
 };
 
 async function fetchRoasterCoffees(): Promise<RoasterCoffee[]> {
-  const {
-    data: { user },
-  } = await supabaseBrowser.auth.getUser();
+  const user = await getBrowserUserSafely();
   if (!user) {
     throw new Error('AUTH_REQUIRED');
   }
 
-  const {
-    data: { session },
-  } = await supabaseBrowser.auth.getSession();
+  const session = await getBrowserSessionSafely();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!session?.access_token || !supabaseUrl || !anonKey) {

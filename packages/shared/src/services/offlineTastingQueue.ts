@@ -1,6 +1,6 @@
 import type { LogTastingInput } from './tastingService';
 import type { TypedSupabaseClient } from './supabaseClientFactory';
-import { logTasting } from './tastingService';
+import { logTasting, updateCoffeeStats } from './tastingService';
 
 const OFFLINE_QUEUE_STORAGE_KEY = 'funcup_pending_tastings_v1';
 const MAX_QUEUE_SIZE = 50;
@@ -84,6 +84,21 @@ export async function flushPendingTastings(params: {
   const queue = await readQueue(params.storage);
   if (queue.length === 0) return { synced: 0, remaining: 0 };
 
+  let userId: string | null = null;
+  try {
+    const authClient = (params.supabase as TypedSupabaseClient & {
+      auth?: { getUser?: () => Promise<{ data: { user: { id: string } | null } }> };
+    }).auth;
+    if (authClient?.getUser) {
+      const {
+        data: { user },
+      } = await authClient.getUser();
+      userId = user?.id ?? null;
+    }
+  } catch {
+    userId = null;
+  }
+
   let synced = 0;
   const remaining: PendingTasting[] = [];
 
@@ -94,10 +109,16 @@ export async function flushPendingTastings(params: {
         rating: item.rating,
         brewMethodId: item.brewMethodId,
         brewTimeSeconds: item.brewTimeSeconds,
-        flavorNoteIds: item.flavorNoteIds,
+        tastingNoteIds: item.tastingNoteIds,
         freeTextNotes: item.freeTextNotes,
         review: item.review,
       });
+      if (userId) {
+        await updateCoffeeStats(params.supabase, {
+          batchId: item.batchId,
+          userId,
+        });
+      }
       synced += 1;
     } catch {
       remaining.push(item);

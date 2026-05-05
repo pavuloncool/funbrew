@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
+import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import {
   type RoasterCoffeeTagRow,
@@ -66,9 +67,7 @@ function CoffeeBankContent() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const {
-        data: { session },
-      } = await supabaseBrowser.auth.getSession();
+      const session = await getBrowserSessionSafely();
       if (cancelled) return;
       setHasSession(Boolean(session));
       if (!session) {
@@ -173,9 +172,7 @@ function CoffeeBankContent() {
 
     void (async () => {
       try {
-        const {
-          data: { session },
-        } = await supabaseBrowser.auth.getSession();
+        const session = await getBrowserSessionSafely();
         if (!session?.access_token) {
           if (!cancelled) {
             setQrError('Brak sesji. Zaloguj się ponownie.');

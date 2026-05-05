@@ -2,6 +2,9 @@ export const APP_NAME = 'funcup';
 export const VERSION = '0.1.0';
 
 export * from './authWebShellClasses';
+export * from './auth/accountRole';
+export * from './coffeePage/normalizeCoffeePage';
+export * from './visualSystem';
 export * from './visualTokens';
 export * from './constants/flavorNotes';
 export * from './constants/brewMethods';

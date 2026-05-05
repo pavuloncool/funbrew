@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/pop
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import { uploadCoffeeLabelToSupabase } from '@/src/lib/uploadCoffeeLabel';
 import { getResolvedSupabasePublicOrigin } from '@/src/lib/supabasePublicOrigin';
+import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 import { tagStyles } from './tag.styles';
 
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
@@ -141,9 +142,7 @@ export default function RoasterAddCoffeePage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const {
-        data: { session },
-      } = await supabaseBrowser.auth.getSession();
+      const session = await getBrowserSessionSafely();
       if (cancelled) return;
       setHasSession(Boolean(session));
       if (!session) {
@@ -263,9 +262,7 @@ export default function RoasterAddCoffeePage() {
       }
       assertCoffeeLabelFileSize(values.coffeeLabelFile);
 
-      const {
-        data: { session },
-      } = await supabaseBrowser.auth.getSession();
+      const session = await getBrowserSessionSafely();
       if (!session) {
         setSaveFeedback({
           kind: 'error',
@@ -335,9 +332,7 @@ export default function RoasterAddCoffeePage() {
     setQrError(null);
     setQrLoading(true);
     try {
-      const {
-        data: { session },
-      } = await supabaseBrowser.auth.getSession();
+      const session = await getBrowserSessionSafely();
       if (!session?.access_token) {
         setQrError('Brak sesji. Zaloguj się ponownie.');
         setQrLoading(false);
@@ -496,6 +491,17 @@ export default function RoasterAddCoffeePage() {
         <Link href="/roaster-hub" className={tagStyles.backToHub}>
           Wróć do Roaster Hub
         </Link>
+        <div className={tagStyles.compatibilityBox}>
+          <p className={tagStyles.compatibilityTitle}>Compatibility flow</p>
+          <p className={tagStyles.compatibilityBody}>
+            Ten ekran nadal zapisuje do <code>roaster_coffee_tags</code> jako legacy public read model.
+            Dla canonical MVP publishera użyj{' '}
+            <Link href="/roaster-hub/coffees/new" className={tagStyles.compatibilityLink}>
+              Roaster Hub → Publikuj batch MVP
+            </Link>
+            .
+          </p>
+        </div>
 
         {authGate}
         {roasterGate}

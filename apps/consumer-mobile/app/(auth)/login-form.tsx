@@ -1,18 +1,26 @@
 import { Link, useRouter } from 'expo-router';
+import { resolveAccountRole } from '@funcup/shared';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { authScreenStyles as styles } from '../../src/theme/authScreenStyles';
 import { AppButton, AppInput, AppScreen } from '../../src/components/ui/primitives';
 import { useAuth } from '../../src/auth';
+import { supabase } from '../../src/services/supabaseClient';
 
 export default function LoginFormScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const params = useLocalSearchParams<{ reason?: string }>();
+  const { login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const roleGateMessage =
+    params.reason === 'roaster_web_only'
+      ? 'To konto palarni działa tylko w aplikacji web.'
+      : null;
 
   const onLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -28,6 +36,20 @@ export default function LoginFormScreen() {
         email: email.trim(),
         password,
       });
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user?.id) {
+        const role = await resolveAccountRole(supabase, user.id, user.user_metadata);
+        if (role !== 'consumer') {
+          await logout();
+          setError('To konto palarni działa tylko w aplikacji web.');
+          return;
+        }
+      }
+
       router.replace('/(auth)/login');
     } catch (signInError) {
       setError(signInError instanceof Error ? signInError.message : 'Logowanie nie powiodło się.');
@@ -84,6 +106,7 @@ export default function LoginFormScreen() {
           </Link>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {!error && roleGateMessage ? <Text style={styles.errorText}>{roleGateMessage}</Text> : null}
 
         </View>
 

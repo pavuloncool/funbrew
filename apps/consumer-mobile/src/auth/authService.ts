@@ -33,6 +33,7 @@ export class SupabaseAuthService implements AuthService {
       password: params.password,
       options: {
         data: {
+          app_role: 'consumer',
           display_name: trimmedDisplayName || fallbackDisplayName,
           profile_completed: false,
         },

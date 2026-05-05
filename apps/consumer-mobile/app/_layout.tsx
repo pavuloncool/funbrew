@@ -5,6 +5,7 @@ import { RootErrorBoundary } from '../src/components/RootErrorBoundary';
 import { useOfflineTastingSync } from '../src/hooks/useOfflineTastingSync';
 import { AppChromeTabBar } from '../src/components/ui/AppTabBar';
 import { AuthProvider } from '../src/auth';
+import { MobileAccountRoleGate } from '../src/auth/MobileAccountRoleGate';
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           {Platform.OS !== 'web' ? <OfflineSyncBootstrap /> : null}
+          <MobileAccountRoleGate />
           <AppShellStack />
         </AuthProvider>
       </QueryClientProvider>

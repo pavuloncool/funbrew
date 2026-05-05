@@ -5,7 +5,7 @@ export type LogTastingInput = {
   rating: number;
   brewMethodId?: string;
   brewTimeSeconds?: number;
-  flavorNoteIds?: string[];
+  tastingNoteIds?: string[];
   freeTextNotes?: string;
   review?: string;
 };
@@ -20,7 +20,7 @@ export async function logTasting(
       rating: input.rating,
       brew_method_id: input.brewMethodId,
       brew_time_seconds: input.brewTimeSeconds,
-      flavor_note_ids: input.flavorNoteIds,
+      tasting_note_ids: input.tastingNoteIds,
       free_text_notes: input.freeTextNotes,
       review: input.review,
     },
@@ -41,4 +41,3 @@ export async function updateCoffeeStats(
   });
   if (error) throw error;
 }
-

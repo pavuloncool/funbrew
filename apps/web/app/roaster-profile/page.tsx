@@ -28,8 +28,11 @@ function trimForm(values: RoasterProfileFormValues): RoasterProfileFormValues {
   return {
     company_name: values.company_name.trim(),
     roaster_short_name: values.roaster_short_name.trim(),
+    country: values.country.trim(),
     city: values.city.trim(),
+    description: values.description.trim(),
     website: values.website.trim(),
+    logo_url: values.logo_url.trim(),
   };
 }
 
@@ -90,8 +93,11 @@ export default function RoasterProfilePage() {
       name: values.company_name,
       company_name: values.company_name,
       roaster_short_name: values.roaster_short_name,
+      country: values.country || null,
       city: values.city,
+      description: values.description || null,
       website: values.website || null,
+      logo_url: values.logo_url || null,
     };
 
     if (mode === 'create') {
@@ -180,8 +186,24 @@ export default function RoasterProfilePage() {
                 <dd>{profile.city ?? '—'}</dd>
               </div>
               <div>
+                <dt className={roasterProfileStyles.dlTerm}>Kraj</dt>
+                <dd>{profile.country ?? '—'}</dd>
+              </div>
+              <div>
                 <dt className={roasterProfileStyles.dlTerm}>Strona WWW</dt>
                 <dd>{profile.website ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className={roasterProfileStyles.dlTerm}>Logo URL</dt>
+                <dd>{profile.logo_url ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className={roasterProfileStyles.dlTerm}>Opis</dt>
+                <dd>{profile.description ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className={roasterProfileStyles.dlTerm}>Weryfikacja</dt>
+                <dd>{profile.verification_status ?? '—'}</dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Subskrypcja</dt>
@@ -235,10 +257,30 @@ export default function RoasterProfilePage() {
               required
             />
             <Field
+              label="Kraj (opcjonalnie, ale używany publicznie)"
+              value={form.country}
+              onChange={(value) => setForm((prev) => ({ ...prev, country: value }))}
+              error={errors.country}
+            />
+            <Field
               label="Strona WWW (opcjonalnie)"
               value={form.website}
               onChange={(value) => setForm((prev) => ({ ...prev, website: value }))}
               error={errors.website}
+            />
+            <Field
+              label="Logo URL (opcjonalnie)"
+              value={form.logo_url}
+              onChange={(value) => setForm((prev) => ({ ...prev, logo_url: value }))}
+              error={errors.logo_url}
+              placeholder="https://..."
+            />
+            <Field
+              label="Opis palarni (opcjonalnie)"
+              value={form.description}
+              onChange={(value) => setForm((prev) => ({ ...prev, description: value }))}
+              error={errors.description}
+              multiline
             />
 
             {submitError ? <p className={roasterProfileStyles.submitError}>{submitError}</p> : null}
@@ -274,8 +316,9 @@ function Field(props: {
   error?: string;
   placeholder?: string;
   required?: boolean;
+  multiline?: boolean;
 }) {
-  const { label, value, onChange, error, placeholder, required } = props;
+  const { label, value, onChange, error, placeholder, required, multiline } = props;
 
   return (
     <div className={roasterProfileStyles.fieldWrap}>
@@ -283,12 +326,21 @@ function Field(props: {
         {label}
         {required ? ' *' : ''}
       </p>
-      <input
-        className={roasterProfileStyles.fieldInput}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-      />
+      {multiline ? (
+        <textarea
+          className={`${roasterProfileStyles.fieldInput} min-h-28 resize-y`}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+        />
+      ) : (
+        <input
+          className={roasterProfileStyles.fieldInput}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+        />
+      )}
       {error ? <p className={roasterProfileStyles.fieldError}>{error}</p> : null}
     </div>
   );

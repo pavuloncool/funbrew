@@ -3,16 +3,23 @@ export type RoasterProfile = {
   user_id: string;
   company_name: string | null;
   roaster_short_name: string | null;
+  country: string | null;
   city: string | null;
+  description: string | null;
   website: string | null;
+  logo_url: string | null;
   subscription_status: string | null;
+  verification_status: string | null;
 };
 
 export type RoasterProfileFormValues = {
   company_name: string;
   roaster_short_name: string;
+  country: string;
   city: string;
+  description: string;
   website: string;
+  logo_url: string;
 };
 
 const REQUIRED_FIELDS: Array<keyof RoasterProfileFormValues> = [
@@ -25,8 +32,11 @@ export function emptyRoasterProfileFormValues(): RoasterProfileFormValues {
   return {
     company_name: '',
     roaster_short_name: '',
+    country: '',
     city: '',
+    description: '',
     website: '',
+    logo_url: '',
   };
 }
 
@@ -62,9 +72,13 @@ export function normalizeRoasterProfileRow(row: unknown): RoasterProfile | null 
     user_id: value.user_id,
     company_name: normalizeNullableString(value.company_name),
     roaster_short_name: normalizeNullableString(value.roaster_short_name),
+    country: normalizeNullableString(value.country),
     city: normalizeNullableString(value.city),
+    description: normalizeNullableString(value.description),
     website: normalizeNullableString(value.website),
+    logo_url: normalizeNullableString(value.logo_url),
     subscription_status: normalizeNullableString(value.subscription_status),
+    verification_status: normalizeNullableString(value.verification_status),
   };
 }
 
@@ -72,7 +86,10 @@ export function profileToFormValues(profile: RoasterProfile): RoasterProfileForm
   return {
     company_name: profile.company_name ?? '',
     roaster_short_name: profile.roaster_short_name ?? '',
+    country: profile.country ?? '',
     city: profile.city ?? '',
+    description: profile.description ?? '',
     website: profile.website ?? '',
+    logo_url: profile.logo_url ?? '',
   };
 }

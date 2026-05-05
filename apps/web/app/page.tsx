@@ -1,7 +1,9 @@
 'use client';
 
+import { resolveAccountRole } from '@funcup/shared';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 
 /**
@@ -13,9 +15,28 @@ export default function RootEntryPage() {
 
   useEffect(() => {
     async function routeBySession() {
-      const {
-        data: { session },
-      } = await supabaseBrowser.auth.getSession();
+      const session = await getBrowserSessionSafely();
+
+      if (session?.access_token && session.user.id) {
+        try {
+          const role = await resolveAccountRole(
+            supabaseBrowser,
+            session.user.id,
+            session.user.user_metadata
+          );
+          if (role === 'roaster') {
+            router.replace('/roaster-hub');
+            return;
+          }
+
+          await supabaseBrowser.auth.signOut({ scope: 'local' });
+          router.replace('/login?reason=consumer_mobile_only');
+          return;
+        } catch {
+          router.replace('/login');
+          return;
+        }
+      }
 
       if (session?.access_token) {
         router.replace('/roaster-hub');

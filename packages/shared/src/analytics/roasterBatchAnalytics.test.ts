@@ -23,6 +23,7 @@ function log(
   return {
     brewMethodId: null,
     brewMethodName: null,
+    review: null,
     flavorNotes: [],
     ...partial,
   };

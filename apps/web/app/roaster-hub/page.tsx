@@ -56,8 +56,8 @@ export default function RoasterHubPage() {
 
   const tiles: Tile[] = [
     {
-      label: 'Dodaj kawę',
-      onClick: () => router.push('/tag'),
+      label: 'Publikuj batch MVP',
+      onClick: () => router.push('/roaster-hub/coffees/new'),
     },
     {
       label: 'Profil palarni',
@@ -68,8 +68,8 @@ export default function RoasterHubPage() {
       onClick: () => router.push('/coffee-bank'),
     },
     {
-      label: 'Analytics',
-      disabled: true,
+      label: 'Legacy tag',
+      onClick: () => router.push('/tag'),
     },
   ];
 
@@ -79,7 +79,9 @@ export default function RoasterHubPage() {
     <div className={roasterHubStyles.pageWithPad}>
       <div className={roasterHubStyles.narrowContentTop}>
         <h1 className={roasterHubStyles.hubTitle}>{shortName}</h1>
-        <p className={roasterHubStyles.hubSubtitle}>Wybierz sekcję palarni</p>
+        <p className={roasterHubStyles.hubSubtitle}>
+          Wybierz sekcję palarni. Canonical publisher dla MVP startuje teraz od „Publikuj batch MVP”.
+        </p>
 
         <div className={roasterHubStyles.tileGrid}>
           {tiles.map((tile) => (

@@ -24,6 +24,10 @@ export const analyticsStyles = {
   flavorName: 'font-medium text-zinc-900',
   flavorCategory: 'ml-2 text-xs font-normal text-zinc-500',
   flavorCount: 'shrink-0 tabular-nums text-zinc-600',
+  reviewList: 'mt-4 space-y-3',
+  reviewCard: 'rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3',
+  reviewMeta: 'flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500',
+  reviewBody: 'mt-2 text-sm leading-relaxed text-zinc-900',
   filterButtons: 'mt-4 flex flex-wrap gap-2',
   pillBase:
     'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',

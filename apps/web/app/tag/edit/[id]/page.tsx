@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { Calendar } from '@/src/components/ui/calendar';
 import { Button } from '@/src/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
+import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import { uploadCoffeeLabelToSupabase } from '@/src/lib/uploadCoffeeLabel';
 import { tagStyles } from '../../tag.styles';
@@ -159,7 +160,7 @@ export default function EditCoffeeTagPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      const session = await getBrowserSessionSafely();
       if (cancelled) return;
       setHasSession(Boolean(session));
       if (!session) {

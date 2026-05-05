@@ -2,12 +2,14 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
+import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 
 type CreateBatchInput = {
   coffeeId: string;
   lotNumber: string;
   roastDate: string;
+  brewingNotes: string;
+  roasterStory: string;
 };
 
 type CreateBatchResult = {
@@ -15,9 +17,7 @@ type CreateBatchResult = {
 };
 
 async function createBatch(input: CreateBatchInput): Promise<CreateBatchResult> {
-  const {
-    data: { session },
-  } = await supabaseBrowser.auth.getSession();
+  const session = await getBrowserSessionSafely();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!session?.access_token || !supabaseUrl || !anonKey) {
@@ -36,6 +36,8 @@ async function createBatch(input: CreateBatchInput): Promise<CreateBatchResult> 
       coffee_id: input.coffeeId,
       lot_number: input.lotNumber,
       roast_date: input.roastDate,
+      brewing_notes: input.brewingNotes || null,
+      roaster_story: input.roasterStory || null,
       status: 'active',
     }),
   });

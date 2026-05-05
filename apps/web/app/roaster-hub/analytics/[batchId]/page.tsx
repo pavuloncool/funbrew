@@ -6,8 +6,10 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import AnalyticsSummary from '@/src/components/analytics/AnalyticsSummary';
+import AnonymizedReviews from '@/src/components/analytics/AnonymizedReviews';
 import BrewMethodFilter from '@/src/components/analytics/BrewMethodFilter';
 import TopFlavorNotes from '@/src/components/analytics/TopFlavorNotes';
+import { getBrowserUserSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 
 export default function BatchAnalyticsPage() {
@@ -17,9 +19,7 @@ export default function BatchAnalyticsPage() {
 
   useEffect(() => {
     async function ensureAuth() {
-      const {
-        data: { user },
-      } = await supabaseBrowser.auth.getUser();
+      const user = await getBrowserUserSafely();
       if (!user) {
         const path =
           typeof window !== 'undefined'
@@ -113,8 +113,10 @@ export default function BatchAnalyticsPage() {
             <AnalyticsSummary
               title="Published batch totals"
               caption={
-                data.globalFromStats && data.statsUpdatedAt
+                data.globalFromStats && data.statsUpdatedAt && data.statsAreFresh
                   ? `Synced aggregates (updated ${new Date(data.statsUpdatedAt).toLocaleString()})`
+                  : data.globalFromStats && data.statsUpdatedAt
+                    ? `Stats row is stale (last update ${new Date(data.statsUpdatedAt).toLocaleString()}). Falling back to raw tasting logs below.`
                   : data.globalFromStats
                     ? 'Aggregates from batch statistics'
                     : data.logs.length > 0
@@ -154,6 +156,8 @@ export default function BatchAnalyticsPage() {
                 Select a brew method to compare flavor notes and ratings for that subset.
               </p>
             )}
+
+            <AnonymizedReviews reviews={data.anonymizedReviews} />
           </div>
         </>
       ) : null}

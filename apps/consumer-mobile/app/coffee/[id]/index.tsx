@@ -1,7 +1,7 @@
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { useCoffeePage } from '@funcup/shared';
+import { normalizeCoffeePageData, useCoffeePage } from '@funcup/shared';
 
 import { ScreenError } from '../../../src/components/ScreenError';
 import { CoffeePageSkeleton } from '../../../src/components/ui/Skeleton';
@@ -19,14 +19,6 @@ const { colors, spacing, radius, typography } = visualSystemTokens;
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   return String(err);
-}
-
-function displayTagName(tag: { bean_origin_tradename: string; bean_origin_farm: string; id: string }): string {
-  const tradename = tag.bean_origin_tradename.trim();
-  if (tradename) return tradename;
-  const farm = tag.bean_origin_farm.trim();
-  if (farm) return farm;
-  return `Kawa ${tag.id.slice(0, 8)}`;
 }
 
 function formatRoastDate(iso: string): string {
@@ -124,15 +116,15 @@ export default function CoffeePage() {
     );
   }
 
-  if (data.kind === 'tag') {
-    const t = data.tag;
-    const tagName = displayTagName(t);
+  const publicCoffee = normalizeCoffeePageData(data, { hash });
+
+  if (publicCoffee.source === 'tag') {
 
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} style={styles.page} contentContainerStyle={styles.pageContent}>
         <AppCard style={styles.card}>
           <AppText variant="h1" weight="700" accessibilityRole="header" style={styles.title}>
-            {tagName}
+            {publicCoffee.product.name}
           </AppText>
 
           <View style={styles.imageWrap}>
@@ -152,35 +144,38 @@ export default function CoffeePage() {
           </View>
 
           <AppText style={styles.row}>
-            <AppText weight="700">Roaster:</AppText> {t.roaster_short_name}
+            <AppText weight="700">Roaster:</AppText> {publicCoffee.roaster.shortName ?? '—'}
           </AppText>
           <AppText style={styles.row}>
-            <AppText weight="700">Nazwa handlowa:</AppText> {t.bean_origin_tradename || '—'}
+            <AppText weight="700">Pochodzenie:</AppText>{' '}
+            {[publicCoffee.origin.country, publicCoffee.origin.region, publicCoffee.origin.farm]
+              .filter(Boolean)
+              .join(' · ') || '—'}
           </AppText>
           <AppText style={styles.row}>
-            <AppText weight="700">Pochodzenie:</AppText> {t.bean_origin_country} · {t.bean_origin_region} ·{' '}
-            {t.bean_origin_farm}
+            <AppText weight="700">Ziarno:</AppText> {publicCoffee.product.variety ?? '—'}
           </AppText>
           <AppText style={styles.row}>
-            <AppText weight="700">Ziarno:</AppText> {t.bean_type} · {t.bean_varietal_main}
-            {t.bean_varietal_extra ? ` · ${t.bean_varietal_extra}` : ''}
+            <AppText weight="700">Obróbka:</AppText> {publicCoffee.product.processingMethod ?? '—'}
           </AppText>
           <AppText style={styles.row}>
-            <AppText weight="700">Obróbka:</AppText> {t.bean_processing}
+            <AppText weight="700">Wypał:</AppText>{' '}
+            {publicCoffee.roast.date ? formatRoastDate(publicCoffee.roast.date) : '—'}
+            {publicCoffee.roast.level ? ` (${publicCoffee.roast.level})` : ''}
           </AppText>
           <AppText style={styles.row}>
-            <AppText weight="700">Wypał:</AppText> {formatRoastDate(t.bean_roast_date)} ({t.bean_roast_level})
+            <AppText weight="700">Parzenie:</AppText> {publicCoffee.brewing.recommendedMethod ?? '—'}
           </AppText>
           <AppText style={styles.row}>
-            <AppText weight="700">Parzenie:</AppText> {t.brew_method}
+            <AppText weight="700">Wysokość:</AppText> {publicCoffee.origin.altitudeLabel ?? '—'}
           </AppText>
           <AppText style={styles.row}>
-            <AppText weight="700">Wysokość:</AppText> {t.bean_origin_height} m
+            <AppText weight="700">Trade / producer:</AppText> {publicCoffee.product.producerNotes ?? '—'}
           </AppText>
           <AppText style={styles.row}>
             <AppText weight="700">Tasting notes:</AppText>{' '}
-            {data.tasting_notes && data.tasting_notes.length > 0
-              ? data.tasting_notes.map((note) => note.label).join(', ')
+            {publicCoffee.tastingNotes.length > 0
+              ? publicCoffee.tastingNotes.map((note) => note.label).join(', ')
               : '—'}
           </AppText>
         </AppCard>
@@ -192,13 +187,13 @@ export default function CoffeePage() {
     pathname: '/coffee/[id]/log' as const,
     params: {
       id: hash,
-      batchId: data.batch.id,
+      batchId: publicCoffee.logBatchId ?? hash,
     },
   };
 
   return (
     <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
-      {data.archived ? (
+      {publicCoffee.archived ? (
         <AppCard style={styles.archived}>
           <AppText weight="600">Archived batch</AppText>
           <AppText tone="secondary" style={styles.archivedInfo}>Tasting may be limited for this roast.</AppText>
@@ -208,25 +203,27 @@ export default function CoffeePage() {
       <AppText variant="h2" weight="700" accessibilityRole="header">Coffee Page</AppText>
 
       <CoffeePageProduct
-        coffeeName={data.coffee.name}
-        variety={data.coffee.variety}
-        processingMethod={data.coffee.processing_method}
-        producerNotes={data.coffee.producer_notes}
-        roasterName={data.roaster.name}
+        coffeeName={publicCoffee.product.name}
+        variety={publicCoffee.product.variety}
+        processingMethod={publicCoffee.product.processingMethod}
+        producerNotes={publicCoffee.product.producerNotes}
+        roasterName={publicCoffee.roaster.name}
       />
-      <CoffeePageBrewing brewingNotes={data.batch.brewing_notes} />
-      <CoffeePageStory roasterStory={data.batch.roaster_story} />
+      <CoffeePageBrewing brewingNotes={publicCoffee.brewing.notes} />
+      <CoffeePageStory roasterStory={publicCoffee.story.roasterStory} />
       <CoffeePageCommunity
         reputationScore={demoReputationScore}
-        totalTastings={data.stats.total_count}
-        avgRating={data.stats.avg_rating}
+        totalTastings={publicCoffee.stats.totalTastings}
+        avgRating={publicCoffee.stats.avgRating}
       />
 
-      <View style={styles.logAction}>
-        <Link href={logHref} accessibilityRole="link" accessibilityLabel="Open tasting log for this batch">
-          Go to Tasting Log
-        </Link>
-      </View>
+      {publicCoffee.logBatchId ? (
+        <View style={styles.logAction}>
+          <Link href={logHref} accessibilityRole="link" accessibilityLabel="Open tasting log for this batch">
+            Go to Tasting Log
+          </Link>
+        </View>
+      ) : null}
     </AppScrollScreen>
   );
 }

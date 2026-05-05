@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
+import {
+  getBrowserSessionSafely,
+  getBrowserUserSafely,
+} from '@/src/lib/supabase/browserAuth';
 
 import { hubCrudStyles } from '../hub-crud.styles';
 
@@ -22,17 +25,13 @@ export default function RoasterSetupPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const {
-        data: { user },
-      } = await supabaseBrowser.auth.getUser();
+      const user = await getBrowserUserSafely();
       if (cancelled) return;
       if (!user) {
         router.replace(LOGIN_NEXT);
         return;
       }
-      const {
-        data: { session },
-      } = await supabaseBrowser.auth.getSession();
+      const session = await getBrowserSessionSafely();
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (!session?.access_token || !supabaseUrl || !anonKey) {
@@ -66,17 +65,13 @@ export default function RoasterSetupPage() {
     setLoading(true);
     setError(null);
 
-    const {
-      data: { user },
-    } = await supabaseBrowser.auth.getUser();
+    const user = await getBrowserUserSafely();
     if (!user) {
       router.replace(LOGIN_NEXT);
       return;
     }
 
-    const {
-      data: { session },
-    } = await supabaseBrowser.auth.getSession();
+    const session = await getBrowserSessionSafely();
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!session?.access_token || !supabaseUrl || !anonKey) {

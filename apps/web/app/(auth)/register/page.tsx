@@ -23,6 +23,11 @@ export default function RegisterPage() {
     const { error: signUpError } = await supabaseBrowser.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          app_role: 'roaster',
+        },
+      },
     });
 
     setLoading(false);

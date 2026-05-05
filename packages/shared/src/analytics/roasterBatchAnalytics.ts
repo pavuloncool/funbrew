@@ -16,6 +16,10 @@ export type RoasterTastingLog = {
   rating: number;
   brewMethodId: string | null;
   brewMethodName: string | null;
+  review: {
+    body: string;
+    createdAt: string;
+  } | null;
   flavorNotes: Array<{
     id: string;
     name: string;
@@ -36,6 +40,14 @@ export type FlavorNoteRank = {
   label: string;
   category: string;
   count: number;
+};
+
+export type AnonymizedReview = {
+  coffeeLogId: string;
+  body: string;
+  createdAt: string;
+  rating: number;
+  brewMethodName: string | null;
 };
 
 export function aggregateRatingSummary(

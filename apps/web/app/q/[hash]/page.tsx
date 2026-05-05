@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeCoffeePageData } from '@funcup/shared';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -99,44 +100,46 @@ export default function ResolveHashPage() {
   }
 
   const { data } = state;
+  const publicCoffee = normalizeCoffeePageData(data, { hash: params.hash });
 
-  if (data.kind === 'tag') {
-    const t = data.tag;
+  if (publicCoffee.source === 'tag') {
     return (
       <main className={resolveHashStyles.main}>
         <h1 className={resolveHashStyles.heading}>Coffee tag</h1>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Roaster:</strong> {t.roaster_short_name}
+          <strong>Roaster:</strong> {publicCoffee.roaster.shortName ?? '—'}
         </p>
         <p>
           <img
-            src={t.img_coffee_label}
+            src={publicCoffee.product.imageUrl ?? ''}
             alt="Coffee label"
             className={resolveHashStyles.labelImage}
           />
         </p>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Trade name:</strong> {t.bean_origin_tradename}
+          <strong>Coffee:</strong> {publicCoffee.product.name}
         </p>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Origin:</strong> {t.bean_origin_country} · {t.bean_origin_region} ·{' '}
-          {t.bean_origin_farm}
+          <strong>Origin:</strong>{' '}
+          {[publicCoffee.origin.country, publicCoffee.origin.region, publicCoffee.origin.farm]
+            .filter(Boolean)
+            .join(' · ') || '—'}
         </p>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Bean:</strong> {t.bean_type} · {t.bean_varietal_main}{' '}
-          {t.bean_varietal_extra ? `· ${t.bean_varietal_extra}` : ''}
+          <strong>Bean:</strong> {publicCoffee.product.variety ?? '—'}
         </p>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Processing:</strong> {t.bean_processing}
+          <strong>Processing:</strong> {publicCoffee.product.processingMethod ?? '—'}
         </p>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Roast:</strong> {t.bean_roast_date} ({t.bean_roast_level})
+          <strong>Roast:</strong> {publicCoffee.roast.date ?? '—'}
+          {publicCoffee.roast.level ? ` (${publicCoffee.roast.level})` : ''}
         </p>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Brew:</strong> {t.brew_method}
+          <strong>Brew:</strong> {publicCoffee.brewing.recommendedMethod ?? '—'}
         </p>
         <p className={resolveHashStyles.bodyText}>
-          <strong>Elevation:</strong> {t.bean_origin_height} m
+          <strong>Elevation:</strong> {publicCoffee.origin.altitudeLabel ?? '—'}
         </p>
       </main>
     );
@@ -149,13 +152,13 @@ export default function ResolveHashPage() {
         <strong>Hash:</strong> {params.hash}
       </p>
       <p className={resolveHashStyles.bodyText}>
-        <strong>Roaster:</strong> {data.roaster?.name ?? 'n/a'}
+        <strong>Roaster:</strong> {publicCoffee.roaster.name ?? 'n/a'}
       </p>
       <p className={resolveHashStyles.bodyText}>
-        <strong>Coffee:</strong> {data.coffee?.name ?? 'n/a'}
+        <strong>Coffee:</strong> {publicCoffee.product.name}
       </p>
       <p className={resolveHashStyles.bodyText}>
-        <strong>Batch:</strong> {data.batch?.lot_number ?? data.batch?.id ?? 'n/a'}
+        <strong>Batch:</strong> {publicCoffee.roast.lotNumber ?? publicCoffee.logBatchId ?? 'n/a'}
       </p>
     </main>
   );

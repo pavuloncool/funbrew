@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   aggregateRatingSummary,
+  type AnonymizedReview,
   brewMethodsPresentInLogs,
   filterLogsByBrewMethod,
   topFlavorNotesFromLogs,
@@ -27,16 +28,17 @@ type LogRow = {
   rating: number;
   brew_method_id: string | null;
   brew_methods: { id: string; name: string } | null;
-  tasting_notes: Array<{
-    flavor_note_id: string;
-    flavor_notes: { id: string; name: string; label: string; category: string } | null;
+  reviews: { body: string; created_at: string }[] | null;
+  coffee_log_tasting_notes: Array<{
+    tasting_note_id: string;
+    tasting_notes: { id: string; name: string; label: string; category: string } | null;
   }> | null;
 };
 
 function mapLogRow(row: LogRow): RoasterTastingLog {
   const flavorNotes: RoasterTastingLog['flavorNotes'] = [];
-  for (const tn of row.tasting_notes ?? []) {
-    const fn = tn.flavor_notes;
+  for (const tn of row.coffee_log_tasting_notes ?? []) {
+    const fn = tn.tasting_notes;
     if (fn?.id) {
       flavorNotes.push({
         id: fn.id,
@@ -51,6 +53,13 @@ function mapLogRow(row: LogRow): RoasterTastingLog {
     rating: row.rating,
     brewMethodId: row.brew_method_id,
     brewMethodName: row.brew_methods?.name ?? null,
+    review:
+      Array.isArray(row.reviews) && row.reviews[0]?.body
+        ? {
+            body: row.reviews[0].body,
+            createdAt: row.reviews[0].created_at,
+          }
+        : null,
     flavorNotes,
   };
 }
@@ -63,9 +72,11 @@ export type UseRoasterAnalyticsParams = {
 export type RoasterAnalyticsFetched = {
   globalFromStats: RatingSummary | null;
   statsUpdatedAt: string | null;
+  statsAreFresh: boolean;
   logs: RoasterTastingLog[];
   brewMethodOptions: BrewMethodOption[];
   globalTopFlavorNotes: FlavorNoteRank[];
+  anonymizedReviews: AnonymizedReview[];
 };
 
 export type RoasterAnalyticsData = RoasterAnalyticsFetched & {
@@ -105,9 +116,10 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
             rating,
             brew_method_id,
             brew_methods ( id, name ),
-            tasting_notes (
-              flavor_note_id,
-              flavor_notes ( id, name, label, category )
+            reviews ( body, created_at ),
+            coffee_log_tasting_notes (
+              tasting_note_id,
+              tasting_notes ( id, name, label, category )
             )
           `
           )
@@ -120,6 +132,14 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
       const stats = statsRes.data as CoffeeStatsRow | null;
       const rawLogs = (logsRes.data ?? []) as LogRow[];
       const logs = rawLogs.map(mapLogRow);
+      const derivedSummary = aggregateRatingSummary(logs);
+      const statsAreFresh =
+        stats == null
+          ? logs.length === 0
+          : stats.total_count === derivedSummary.totalTastings &&
+            Number(stats.avg_rating) === derivedSummary.avgRating &&
+            JSON.stringify(stats.rating_distribution) ===
+              JSON.stringify(derivedSummary.ratingDistribution);
 
       const globalFromStats: RatingSummary | null = stats
         ? {
@@ -134,24 +154,45 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
       return {
         globalFromStats,
         statsUpdatedAt: stats?.updated_at ?? null,
+        statsAreFresh,
         logs,
         brewMethodOptions: brewMethodsPresentInLogs(logs),
         globalTopFlavorNotes: topFlavorNotesFromLogs(logs, 10),
+        anonymizedReviews: logs
+          .filter((log) => log.review?.body)
+          .map((log) => ({
+            coffeeLogId: log.id,
+            body: log.review!.body,
+            createdAt: log.review!.createdAt,
+            rating: log.rating,
+            brewMethodName: log.brewMethodName,
+          }))
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       };
     },
   });
 
   const data: RoasterAnalyticsData | undefined = useMemo(() => {
     if (!query.data) return undefined;
-    const { logs, globalFromStats, statsUpdatedAt, brewMethodOptions, globalTopFlavorNotes } =
+    const {
+      logs,
+      globalFromStats,
+      statsUpdatedAt,
+      statsAreFresh,
+      brewMethodOptions,
+      globalTopFlavorNotes,
+      anonymizedReviews,
+    } =
       query.data;
     const filteredLogs = filterLogsByBrewMethod(logs, selectedBrewMethodId);
     return {
       globalFromStats,
       statsUpdatedAt,
+      statsAreFresh,
       logs,
       brewMethodOptions,
       globalTopFlavorNotes,
+      anonymizedReviews,
       selectedBrewMethodId,
       setSelectedBrewMethodId,
       filteredSummary: aggregateRatingSummary(filteredLogs),
