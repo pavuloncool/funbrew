@@ -74,7 +74,7 @@ export default function ResolveHashPage() {
     return (
       <main className={resolveHashStyles.main}>
         <h1 className={resolveHashStyles.heading}>QR Hash Resolver</h1>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Hash:</strong> {params.hash}
         </p>
         <p role="status" aria-live="polite">
@@ -88,7 +88,7 @@ export default function ResolveHashPage() {
     return (
       <main className={resolveHashStyles.main}>
         <h1 className={resolveHashStyles.heading}>QR Hash Resolver</h1>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Hash:</strong> {params.hash}
         </p>
         <p role="alert" className={resolveHashStyles.errorAlert}>
@@ -105,7 +105,7 @@ export default function ResolveHashPage() {
     return (
       <main className={resolveHashStyles.main}>
         <h1 className={resolveHashStyles.heading}>Coffee tag</h1>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Roaster:</strong> {t.roaster_short_name}
         </p>
         <p>
@@ -115,27 +115,27 @@ export default function ResolveHashPage() {
             className={resolveHashStyles.labelImage}
           />
         </p>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Trade name:</strong> {t.bean_origin_tradename}
         </p>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Origin:</strong> {t.bean_origin_country} · {t.bean_origin_region} ·{' '}
           {t.bean_origin_farm}
         </p>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Bean:</strong> {t.bean_type} · {t.bean_varietal_main}{' '}
           {t.bean_varietal_extra ? `· ${t.bean_varietal_extra}` : ''}
         </p>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Processing:</strong> {t.bean_processing}
         </p>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Roast:</strong> {t.bean_roast_date} ({t.bean_roast_level})
         </p>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Brew:</strong> {t.brew_method}
         </p>
-        <p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Elevation:</strong> {t.bean_origin_height} m
         </p>
       </main>
@@ -145,16 +145,16 @@ export default function ResolveHashPage() {
   return (
     <main className={resolveHashStyles.main}>
       <h1 className={resolveHashStyles.heading}>QR Hash Resolver</h1>
-      <p>
+      <p className={resolveHashStyles.bodyText}>
         <strong>Hash:</strong> {params.hash}
       </p>
-      <p>
+      <p className={resolveHashStyles.bodyText}>
         <strong>Roaster:</strong> {data.roaster?.name ?? 'n/a'}
       </p>
-      <p>
+      <p className={resolveHashStyles.bodyText}>
         <strong>Coffee:</strong> {data.coffee?.name ?? 'n/a'}
       </p>
-      <p>
+      <p className={resolveHashStyles.bodyText}>
         <strong>Batch:</strong> {data.batch?.lot_number ?? data.batch?.id ?? 'n/a'}
       </p>
     </main>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useRoasterProfile } from '@/src/hooks/useRoasterProfile';
 import {
@@ -21,25 +21,15 @@ type FormErrors = Partial<Record<keyof RoasterProfileFormValues, string>>;
 const REQUIRED_FIELDS: Array<keyof RoasterProfileFormValues> = [
   'company_name',
   'roaster_short_name',
-  'street',
-  'building_number',
-  'postal_code',
   'city',
-  'regon',
-  'nip',
 ];
 
 function trimForm(values: RoasterProfileFormValues): RoasterProfileFormValues {
   return {
     company_name: values.company_name.trim(),
     roaster_short_name: values.roaster_short_name.trim(),
-    street: values.street.trim(),
-    building_number: values.building_number.trim(),
-    apartment_number: values.apartment_number.trim(),
-    postal_code: values.postal_code.trim(),
     city: values.city.trim(),
-    regon: values.regon.trim(),
-    nip: values.nip.trim(),
+    website: values.website.trim(),
   };
 }
 
@@ -51,30 +41,7 @@ function validateForm(values: RoasterProfileFormValues): FormErrors {
     if (!v[field]) errors[field] = 'Pole wymagane.';
   });
 
-  if (v.regon && !/^\d+$/.test(v.regon)) {
-    errors.regon = 'REGON musi zawierać wyłącznie cyfry.';
-  }
-  if (v.nip && !/^\d+$/.test(v.nip)) {
-    errors.nip = 'NIP musi zawierać wyłącznie cyfry.';
-  }
-  if (v.postal_code && !/^\d{2}-\d{3}$/.test(v.postal_code)) {
-    errors.postal_code = 'Kod pocztowy musi mieć format NN-NNN.';
-  }
-
   return errors;
-}
-
-function formatAddress(values: {
-  street: string | null;
-  building_number: string | null;
-  apartment_number: string | null;
-  postal_code: string | null;
-  city: string | null;
-}): string {
-  const line1 = [values.street, values.building_number].filter(Boolean).join(' ');
-  const apt = values.apartment_number ? `/${values.apartment_number}` : '';
-  const line2 = [values.postal_code, values.city].filter(Boolean).join(' ');
-  return `${line1}${apt}, ${line2}`.trim().replace(/^,\s*/, '');
 }
 
 export default function RoasterProfilePage() {
@@ -104,12 +71,6 @@ export default function RoasterProfilePage() {
     setForm(profileToFormValues(profile));
   }, [exists, loading, profile, router, userId]);
 
-  const address = useMemo(() => {
-    if (!profile) return '—';
-    const formatted = formatAddress(profile);
-    return formatted || '—';
-  }, [profile]);
-
   async function handleSave() {
     if (!userId) return;
 
@@ -129,13 +90,8 @@ export default function RoasterProfilePage() {
       name: values.company_name,
       company_name: values.company_name,
       roaster_short_name: values.roaster_short_name,
-      street: values.street,
-      building_number: values.building_number,
-      apartment_number: values.apartment_number || null,
-      postal_code: values.postal_code,
       city: values.city,
-      regon: values.regon,
-      nip: values.nip,
+      website: values.website || null,
     };
 
     if (mode === 'create') {
@@ -220,16 +176,12 @@ export default function RoasterProfilePage() {
                 <dd>{profile.roaster_short_name ?? '—'}</dd>
               </div>
               <div>
-                <dt className={roasterProfileStyles.dlTerm}>Adres</dt>
-                <dd>{address}</dd>
+                <dt className={roasterProfileStyles.dlTerm}>Miasto</dt>
+                <dd>{profile.city ?? '—'}</dd>
               </div>
               <div>
-                <dt className={roasterProfileStyles.dlTerm}>REGON</dt>
-                <dd>{profile.regon ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className={roasterProfileStyles.dlTerm}>NIP</dt>
-                <dd>{profile.nip ?? '—'}</dd>
+                <dt className={roasterProfileStyles.dlTerm}>Strona WWW</dt>
+                <dd>{profile.website ?? '—'}</dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Subskrypcja</dt>
@@ -276,34 +228,6 @@ export default function RoasterProfilePage() {
               required
             />
             <Field
-              label="Ulica"
-              value={form.street}
-              onChange={(value) => setForm((prev) => ({ ...prev, street: value }))}
-              error={errors.street}
-              required
-            />
-            <Field
-              label="Numer budynku"
-              value={form.building_number}
-              onChange={(value) => setForm((prev) => ({ ...prev, building_number: value }))}
-              error={errors.building_number}
-              required
-            />
-            <Field
-              label="Numer lokalu (opcjonalnie)"
-              value={form.apartment_number}
-              onChange={(value) => setForm((prev) => ({ ...prev, apartment_number: value }))}
-              error={errors.apartment_number}
-            />
-            <Field
-              label="Kod pocztowy"
-              value={form.postal_code}
-              onChange={(value) => setForm((prev) => ({ ...prev, postal_code: value }))}
-              error={errors.postal_code}
-              placeholder="00-000"
-              required
-            />
-            <Field
               label="Miasto"
               value={form.city}
               onChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
@@ -311,18 +235,10 @@ export default function RoasterProfilePage() {
               required
             />
             <Field
-              label="REGON"
-              value={form.regon}
-              onChange={(value) => setForm((prev) => ({ ...prev, regon: value }))}
-              error={errors.regon}
-              required
-            />
-            <Field
-              label="NIP"
-              value={form.nip}
-              onChange={(value) => setForm((prev) => ({ ...prev, nip: value }))}
-              error={errors.nip}
-              required
+              label="Strona WWW (opcjonalnie)"
+              value={form.website}
+              onChange={(value) => setForm((prev) => ({ ...prev, website: value }))}
+              error={errors.website}
             />
 
             {submitError ? <p className={roasterProfileStyles.submitError}>{submitError}</p> : null}

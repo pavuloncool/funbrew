@@ -13,6 +13,9 @@ import { CoffeePageStory } from '../../../src/coffee/CoffeePageStory';
 import { AppCard, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
 import { visualSystemTokens } from '@funcup/shared';
 
+const NO_BOTTOM_SAFE_AREA = { edges: ['right', 'left'] as const };
+const { colors, spacing, radius, typography } = visualSystemTokens;
+
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   return String(err);
@@ -84,7 +87,7 @@ export default function CoffeePage() {
 
   if (!hash) {
     return (
-      <AppScrollScreen contentContainerStyle={{ padding: 24, gap: 12 }}>
+      <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
         <ScreenError
           title="Missing QR"
           message="Open this page from a scanned QR code or a valid link."
@@ -95,7 +98,7 @@ export default function CoffeePage() {
 
   if (coffeeQuery.isLoading) {
     return (
-      <AppScrollScreen>
+      <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA}>
         <CoffeePageSkeleton />
       </AppScrollScreen>
     );
@@ -103,7 +106,7 @@ export default function CoffeePage() {
 
   if (coffeeQuery.isError) {
     return (
-      <AppScrollScreen contentContainerStyle={{ padding: 24, gap: 12 }}>
+      <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
         <ScreenError
           message={formatError(coffeeQuery.error)}
           onRetry={() => void coffeeQuery.refetch()}
@@ -115,7 +118,7 @@ export default function CoffeePage() {
   const data = coffeeQuery.data;
   if (!data) {
     return (
-      <AppScrollScreen contentContainerStyle={{ padding: 24 }}>
+      <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.paddedContent}>
         <ScreenError title="No data" message="Unexpected empty response from scan." />
       </AppScrollScreen>
     );
@@ -126,7 +129,7 @@ export default function CoffeePage() {
     const tagName = displayTagName(t);
 
     return (
-      <AppScrollScreen style={styles.page} contentContainerStyle={styles.pageContent}>
+      <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} style={styles.page} contentContainerStyle={styles.pageContent}>
         <AppCard style={styles.card}>
           <AppText variant="h1" weight="700" accessibilityRole="header" style={styles.title}>
             {tagName}
@@ -174,6 +177,12 @@ export default function CoffeePage() {
           <AppText style={styles.row}>
             <AppText weight="700">Wysokość:</AppText> {t.bean_origin_height} m
           </AppText>
+          <AppText style={styles.row}>
+            <AppText weight="700">Tasting notes:</AppText>{' '}
+            {data.tasting_notes && data.tasting_notes.length > 0
+              ? data.tasting_notes.map((note) => note.label).join(', ')
+              : '—'}
+          </AppText>
         </AppCard>
       </AppScrollScreen>
     );
@@ -188,7 +197,7 @@ export default function CoffeePage() {
   };
 
   return (
-    <AppScrollScreen contentContainerStyle={{ padding: 24, gap: 12 }}>
+    <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
       {data.archived ? (
         <AppCard style={styles.archived}>
           <AppText weight="600">Archived batch</AppText>
@@ -223,32 +232,47 @@ export default function CoffeePage() {
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: visualSystemTokens.colors.canvas },
-  pageContent: { padding: 16 },
+  standardContent: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: 0,
+    gap: spacing.sm,
+  },
+  paddedContent: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: 0,
+  },
+  page: { backgroundColor: colors.canvas },
+  pageContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: 0,
+  },
   card: {
-    padding: 16,
+    padding: spacing.md,
   },
   title: {
-    marginBottom: 12,
+    marginBottom: spacing.sm,
     lineHeight: 36,
   },
-  imageWrap: { marginBottom: 16 },
+  imageWrap: { marginBottom: spacing.md },
   image: {
     width: '100%',
     height: 420,
-    borderRadius: 8,
-    backgroundColor: visualSystemTokens.colors.canvas,
+    borderRadius: radius.xs,
+    backgroundColor: colors.canvas,
   },
   imageFallback: {
     width: '100%',
     height: 420,
-    borderRadius: 8,
-    backgroundColor: visualSystemTokens.colors.canvas,
+    borderRadius: radius.xs,
+    backgroundColor: colors.canvas,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  row: { marginBottom: 12, lineHeight: 26 },
-  archived: { backgroundColor: visualSystemTokens.colors.surfaceMuted },
-  archivedInfo: { marginTop: 4 },
-  logAction: { paddingVertical: 12 },
+  row: { marginBottom: spacing.sm, lineHeight: typography.headingSM + spacing.xs },
+  archived: { backgroundColor: colors.surfaceMuted },
+  archivedInfo: { marginTop: spacing.xxs },
+  logAction: { paddingVertical: spacing.sm },
 });

@@ -106,7 +106,7 @@ export default function CoffeePage() {
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       const [flavorsRes, brewRes] = await Promise.all([
-        fetch(`${supabaseUrl}/rest/v1/flavor_notes?select=*&order=sort_order`, {
+        fetch(`${supabaseUrl}/rest/v1/tasting_notes?select=*&order=sort_order`, {
           headers: { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` }
         }),
         fetch(`${supabaseUrl}/rest/v1/brew_methods?select=*&order=sort_order`, {
@@ -148,7 +148,7 @@ export default function CoffeePage() {
         {
           brewMethodId: formData.brewMethodId || undefined,
           brewTimeSeconds: formData.brewTime ? parseInt(formData.brewTime) : undefined,
-          flavorNoteIds: formData.selectedFlavors,
+          tastingNoteIds: formData.selectedFlavors,
           freeTextNotes: formData.notes || undefined,
           review: formData.review || undefined,
         }
@@ -173,7 +173,7 @@ export default function CoffeePage() {
             rating: formData.rating,
             brew_method_id: formData.brewMethodId || undefined,
             brew_time_seconds: formData.brewTime ? parseInt(formData.brewTime) : undefined,
-            flavor_note_ids: formData.selectedFlavors,
+            tasting_note_ids: formData.selectedFlavors,
             free_text_notes: formData.notes || undefined,
             review: formData.review || undefined,
           }),
@@ -189,7 +189,7 @@ export default function CoffeePage() {
         {
           brewMethodId: formData.brewMethodId || undefined,
           brewTimeSeconds: formData.brewTime ? parseInt(formData.brewTime) : undefined,
-          flavorNoteIds: formData.selectedFlavors,
+          tastingNoteIds: formData.selectedFlavors,
           freeTextNotes: formData.notes || undefined,
           review: formData.review || undefined,
         }

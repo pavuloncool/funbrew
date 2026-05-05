@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/dashboard/coffees',
-        destination: '/roaster-hub/coffees',
+        destination: '/coffee-bank',
         permanent: true,
       },
       {
@@ -49,4 +49,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

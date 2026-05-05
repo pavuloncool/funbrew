@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
   lockedCard: {
     width: '100%',
     maxWidth: 320,
-    gap: 12,
+    gap: visualSystemTokens.spacing.sm,
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: visualSystemTokens.spacing.lg,
   },
 });

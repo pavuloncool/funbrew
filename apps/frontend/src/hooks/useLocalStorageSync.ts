@@ -6,7 +6,7 @@ interface PendingTasting {
   rating: number;
   brew_method_id?: string;
   brew_time_seconds?: number;
-  flavor_note_ids: string[];
+  tasting_note_ids: string[];
   free_text_notes?: string;
   review?: string;
   created_at: string;
@@ -105,7 +105,7 @@ export function useLocalStorageSync(options: LocalStorageSyncOptions = {}) {
               rating: tasting.rating,
               brew_method_id: tasting.brew_method_id,
               brew_time_seconds: tasting.brew_time_seconds,
-              flavor_note_ids: tasting.flavor_note_ids,
+              tasting_note_ids: tasting.tasting_note_ids,
               free_text_notes: tasting.free_text_notes,
               review: tasting.review,
             }),
@@ -155,7 +155,7 @@ export function createOfflineTasting(
   options: {
     brewMethodId?: string;
     brewTimeSeconds?: number;
-    flavorNoteIds?: string[];
+    tastingNoteIds?: string[];
     freeTextNotes?: string;
     review?: string;
   }
@@ -165,7 +165,7 @@ export function createOfflineTasting(
     rating,
     brew_method_id: options.brewMethodId,
     brew_time_seconds: options.brewTimeSeconds,
-    flavor_note_ids: options.flavorNoteIds || [],
+    tasting_note_ids: options.tastingNoteIds || [],
     free_text_notes: options.freeTextNotes,
     review: options.review,
   };

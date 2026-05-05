@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 
 import { getSupabase } from '../services/supabaseClient';
 import { type AuthService, SupabaseAuthService } from './authService';
+import { resolveProfileCompletedFromUser } from './profileCompletion';
 import { ExpoSecureStorageService } from './secureStorage';
 import type { AuthSession, AuthSnapshot, AuthStatus, AuthUser } from './types';
 
@@ -84,7 +85,7 @@ function mapSnapshotFromSession(session: Session): AuthSnapshot {
         }
       : null,
     session: mapSession(session),
-    profileCompleted: session.user.user_metadata?.profile_completed === true,
+    profileCompleted: resolveProfileCompletedFromUser(session.user),
   };
 }
 

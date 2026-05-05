@@ -12,11 +12,11 @@ export default async function BatchDetailsPage({ params }: Props) {
   return (
     <main className={hubCrudStyles.main760}>
       <h1 className={hubCrudStyles.pageHeading}>Batch details</h1>
-      <p className="text-sm">
-        <strong>Coffee:</strong> {id}
+      <p className={hubCrudStyles.bodyText}>
+        <strong className={hubCrudStyles.bodyStrong}>Coffee:</strong> {id}
       </p>
-      <p className="text-sm">
-        <strong>Batch:</strong> {batchId}
+      <p className={hubCrudStyles.bodyText}>
+        <strong className={hubCrudStyles.bodyStrong}>Batch:</strong> {batchId}
       </p>
       <p className={hubCrudStyles.batchNote}>
         Generowanie kodów QR dla batchy przeniesiono do flow tagu kawy (strona /tag).

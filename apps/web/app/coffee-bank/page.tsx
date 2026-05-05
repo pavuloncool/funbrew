@@ -57,6 +57,7 @@ function CoffeeBankContent() {
   const [qrPreview, setQrPreview] = useState<QrPreview | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [tastingNoteLabelsById, setTastingNoteLabelsById] = useState<Record<string, string>>({});
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
@@ -90,6 +91,36 @@ function CoffeeBankContent() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const primary = await supabaseBrowser
+        .from('tasting_notes')
+        .select('id,label')
+        .order('sort_order', { ascending: true });
+
+      if (!cancelled && !primary.error) {
+        const rows = (primary.data ?? []) as Array<{ id: string; label: string }>;
+        const map = Object.fromEntries(rows.map((item) => [item.id, item.label]));
+        setTastingNoteLabelsById(map);
+        return;
+      }
+
+      const fallback = await supabaseBrowser
+        .from('flavor_notes')
+        .select('id,label')
+        .order('sort_order', { ascending: true });
+
+      if (cancelled || fallback.error) return;
+      const rows = (fallback.data ?? []) as Array<{ id: string; label: string }>;
+      const map = Object.fromEntries(rows.map((item) => [item.id, item.label]));
+      setTastingNoteLabelsById(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const tagParam = searchParams.get('tag');
   const selectedId = useMemo(() => {
     if (!tagParam || !UUID_RE.test(tagParam)) return null;
@@ -101,6 +132,14 @@ function CoffeeBankContent() {
     () => (selectedId ? tags.find((t) => t.id === selectedId) ?? null : null),
     [selectedId, tags]
   );
+
+  const selectedTastingNoteLabels = useMemo(() => {
+    if (!selectedRow) return [];
+    const ids = Array.isArray(selectedRow.tasting_note_ids) ? selectedRow.tasting_note_ids : [];
+    return ids
+      .map((id) => tastingNoteLabelsById[id] ?? null)
+      .filter((label): label is string => Boolean(label));
+  }, [selectedRow, tastingNoteLabelsById]);
 
   const sortedTags = useMemo(() => {
     const copy = [...tags];
@@ -319,6 +358,9 @@ function CoffeeBankContent() {
                             </span>
                           </button>
                         </th>
+                        <th className={coffeeBankStyles.tableTh} scope="col">
+                          Akcje
+                        </th>
                       </tr>
                     </thead>
                     <tbody className={coffeeBankStyles.tableBody}>
@@ -340,6 +382,15 @@ function CoffeeBankContent() {
                               </button>
                             </td>
                             <td className={coffeeBankStyles.tableTd}>{formatRoastDate(row.bean_roast_date)}</td>
+                            <td className={coffeeBankStyles.tableTdAction}>
+                              <Link
+                                href={`/tag/edit/${row.id}`}
+                                className={coffeeBankStyles.editLink}
+                                data-testid={`coffee-bank-edit-${row.id}`}
+                              >
+                                Edytuj
+                              </Link>
+                            </td>
                           </tr>
                         );
                       })}
@@ -392,6 +443,10 @@ function CoffeeBankContent() {
                   </p>
                   <p className={coffeeBankStyles.productSection}>
                     <span className={coffeeBankStyles.productStrong}>Wysokość:</span> {selectedRow.bean_origin_height} m
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Tasting notes:</span>{' '}
+                    {selectedTastingNoteLabels.length > 0 ? selectedTastingNoteLabels.join(', ') : '—'}
                   </p>
 
                   <div className={coffeeBankStyles.qrBlock}>

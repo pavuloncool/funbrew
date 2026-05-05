@@ -22,7 +22,7 @@ import { AvatarPreview } from '../../../src/features/profile/avatar/AvatarPrevie
 import { BrewMethodPickerField } from '../../../src/features/profile/preferences/BrewMethodPickerField';
 import { FlavorNotesMultiSelect } from '../../../src/features/profile/preferences/FlavorNotesMultiSelect';
 import { loadBrewMethodOptions, type BrewMethodOption } from '../../../src/features/profile/preferences/brewMethods';
-import { loadFlavorNoteOptions, type FlavorNoteOption } from '../../../src/features/profile/preferences/flavorNotes';
+import { loadTastingNoteOptions, type TastingNoteOption } from '../../../src/features/profile/preferences/tastingNotes';
 import { supabase } from '../../../src/services/supabaseClient';
 import { useAuth } from '../../../src/auth';
 
@@ -37,8 +37,6 @@ export default function ProfileScreen() {
   const { biometricsEnabled, disableBiometrics, enableBiometrics, lockWithBiometrics, logout } = useAuth();
   const avatarOptions = useMemo(() => buildAvatarOptions(), []);
   const insets = useSafeAreaInsets();
-  const demoReputationScore = 24;
-  const reputationLevel = getReputationLevel(demoReputationScore);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,9 +49,11 @@ export default function ProfileScreen() {
   const [originalEmail, setOriginalEmail] = useState('');
   const [avatarValue, setAvatarValue] = useState(serializeAvatar(avatarOptions[0]));
   const [favoriteBrewMethodId, setFavoriteBrewMethodId] = useState<string | null>(null);
-  const [favoriteFlavorNoteIds, setFavoriteFlavorNoteIds] = useState<string[]>([]);
+  const [favoriteTastingNoteIds, setFavoriteFlavorNoteIds] = useState<string[]>([]);
+  const [sensoryScore, setSensoryScore] = useState(0);
+  const [sensoryLevelStored, setSensoryLevelStored] = useState<'beginner' | 'advanced' | 'expert'>('beginner');
   const [brewMethodOptions, setBrewMethodOptions] = useState<BrewMethodOption[]>([]);
-  const [flavorNoteOptions, setFlavorNoteOptions] = useState<FlavorNoteOption[]>([]);
+  const [flavorNoteOptions, setFlavorNoteOptions] = useState<TastingNoteOption[]>([]);
 
   const [editMode, setEditMode] = useState(false);
 
@@ -63,6 +63,7 @@ export default function ProfileScreen() {
 
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const reputationLevel = useMemo(() => getReputationLevel(sensoryScore), [sensoryScore]);
 
   const selectedAvatar = useMemo(() => resolveAvatarOption(avatarValue), [avatarValue]);
   const selectedAvatarSvg = useMemo(
@@ -71,19 +72,29 @@ export default function ProfileScreen() {
   );
   const favoriteBrewMethodLabel = useMemo(() => {
     const selected = brewMethodOptions.find((option) => option.id === favoriteBrewMethodId);
-    return selected?.name ?? 'Nie ustawiono';
+    if (selected?.name) {
+      return selected.name;
+    }
+    if (favoriteBrewMethodId) {
+      return `Wybrane (ID: ${favoriteBrewMethodId})`;
+    }
+    return 'Nie ustawiono';
   }, [brewMethodOptions, favoriteBrewMethodId]);
   const favoriteTastingNotesLabel = useMemo(() => {
-    if (favoriteFlavorNoteIds.length === 0) {
+    if (favoriteTastingNoteIds.length === 0) {
       return 'Nie ustawiono';
     }
 
     const labels = flavorNoteOptions
-      .filter((option) => favoriteFlavorNoteIds.includes(option.id))
+      .filter((option) => favoriteTastingNoteIds.includes(option.id))
       .map((option) => option.label);
 
-    return labels.length > 0 ? labels.join(', ') : 'Nie ustawiono';
-  }, [flavorNoteOptions, favoriteFlavorNoteIds]);
+    if (labels.length > 0) {
+      return labels.join(', ');
+    }
+
+    return `Wybrane (IDs: ${favoriteTastingNoteIds.join(', ')})`;
+  }, [flavorNoteOptions, favoriteTastingNoteIds]);
 
   useEffect(() => {
     let mounted = true;
@@ -93,7 +104,7 @@ export default function ProfileScreen() {
         const [profile, brewMethods, flavorNotes] = await Promise.all([
           loadEditableProfile(supabase),
           loadBrewMethodOptions(supabase),
-          loadFlavorNoteOptions(supabase),
+          loadTastingNoteOptions(supabase),
         ]);
         if (!mounted) return;
 
@@ -103,9 +114,23 @@ export default function ProfileScreen() {
         setOriginalEmail(profile.email);
         setAvatarValue(profile.avatarUrl);
         setFavoriteBrewMethodId(profile.favoriteBrewMethodId);
-        setFavoriteFlavorNoteIds(profile.favoriteFlavorNoteIds);
+        const allowedIds = new Set(flavorNotes.map((item) => item.id));
+        const prunedNotes = profile.favoriteTastingNoteIds.filter((id) => allowedIds.has(id));
+        setFavoriteFlavorNoteIds(prunedNotes);
+        setSensoryScore(profile.sensoryScore);
+        setSensoryLevelStored(profile.sensoryLevel);
         setBrewMethodOptions(brewMethods);
         setFlavorNoteOptions(flavorNotes);
+        if (prunedNotes.length !== profile.favoriteTastingNoteIds.length) {
+          void saveEditableProfile({
+            supabase,
+            userId: profile.userId,
+            displayName: profile.displayName,
+            avatarUrl: profile.avatarUrl,
+            favoriteBrewMethodId: profile.favoriteBrewMethodId,
+            favoriteTastingNoteIds: prunedNotes,
+          });
+        }
       } catch (bootstrapError) {
         if (!mounted) return;
         setError(bootstrapError instanceof Error ? bootstrapError.message : 'Nie udało się załadować profilu.');
@@ -142,12 +167,12 @@ export default function ProfileScreen() {
       return;
     }
 
-    if (favoriteFlavorNoteIds.length < 1) {
+    if (favoriteTastingNoteIds.length < 1) {
       setError('Wybierz minimum 1 tasting note.');
       return;
     }
 
-    if (favoriteFlavorNoteIds.length > 3) {
+    if (favoriteTastingNoteIds.length > 3) {
       setError('Możesz wybrać maksymalnie 3 tasting notes.');
       return;
     }
@@ -163,7 +188,7 @@ export default function ProfileScreen() {
         displayName: trimmedName,
         avatarUrl: avatarValue,
         favoriteBrewMethodId,
-        favoriteFlavorNoteIds,
+        favoriteTastingNoteIds,
       });
 
       if (trimmedEmail !== originalEmail.toLowerCase()) {
@@ -181,6 +206,9 @@ export default function ProfileScreen() {
         setInfo('Dane profilu zapisane.');
       }
 
+      const refreshed = await loadEditableProfile(supabase);
+      setSensoryScore(refreshed.sensoryScore);
+      setSensoryLevelStored(refreshed.sensoryLevel);
       setEditMode(false);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Nie udało się zapisać profilu.');
@@ -309,7 +337,12 @@ export default function ProfileScreen() {
         <AppCard>
           <AppText variant="body" weight="600">Sensory reputation</AppText>
           <AppText variant="h2" weight="700">{getReputationLevelLabel(reputationLevel)}</AppText>
-          <AppText tone="secondary">Score: {demoReputationScore}</AppText>
+          <AppText tone="secondary">Score: {sensoryScore}</AppText>
+          {sensoryLevelStored !== reputationLevel ? (
+            <AppText tone="secondary">
+              Stored level: {getReputationLevelLabel(sensoryLevelStored)}
+            </AppText>
+          ) : null}
           <AppText tone="secondary">Fav brew method: {favoriteBrewMethodLabel}</AppText>
           <AppText tone="secondary">Fav tasting notes: {favoriteTastingNotesLabel}</AppText>
         </AppCard>
@@ -372,7 +405,7 @@ export default function ProfileScreen() {
 
             <FlavorNotesMultiSelect
               options={flavorNoteOptions}
-              selectedIds={favoriteFlavorNoteIds}
+              selectedIds={favoriteTastingNoteIds}
               onChange={setFavoriteFlavorNoteIds}
               maxSelected={3}
             />

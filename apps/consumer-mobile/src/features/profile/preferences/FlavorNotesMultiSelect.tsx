@@ -8,10 +8,10 @@ import {
 } from 'react-native';
 
 import { AppText } from '../../../components/ui/primitives';
-import type { FlavorNoteOption } from './flavorNotes';
+import type { TastingNoteOption } from './tastingNotes';
 
 export function FlavorNotesMultiSelect(props: {
-  options: FlavorNoteOption[];
+  options: TastingNoteOption[];
   selectedIds: string[];
   onChange: (nextIds: string[]) => void;
   maxSelected?: number;

@@ -36,24 +36,24 @@ export default function CoffeeDetailsPage() {
   return (
     <main className={hubCrudStyles.main760}>
       <p className="mb-4">
-        <Link href="/roaster-hub/coffees" className={hubCrudStyles.navBack}>
-          ← Lista kaw
+        <Link href="/coffee-bank" className={hubCrudStyles.navBack}>
+          ← Coffee Bank
         </Link>
       </p>
       <h1 className={hubCrudStyles.pageHeading}>Coffee details</h1>
       {error ? <p className={hubCrudStyles.error}>{error}</p> : null}
       {coffee ? (
         <>
-          <p className="text-sm">
-            <strong>Name:</strong> {coffee.name}
+          <p className={hubCrudStyles.bodyText}>
+            <strong className={hubCrudStyles.bodyStrong}>Name:</strong> {coffee.name}
           </p>
-          <p className="text-sm">
-            <strong>Status:</strong> {coffee.status}
+          <p className={hubCrudStyles.bodyText}>
+            <strong className={hubCrudStyles.bodyStrong}>Status:</strong> {coffee.status}
           </p>
-          <p className="text-sm">
-            <strong>Created:</strong> {new Date(coffee.created_at).toLocaleString()}
+          <p className={hubCrudStyles.bodyText}>
+            <strong className={hubCrudStyles.bodyStrong}>Created:</strong> {new Date(coffee.created_at).toLocaleString()}
           </p>
-          <p className="mt-2">
+          <p className={hubCrudStyles.inlineGapTop}>
             <Link href={`/roaster-hub/coffees/${coffee.id}/batches/new`} className={hubCrudStyles.actionLink}>
               + Create batch
             </Link>

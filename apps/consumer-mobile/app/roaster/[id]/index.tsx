@@ -1,18 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
+import { useFollowRoaster, visualSystemTokens } from '@funcup/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { useFollowRoaster } from '@funcup/shared';
 
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { supabase } from '../../../src/services/supabaseClient';
 import { AppButton, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
+import { pageStyles } from '../../../src/theme/pageStyles';
 
 type RoasterProfileData = {
   id: string;
-  name: string;
-  country: string | null;
+  roaster_short_name: string | null;
   city: string | null;
-  description: string | null;
   website: string | null;
   isFollowed: boolean;
 };
@@ -23,17 +22,15 @@ async function fetchRoasterProfile(params: {
 }): Promise<RoasterProfileData | null> {
   const { data: roasterData, error } = await supabase
     .from('roasters')
-    .select('id,name,country,city,description,website')
+    .select('id,roaster_short_name,city,website')
     .eq('id', params.roasterId)
     .maybeSingle();
   if (error) throw error;
   const data = roasterData as
     | {
         id: string;
-        name: string;
-        country: string | null;
+        roaster_short_name: string | null;
         city: string | null;
-        description: string | null;
         website: string | null;
       }
     | null;
@@ -53,10 +50,8 @@ async function fetchRoasterProfile(params: {
 
   return {
     id: data.id,
-    name: data.name,
-    country: data.country,
+    roaster_short_name: data.roaster_short_name,
     city: data.city,
-    description: data.description,
     website: data.website,
     isFollowed,
   };
@@ -76,7 +71,7 @@ export default function RoasterProfileScreen() {
 
   if (!roasterId) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
         <AppText>Missing roaster id.</AppText>
       </AppScrollScreen>
     );
@@ -84,7 +79,7 @@ export default function RoasterProfileScreen() {
 
   if (roasterQuery.isLoading || userLoading) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
         <AppText>Loading roaster profile...</AppText>
       </AppScrollScreen>
     );
@@ -92,7 +87,7 @@ export default function RoasterProfileScreen() {
 
   if (roasterQuery.isError) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
         <AppText>Could not load roaster profile.</AppText>
       </AppScrollScreen>
     );
@@ -100,7 +95,7 @@ export default function RoasterProfileScreen() {
 
   if (!roasterQuery.data) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
         <AppText>Roaster not found.</AppText>
       </AppScrollScreen>
     );
@@ -112,10 +107,9 @@ export default function RoasterProfileScreen() {
     : roaster.isFollowed;
 
   return (
-    <AppScrollScreen contentContainerStyle={styles.page}>
-      <AppText variant="h1" weight="700">{roaster.name}</AppText>
-      <AppText>{[roaster.city, roaster.country].filter(Boolean).join(', ') || 'Location unavailable'}</AppText>
-      <AppText>{roaster.description ?? 'No description yet.'}</AppText>
+    <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+      <AppText variant="h1" weight="700">{roaster.roaster_short_name ?? 'Roaster'}</AppText>
+      <AppText>{roaster.city ?? 'Location unavailable'}</AppText>
       <AppText>{roaster.website ?? 'No website'}</AppText>
 
       <View style={styles.actionWrap}>
@@ -131,6 +125,5 @@ export default function RoasterProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 20, gap: 12 },
-  actionWrap: { paddingTop: 8 },
+  actionWrap: { paddingTop: visualSystemTokens.spacing.xs },
 });

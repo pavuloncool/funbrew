@@ -74,29 +74,29 @@ export default function BatchAnalyticsPage() {
       ? `/roaster-hub/coffees/${coffeeId}/batches/${batchId}`
       : coffeeId
         ? `/roaster-hub/coffees/${coffeeId}`
-        : '/roaster-hub/coffees';
+        : '/coffee-bank';
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 font-sans text-zinc-900">
+    <main className="mx-auto w-full max-w-3xl px-4 py-10 font-sans text-neutral-900">
       <nav className="mb-6 text-sm">
-        <Link href="/roaster-hub/coffees" className="text-zinc-600 underline hover:text-zinc-900">
-          Coffees
+        <Link href="/coffee-bank" className="text-neutral-700 underline hover:text-neutral-900">
+          Coffee Bank
         </Link>
-        <span className="mx-2 text-zinc-400">/</span>
-        <Link href={backHref} className="text-zinc-600 underline hover:text-zinc-900">
+        <span className="mx-2 text-neutral-400">/</span>
+        <Link href={backHref} className="text-neutral-700 underline hover:text-neutral-900">
           Batch
         </Link>
-        <span className="mx-2 text-zinc-400">/</span>
-        <span className="text-zinc-800">Analytics</span>
+        <span className="mx-2 text-neutral-400">/</span>
+        <span className="text-neutral-800">Analytics</span>
       </nav>
 
       <h1 className="text-2xl font-semibold tracking-tight">Batch analytics</h1>
-      <p className="mt-1 font-mono text-sm text-zinc-500">{batchId ?? '—'}</p>
+      <p className="mt-1 font-mono text-sm text-neutral-500">{batchId ?? '—'}</p>
 
-      {isLoading ? <p className="mt-8 text-zinc-600">Loading analytics…</p> : null}
+      {isLoading ? <p className="mt-8 text-neutral-600">Loading analytics…</p> : null}
 
       {errorMessage ? (
-        <p className="mt-8 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mt-8 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {errorMessage}
         </p>
       ) : null}
@@ -104,7 +104,7 @@ export default function BatchAnalyticsPage() {
       {!isLoading && data && !errorMessage ? (
         <>
           {!data.globalFromStats && data.logs.length === 0 ? (
-            <p className="mt-8 text-zinc-600">
+            <p className="mt-8 text-neutral-600">
               No tastings logged for this batch yet. Totals will appear after the first tasting.
             </p>
           ) : null}
@@ -150,7 +150,7 @@ export default function BatchAnalyticsPage() {
                 />
               </>
             ) : (
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-neutral-500">
                 Select a brew method to compare flavor notes and ratings for that subset.
               </p>
             )}

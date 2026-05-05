@@ -60,10 +60,6 @@ export default function RoasterHubPage() {
       onClick: () => router.push('/tag'),
     },
     {
-      label: 'Lista kaw (CRUD)',
-      onClick: () => router.push('/roaster-hub/coffees'),
-    },
-    {
       label: 'Profil palarni',
       onClick: () => router.push('/roaster-profile'),
     },

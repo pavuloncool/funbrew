@@ -166,8 +166,8 @@ export default function RoasterSetupPage() {
       </form>
       {error ? <p className={hubCrudStyles.error}>{error}</p> : null}
       <p className={hubCrudStyles.footerLinks}>
-        <Link href="/roaster-hub/coffees" className={hubCrudStyles.link}>
-          Wróć do listy kaw
+        <Link href="/coffee-bank" className={hubCrudStyles.link}>
+          Wróć do Coffee Bank
         </Link>
         <span className="text-neutral-400">·</span>
         <Link href="/tag" className={hubCrudStyles.link}>

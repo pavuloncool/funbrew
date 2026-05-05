@@ -1,8 +1,7 @@
+import { enqueuePendingTasting, getPendingTastings, logTasting, visualSystemTokens } from '@funcup/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-
-import { enqueuePendingTasting, logTasting } from '@funcup/shared';
 import NetInfo from '@react-native-community/netinfo';
 
 import { BrewMethodPicker } from '../../../src/coffee/tasting/BrewMethodPicker';
@@ -10,8 +9,8 @@ import { FlavorNoteSelector } from '../../../src/coffee/tasting/FlavorNoteSelect
 import { RatingInput } from '../../../src/coffee/tasting/RatingInput';
 import { offlineQueueStorage } from '../../../src/services/offlineQueueStorage';
 import { supabase } from '../../../src/services/supabaseClient';
-import { getPendingTastings } from '@funcup/shared';
 import { AppButton, AppInput, AppScreen, AppText } from '../../../src/components/ui/primitives';
+import { pageStyles } from '../../../src/theme/pageStyles';
 
 export default function TastingLogScreen() {
   const params = useLocalSearchParams<{ id?: string; batchId?: string }>();
@@ -79,7 +78,7 @@ export default function TastingLogScreen() {
 
   return (
     <AppScreen>
-      <View style={styles.page}>
+      <View style={[pageStyles.content, styles.page]}>
       <AppText variant="h2" weight="700">Tasting Log</AppText>
       <AppText>Batch id: {batchId ?? '(missing)'}</AppText>
       <AppText tone={isOnline ? 'success' : 'danger'}>
@@ -107,6 +106,6 @@ export default function TastingLogScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, padding: 24, gap: 12 },
-  submit: { gap: 8 },
+  page: { flex: 1 },
+  submit: { gap: visualSystemTokens.spacing.xs },
 });

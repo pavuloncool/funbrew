@@ -1,9 +1,23 @@
-import { getFlavorNotesForReputation } from '@funcup/shared';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppChip, AppPanel, AppText } from '../../components/ui/primitives';
+import { loadTastingNoteOptions, type TastingNoteOption } from '../../features/profile/preferences/tastingNotes';
+import { supabase } from '../../services/supabaseClient';
 
-export function FlavorNoteSelector(props: { reputationScore?: number }) {
-  const visibleNotes = getFlavorNotesForReputation(props.reputationScore ?? 0);
+export function FlavorNoteSelector() {
+  const [visibleNotes, setVisibleNotes] = useState<TastingNoteOption[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      const all = await loadTastingNoteOptions(supabase).catch(() => []);
+      if (!mounted) return;
+      setVisibleNotes(all);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <AppPanel style={styles.section}>

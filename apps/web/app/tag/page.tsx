@@ -14,7 +14,7 @@ import { pl } from 'date-fns/locale';
 import { CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { FilePond, registerPlugin } from 'react-filepond';
 
@@ -102,6 +102,21 @@ type SaveFeedback =
   | { kind: 'error'; message: string };
 
 type QrPreview = { svg: string; png: string; url: string };
+type TastingNoteOption = { id: string; name: string; label: string; category: string; sort_order: number };
+const CANONICAL_TASTING_NOTES = [
+  { key: 'berry', names: ['berry'], label: 'Berry', category: 'fruity', sortOrder: 1 },
+  { key: 'citrus', names: ['citrus'], label: 'Citrus', category: 'fruity', sortOrder: 2 },
+  { key: 'stone-fruit', names: ['stone-fruit', 'stone_fruit'], label: 'Stone Fruit', category: 'fruity', sortOrder: 3 },
+  { key: 'floral', names: ['floral'], label: 'Floral', category: 'floral', sortOrder: 4 },
+  { key: 'jasmine', names: ['jasmine'], label: 'Jasmine', category: 'floral', sortOrder: 5 },
+  { key: 'chocolate', names: ['chocolate'], label: 'Chocolate', category: 'sweet', sortOrder: 6 },
+  { key: 'caramel', names: ['caramel'], label: 'Caramel', category: 'sweet', sortOrder: 7 },
+  { key: 'honey', names: ['honey'], label: 'Honey', category: 'sweet', sortOrder: 8 },
+  { key: 'brown-sugar', names: ['brown-sugar', 'brown_sugar'], label: 'Brown Sugar', category: 'sweet', sortOrder: 9 },
+  { key: 'almond', names: ['almond'], label: 'Almond', category: 'nutty', sortOrder: 10 },
+  { key: 'hazelnut', names: ['hazelnut'], label: 'Hazelnut', category: 'nutty', sortOrder: 11 },
+  { key: 'cinnamon', names: ['cinnamon'], label: 'Cinnamon', category: 'spice', sortOrder: 12 },
+] as const;
 
 export default function RoasterAddCoffeePage() {
   const router = useRouter();
@@ -116,6 +131,10 @@ export default function RoasterAddCoffeePage() {
   const [qrPreview, setQrPreview] = useState<QrPreview | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [tastingNoteOptions, setTastingNoteOptions] = useState<TastingNoteOption[]>([]);
+  const [selectedTastingNoteIds, setSelectedTastingNoteIds] = useState<string[]>([]);
+  const tastingPickerRef = useRef<HTMLDivElement | null>(null);
+  const [tastingPickerOpen, setTastingPickerOpen] = useState(false);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
@@ -141,6 +160,60 @@ export default function RoasterAddCoffeePage() {
       const r = roaster as { id: string; roaster_short_name: string | null } | null;
       setRoasterMeta(r ? { id: r.id, roaster_short_name: r.roaster_short_name } : null);
       setSessionReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const primary = await supabaseBrowser
+        .from('tasting_notes')
+        .select('id,name,label,category,sort_order')
+        .in(
+          'name',
+          CANONICAL_TASTING_NOTES.flatMap((note) => note.names)
+        )
+        .order('sort_order', { ascending: true });
+      if (cancelled) return;
+      const mapToCanonical = (rows: TastingNoteOption[]): TastingNoteOption[] => {
+        const byName = new Map(rows.map((row) => [row.name, row] as const));
+        const mapped: TastingNoteOption[] = [];
+        for (const canonical of CANONICAL_TASTING_NOTES) {
+          const match = canonical.names.map((name) => byName.get(name)).find(Boolean);
+          if (!match) continue;
+          mapped.push({
+            id: match.id,
+            name: canonical.key,
+            label: canonical.label,
+            category: canonical.category,
+            sort_order: canonical.sortOrder,
+          });
+        }
+        return mapped;
+      };
+
+      if (!primary.error) {
+        setTastingNoteOptions(mapToCanonical((primary.data ?? []) as TastingNoteOption[]));
+        return;
+      }
+
+      const fallback = await supabaseBrowser
+        .from('flavor_notes')
+        .select('id,name,label,category,sort_order')
+        .in(
+          'name',
+          CANONICAL_TASTING_NOTES.flatMap((note) => note.names)
+        )
+        .order('sort_order', { ascending: true });
+      if (cancelled) return;
+      if (fallback.error) {
+        setTastingNoteOptions([]);
+        return;
+      }
+      setTastingNoteOptions(mapToCanonical((fallback.data ?? []) as TastingNoteOption[]));
     })();
     return () => {
       cancelled = true;
@@ -227,11 +300,15 @@ export default function RoasterAddCoffeePage() {
       }
 
       const row = clientFormValuesToInsert(values, coffeeLabelUrl, roasterId);
+      const rowWithTastingNotes = {
+        ...row,
+        tasting_note_ids: selectedTastingNoteIds,
+      };
 
       try {
         const { data, error } = await supabaseBrowser
           .from('roaster_coffee_tags')
-          .insert(row as never)
+          .insert(rowWithTastingNotes as never)
           .select('id, public_hash, roaster_short_name')
           .single();
         if (error) {
@@ -250,7 +327,7 @@ export default function RoasterAddCoffeePage() {
         setSaveFeedback({ kind: 'error', message });
       }
     },
-    [roasterId]
+    [roasterId, selectedTastingNoteIds]
   );
 
   const handleGenerateQr = useCallback(async () => {
@@ -303,6 +380,37 @@ export default function RoasterAddCoffeePage() {
     setValue('bean_roast_date', getTodayIsoDateString(), { shouldValidate: true });
   }, [setValue]);
 
+  const toggleTastingNote = useCallback((id: string) => {
+    setSelectedTastingNoteIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) return prev;
+      return [...prev, id];
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!tastingPickerOpen) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (!tastingPickerRef.current) return;
+      if (!(event.target instanceof Node)) return;
+      if (!tastingPickerRef.current.contains(event.target)) {
+        setTastingPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+    };
+  }, [tastingPickerOpen]);
+
+  const selectedTastingLabels = useMemo(
+    () =>
+      selectedTastingNoteIds
+        .map((id) => tastingNoteOptions.find((note) => note.id === id)?.label)
+        .filter((label): label is string => Boolean(label)),
+    [selectedTastingNoteIds, tastingNoteOptions]
+  );
+
   const authGate =
     sessionReady && !hasSession ? (
       <div
@@ -335,8 +443,8 @@ export default function RoasterAddCoffeePage() {
         >
           Utwórz profil palarni
         </Link>
-        <Link href="/roaster-hub/coffees" className={tagStyles.roasterGateLinkSecondary}>
-          Lista kaw
+        <Link href="/coffee-bank" className={tagStyles.roasterGateLinkSecondary}>
+          Coffee Bank
         </Link>
       </div>
     ) : null;
@@ -413,9 +521,9 @@ export default function RoasterAddCoffeePage() {
             <button
               type="button"
               className={tagStyles.successCta}
-              onClick={() => router.replace('/role')}
+              onClick={() => router.replace('/roaster-hub')}
             >
-              Wróć do wyboru roli
+              Wróć do Roaster Hub
             </button>
           </div>
         ) : null}
@@ -657,6 +765,44 @@ export default function RoasterAddCoffeePage() {
             ))}
           </select>
           <Err msg={errors.brew_method?.message} />
+
+          <FieldLabel text="Tasting notes (max 4)" />
+          <div className={tagStyles.tastingDropdown} ref={tastingPickerRef}>
+            <button
+              type="button"
+              className={tagStyles.tastingDropdownTrigger}
+              onClick={() => setTastingPickerOpen((prev) => !prev)}
+              aria-expanded={tastingPickerOpen}
+              aria-haspopup="listbox"
+              data-testid="tasting-notes-dropdown-trigger"
+            >
+              {selectedTastingLabels.length > 0
+                ? `${selectedTastingLabels.join(', ')}`
+                : 'Wybierz tasting notes'}
+            </button>
+            {tastingPickerOpen ? (
+              <div className={tagStyles.tastingDropdownPanel} role="listbox" aria-label="Tasting notes picker">
+                {tastingNoteOptions.map((note) => {
+                  const selected = selectedTastingNoteIds.includes(note.id);
+                  const disabled = !selected && selectedTastingNoteIds.length >= 4;
+                  return (
+                    <label key={note.id} className={tagStyles.tastingDropdownOption}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={disabled}
+                        onChange={() => toggleTastingNote(note.id)}
+                      />
+                      <span>{note.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          <p className={tagStyles.tastingNotesHint}>
+            Wybrano: {selectedTastingNoteIds.length}/4
+          </p>
 
           <button
             type="submit"

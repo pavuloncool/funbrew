@@ -7,15 +7,14 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
-import { AppButton, AppInput, AppScreen, AppText } from '../../../src/components/ui/primitives';
+import { AppButton, AppScreen, AppText } from '../../../src/components/ui/primitives';
 import { visualSystemTokens } from '@funcup/shared';
+import { pageStyles } from '../../../src/theme/pageStyles';
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-
-  const [devInput, setDevInput] = useState('');
 
   const handleBarcodeScanned = useCallback(
     ({ data }: { data: string }) => {
@@ -39,18 +38,9 @@ export default function ScanScreen() {
     setParseError(null);
   }, []);
 
-  const submitDevInput = useCallback(() => {
-    const hash = parseFuncupQrScanPayload(devInput);
-    if (hash) {
-      router.replace({ pathname: '/q/[hash]', params: { hash } });
-      return;
-    }
-    setParseError('Wklejono niepoprawny URL lub hash.');
-  }, [devInput]);
-
   if (!permission) {
     return (
-      <AppScreen style={styles.centered}>
+      <AppScreen style={pageStyles.centered}>
         <ActivityIndicator size="large" />
         <AppText tone="secondary">Sprawdzanie dostępu do kamery…</AppText>
       </AppScreen>
@@ -75,14 +65,10 @@ export default function ScanScreen() {
   return (
     <AppScreen style={styles.root}>
       <View style={styles.header}>
-        <AppText variant="h2" weight="700">Skanuj kod</AppText>
+        <AppText variant="h2" weight="700">Scan Coffee</AppText>
         <AppText tone="secondary" style={styles.body}>
-          Wskaż aparatem kod QR z etykiety. Link w kodzie musi wskazywać na stronę funcup w formacie
-          /q/…
+          Scan the QR code from the coffee package for the lot details, brewing instructions, tasting notes and more.
         </AppText>
-        <Link href="/(tabs)/hub" style={styles.link}>
-          Wróć do Coffee Hub
-        </Link>
       </View>
 
       <View style={styles.cameraBox}>
@@ -94,24 +80,14 @@ export default function ScanScreen() {
         />
       </View>
 
+      <Link href="/(tabs)/hub" style={styles.linkBelowCamera}>
+        Back to My Coffee House.
+      </Link>
+
       {parseError ? (
         <View style={styles.errorBox}>
           <AppText tone="danger">{parseError}</AppText>
           <AppButton label="Skanuj ponownie" onPress={handleRetry} />
-        </View>
-      ) : null}
-
-      {__DEV__ ? (
-        <View style={styles.devBox}>
-          <AppText variant="caption" tone="muted">Dev: wklej URL lub hash</AppText>
-          <AppInput
-            value={devInput}
-            onChangeText={setDevInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="https://…/q/… lub funcup://q/…"
-          />
-          <AppButton label="Otwórz" variant="secondary" onPress={submitDevInput} />
         </View>
       ) : null}
     </AppScreen>
@@ -119,13 +95,47 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: { padding: 20, paddingBottom: 12, gap: 8 },
-  body: { lineHeight: 22 },
-  link: { fontSize: 15, color: visualSystemTokens.colors.accentPrimary, fontWeight: '700', marginTop: 4 },
-  cameraBox: { flex: 1, marginHorizontal: 16, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },
-  errorBox: { padding: 16, gap: 12, backgroundColor: visualSystemTokens.colors.surfaceMuted },
-  pad: { flex: 1, padding: 24, gap: 12, justifyContent: 'center' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  devBox: { padding: 16, gap: 8, borderTopWidth: 1, borderTopColor: visualSystemTokens.colors.borderSubtle },
+  root: { 
+    flex: 1 
+  },
+  header: { 
+    padding: visualSystemTokens.spacing.lg,
+    paddingBottom: visualSystemTokens.spacing.sm,
+    gap: visualSystemTokens.spacing.xs,
+  },
+  body: { 
+    lineHeight: 22,
+  },
+  link: { 
+    fontSize: visualSystemTokens.typography.bodyMD,
+    color: visualSystemTokens.colors.accentPrimary, 
+    fontWeight: '700',
+    marginTop: visualSystemTokens.spacing.xxs,
+  },
+  linkBelowCamera: {
+    fontSize: visualSystemTokens.typography.bodyMD,
+    color: visualSystemTokens.colors.accentPrimary,
+    fontWeight: '700',
+    marginHorizontal: visualSystemTokens.spacing.lg,
+    marginBottom: visualSystemTokens.spacing.sm,
+  },
+  cameraBox: { 
+    marginBottom: visualSystemTokens.spacing.md,
+    borderRadius: visualSystemTokens.radius.lg,
+    overflow: 'hidden',
+    aspectRatio: 1,
+    alignSelf: 'stretch',
+    marginHorizontal: visualSystemTokens.spacing.xl,
+  },
+  errorBox: { 
+    padding: visualSystemTokens.spacing.md,
+    gap: visualSystemTokens.spacing.sm,
+    backgroundColor: visualSystemTokens.colors.surfaceMuted,
+  },
+  pad: { 
+    flex: 1, 
+    padding: visualSystemTokens.spacing.xl,
+    gap: visualSystemTokens.spacing.sm,
+    justifyContent: 'center',
+  },
 });

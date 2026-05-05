@@ -2,6 +2,7 @@ import { Link, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { AppScreen, AppText } from '../src/components/ui/primitives';
+import { pageStyles } from '../src/theme/pageStyles';
 
 /**
  * Post-entry shell (Phase 010-002). Auth vs tabs routing is refined in 010-004.
@@ -24,7 +25,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <AppScreen style={{ padding: 24, gap: 12, justifyContent: 'center' }}>
+    <AppScreen style={[pageStyles.content, { justifyContent: 'center' }]}>
       <AppText
         variant="h1"
         weight="700"

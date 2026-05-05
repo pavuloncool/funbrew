@@ -9,7 +9,7 @@ import type { Database } from '../../../../supabase/types/database';
 export type RoasterCoffeeTagRow = Database['public']['Tables']['roaster_coffee_tags']['Row'];
 
 const SELECT_TAGS =
-  'id, public_hash, roaster_id, roaster_short_name, img_coffee_label, bean_origin_country, bean_origin_farm, bean_origin_tradename, bean_origin_region, bean_type, bean_varietal_main, bean_varietal_extra, bean_origin_height, bean_processing, bean_roast_date, bean_roast_level, brew_method, created_at, updated_at';
+  'id, public_hash, roaster_id, roaster_short_name, img_coffee_label, bean_origin_country, bean_origin_farm, bean_origin_tradename, bean_origin_region, bean_type, bean_varietal_main, bean_varietal_extra, bean_origin_height, bean_processing, bean_roast_date, bean_roast_level, brew_method, tasting_note_ids, created_at, updated_at';
 
 async function fetchRoasterCoffeeTags(roasterId: string): Promise<RoasterCoffeeTagRow[]> {
   const { data, error } = await supabaseBrowser
@@ -30,5 +30,9 @@ export function useRoasterCoffeeTags(roasterId: string | null) {
     queryKey: ['roaster-coffee-tags', roasterId],
     queryFn: () => fetchRoasterCoffeeTags(roasterId as string),
     enabled: Boolean(roasterId),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: 'always',
   });
 }

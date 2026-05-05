@@ -25,36 +25,40 @@ function getSupabaseExtra(): SupabaseExtra {
  * Resolve URL/key after native bridge + Expo manifest are ready (fixes stale config when importing early).
  * Prefer manifest `extra` from app.config (loaded via dotenv when Expo CLI starts).
  */
-function resolveSupabaseConfig(): { url: string; key: string } {
+function resolveSupabaseConfig(): { url: string; key: string; usedFallbackUrl: boolean; usedFallbackKey: boolean } {
   const extra = getSupabaseExtra();
-  const url =
-    (typeof extra.supabaseFallbackUrl === 'string' && extra.supabaseFallbackUrl.length > 0
-      ? extra.supabaseFallbackUrl
-      : undefined) ||
-    (typeof process.env.EXPO_PUBLIC_SUPABASE_URL === 'string' && process.env.EXPO_PUBLIC_SUPABASE_URL.length > 0
+  const envUrl =
+    typeof process.env.EXPO_PUBLIC_SUPABASE_URL === 'string' && process.env.EXPO_PUBLIC_SUPABASE_URL.length > 0
       ? process.env.EXPO_PUBLIC_SUPABASE_URL
-      : undefined) ||
-    LOCAL_SUPABASE_URL;
-
-  const key =
-    (typeof extra.supabaseFallbackAnonKey === 'string' && extra.supabaseFallbackAnonKey.length > 0
-      ? extra.supabaseFallbackAnonKey
-      : undefined) ||
-    (typeof process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY === 'string' &&
-    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY.length > 0
+      : undefined;
+  const envKey =
+    typeof process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY === 'string' && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY.length > 0
       ? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-      : undefined) ||
-    LOCAL_SUPABASE_ANON_KEY;
+      : undefined;
+  const extraUrl =
+    typeof extra.supabaseFallbackUrl === 'string' && extra.supabaseFallbackUrl.length > 0
+      ? extra.supabaseFallbackUrl
+      : undefined;
+  const extraKey =
+    typeof extra.supabaseFallbackAnonKey === 'string' && extra.supabaseFallbackAnonKey.length > 0
+      ? extra.supabaseFallbackAnonKey
+      : undefined;
 
-  return { url, key };
+  const url = extraUrl || envUrl || LOCAL_SUPABASE_URL;
+  const key = extraKey || envKey || LOCAL_SUPABASE_ANON_KEY;
+  const usedFallbackUrl = !extraUrl && !envUrl;
+  const usedFallbackKey = !extraKey && !envKey;
+
+  return { url, key, usedFallbackUrl, usedFallbackKey };
 }
 
 let _client: TypedSupabaseClient | null = null;
+let _didLogSupabaseConfig = false;
 
 /** Lazily creates the client so Constants.expoConfig.extra matches the last Metro manifest (important for Expo Go). */
 export function getSupabase(): TypedSupabaseClient {
   if (!_client) {
-    const { url, key } = resolveSupabaseConfig();
+    const { url, key, usedFallbackUrl, usedFallbackKey } = resolveSupabaseConfig();
     const secureStorage = new ExpoSecureStorageService();
 
     _client = createClient<Database>(url, key, {
@@ -65,6 +69,22 @@ export function getSupabase(): TypedSupabaseClient {
         ...(Platform.OS !== 'web' ? { storage: createSupabaseSecureStorageAdapter(secureStorage) } : {}),
       },
     });
+
+    if (__DEV__ && !_didLogSupabaseConfig) {
+      _didLogSupabaseConfig = true;
+      try {
+        const host = new URL(url).host;
+        console.info(`[supabase] configured host: ${host}`);
+      } catch {
+        console.info(`[supabase] configured host: ${url}`);
+      }
+
+      if (usedFallbackUrl || usedFallbackKey) {
+        console.warn(
+          '[supabase] Using built-in local fallback config. Verify EXPO_PUBLIC_SUPABASE_URL/ANON_KEY to avoid connecting to a different backend after restart.'
+        );
+      }
+    }
   }
   return _client;
 }

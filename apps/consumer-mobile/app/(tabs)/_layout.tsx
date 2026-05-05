@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { appShellRules } from '@funcup/shared';
-import { TabCentralScanFab, TabDotIcon, tabBarScreenOptions } from '../../src/components/ui/AppTabBar';
+import { HiddenNativeTabBar, tabBarScreenOptions } from '../../src/components/ui/AppTabBar';
 import { useAuth } from '../../src/auth';
 
 export default function TabsLayout() {
@@ -21,34 +21,43 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      tabBar={HiddenNativeTabBar}
       screenOptions={tabBarScreenOptions}
     >
       <Tabs.Screen
         name="hub/index"
         options={{
-          title: 'Coffee Station',
-          tabBarIcon: ({ focused }) => <TabDotIcon active={focused} label="CS" />,
+          title: 'Home',
+        }}
+      />
+      <Tabs.Screen
+        name="discover-roasters/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="brew-your-skills/index"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
         name="scan/scan"
         options={{
           title: appShellRules.centralActionLabel,
-          tabBarIcon: () => <TabCentralScanFab />,
         }}
       />
       <Tabs.Screen
         name="journal/index"
         options={{
-          title: 'Coffee Log',
-          tabBarIcon: ({ focused }) => <TabDotIcon active={focused} label="L" />,
+          title: 'Journal',
         }}
       />
       <Tabs.Screen
         name="profile/index"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ focused }) => <TabDotIcon active={focused} label="S" />,
         }}
       />
     </Tabs>

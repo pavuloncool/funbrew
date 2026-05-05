@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   const { data: tag, error: tagError } = await admin
     .from('roaster_coffee_tags')
     .select(
-      'id, public_hash, roaster_id, roaster_short_name, img_coffee_label, bean_origin_country, bean_origin_farm, bean_origin_tradename, bean_origin_region, bean_type, bean_varietal_main, bean_varietal_extra, bean_origin_height, bean_processing, bean_roast_date, bean_roast_level, brew_method, created_at, updated_at'
+      'id, public_hash, roaster_id, roaster_short_name, img_coffee_label, bean_origin_country, bean_origin_farm, bean_origin_tradename, bean_origin_region, bean_type, bean_varietal_main, bean_varietal_extra, bean_origin_height, bean_processing, bean_roast_date, bean_roast_level, brew_method, tasting_note_ids, created_at, updated_at'
     )
     .eq('id', tagId)
     .maybeSingle();

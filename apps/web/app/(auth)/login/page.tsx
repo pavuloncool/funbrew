@@ -31,7 +31,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/dashboard/coffees');
+    router.push('/roaster-hub');
   }
 
   return (

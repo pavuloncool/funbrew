@@ -9,6 +9,7 @@ import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { supabase } from '../../../src/services/supabaseClient';
 import { AppCard, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
 import { visualSystemTokens } from '@funcup/shared';
+import { pageStyles } from '../../../src/theme/pageStyles';
 
 type JournalRow = {
   id: string;
@@ -33,7 +34,7 @@ export default function JournalIndex() {
 
   if (authLoading) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.content}>
         <AppText variant="h2" weight="700" accessibilityRole="header" style={styles.title}>Journal</AppText>
         <DiscoverListSkeleton rows={3} />
       </AppScrollScreen>
@@ -42,7 +43,7 @@ export default function JournalIndex() {
 
   if (!userId) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.content}>
         <AppText variant="h2" weight="700" accessibilityRole="header" style={styles.title}>Journal</AppText>
         <EmptyState
           title="Sign in to see your journal"
@@ -59,7 +60,7 @@ export default function JournalIndex() {
 
   if (journalQuery.isLoading) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.content}>
         <AppText variant="h2" weight="700" accessibilityRole="header" style={styles.title}>Journal</AppText>
         <DiscoverListSkeleton rows={4} />
       </AppScrollScreen>
@@ -68,7 +69,7 @@ export default function JournalIndex() {
 
   if (journalQuery.isError) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.content}>
         <AppText variant="h2" weight="700" accessibilityRole="header">Journal</AppText>
         <ScreenError message={formatError(journalQuery.error)} onRetry={() => void journalQuery.refetch()} />
       </AppScrollScreen>
@@ -79,7 +80,7 @@ export default function JournalIndex() {
 
   if (rows.length === 0) {
     return (
-      <AppScrollScreen contentContainerStyle={styles.page}>
+      <AppScrollScreen contentContainerStyle={pageStyles.content}>
         <AppText variant="h2" weight="700" accessibilityRole="header" style={styles.title}>Coffee Log</AppText>
         <EmptyState
           title="Add your first tasting"
@@ -95,7 +96,7 @@ export default function JournalIndex() {
   }
 
   return (
-    <AppScrollScreen contentContainerStyle={styles.page}>
+    <AppScrollScreen contentContainerStyle={pageStyles.content}>
       <AppText variant="h2" weight="700" accessibilityRole="header">Journal</AppText>
       {rows.map((row) => {
         const coffee = row.roast_batches?.coffees;
@@ -127,8 +128,10 @@ export default function JournalIndex() {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 24, gap: 12 },
-  title: { marginBottom: 4 },
-  rowCard: { padding: 14, backgroundColor: visualSystemTokens.colors.surface },
-  note: { marginTop: 4 },
+  title: { marginBottom: visualSystemTokens.spacing.xxs },
+  rowCard: {
+    padding: visualSystemTokens.spacing.sm,
+    backgroundColor: visualSystemTokens.colors.surface,
+  },
+  note: { marginTop: visualSystemTokens.spacing.xxs },
 });

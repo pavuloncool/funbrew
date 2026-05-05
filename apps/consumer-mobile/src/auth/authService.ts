@@ -3,6 +3,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import type { Session } from '@supabase/supabase-js';
 
 import type { AuthSession, AuthSnapshot, AuthUser } from './types';
+import { resolveProfileCompletedFromUser } from './profileCompletion';
 import { AUTH_STORAGE_KEYS, type SecureStorageService } from './secureStorage';
 
 export interface AuthService {
@@ -214,7 +215,7 @@ function mapSnapshot(user: Session['user'] | null, session: Session | null): Aut
   return {
     user: mapUser(user),
     session: session ? mapSession(session) : null,
-    profileCompleted: user?.user_metadata?.profile_completed === true,
+    profileCompleted: resolveProfileCompletedFromUser(user),
   };
 }
 

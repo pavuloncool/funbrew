@@ -86,8 +86,8 @@ export default function NewCoffeePage() {
   return (
     <main className={hubCrudStyles.main760}>
       <p className="mb-4">
-        <Link href="/roaster-hub/coffees" className={hubCrudStyles.navBack}>
-          ← Lista kaw
+        <Link href="/coffee-bank" className={hubCrudStyles.navBack}>
+          ← Coffee Bank
         </Link>
       </p>
       <h1 className={hubCrudStyles.pageHeading}>Create coffee</h1>
@@ -105,7 +105,7 @@ export default function NewCoffeePage() {
       </form>
       {error ? <p className={hubCrudStyles.error}>{error}</p> : null}
       {error === 'No roaster profile found for this account.' ? (
-        <p className="mt-3">
+        <p className={hubCrudStyles.inlineGapTop}>
           <Link href="/roaster-hub/setup" className={hubCrudStyles.linkStrong}>
             Utwórz profil palarni
           </Link>
