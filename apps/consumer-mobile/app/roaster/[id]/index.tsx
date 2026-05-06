@@ -10,8 +10,11 @@ import { pageStyles } from '../../../src/theme/pageStyles';
 
 type RoasterProfileData = {
   id: string;
+  name: string;
   roaster_short_name: string | null;
+  country: string | null;
   city: string | null;
+  description: string | null;
   website: string | null;
   isFollowed: boolean;
 };
@@ -22,15 +25,18 @@ async function fetchRoasterProfile(params: {
 }): Promise<RoasterProfileData | null> {
   const { data: roasterData, error } = await supabase
     .from('roasters')
-    .select('id,roaster_short_name,city,website')
+    .select('id,name,roaster_short_name,country,city,description,website')
     .eq('id', params.roasterId)
     .maybeSingle();
   if (error) throw error;
   const data = roasterData as
     | {
         id: string;
+        name: string;
         roaster_short_name: string | null;
+        country: string | null;
         city: string | null;
+        description: string | null;
         website: string | null;
       }
     | null;
@@ -50,8 +56,11 @@ async function fetchRoasterProfile(params: {
 
   return {
     id: data.id,
+    name: data.name,
     roaster_short_name: data.roaster_short_name,
+    country: data.country,
     city: data.city,
+    description: data.description,
     website: data.website,
     isFollowed,
   };
@@ -108,8 +117,11 @@ export default function RoasterProfileScreen() {
 
   return (
     <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
-      <AppText variant="h1" weight="700">{roaster.roaster_short_name ?? 'Roaster'}</AppText>
-      <AppText>{roaster.city ?? 'Location unavailable'}</AppText>
+      <AppText variant="h1" weight="700">{roaster.roaster_short_name ?? roaster.name}</AppText>
+      <AppText tone="secondary">
+        {[roaster.city, roaster.country].filter(Boolean).join(', ') || 'Location unavailable'}
+      </AppText>
+      <AppText>{roaster.description ?? 'No roaster story yet.'}</AppText>
       <AppText>{roaster.website ?? 'No website'}</AppText>
 
       <View style={styles.actionWrap}>

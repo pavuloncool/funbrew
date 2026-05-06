@@ -72,13 +72,14 @@ AS $$
 DECLARE
   log_count integer;
   current_level sensory_level;
+  current_score integer;
   new_level sensory_level;
 BEGIN
   SELECT COUNT(*) INTO log_count
   FROM public.coffee_logs
   WHERE user_id = p_user_id;
 
-  SELECT sensory_level INTO current_level
+  SELECT sensory_level, sensory_score INTO current_level, current_score
   FROM public.users
   WHERE id = p_user_id;
 
@@ -92,9 +93,10 @@ BEGIN
     new_level := 'beginner';
   END IF;
 
-  IF new_level IS DISTINCT FROM current_level THEN
+  IF new_level IS DISTINCT FROM current_level OR COALESCE(current_score, -1) IS DISTINCT FROM log_count THEN
     UPDATE public.users
-    SET sensory_level = new_level
+    SET sensory_level = new_level,
+        sensory_score = log_count
     WHERE id = p_user_id;
   END IF;
 END;
@@ -115,4 +117,3 @@ END;
 $$;
 
 COMMIT;
-

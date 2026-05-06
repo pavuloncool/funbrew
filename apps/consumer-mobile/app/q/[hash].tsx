@@ -7,7 +7,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
 export default function QHashDeepLink() {
   const { hash } = useLocalSearchParams<{ hash: string }>();
   if (!hash || typeof hash !== 'string') {
-    return <Redirect href="/home" />;
+    return <Redirect href="/(tabs)/hub" />;
   }
   return <Redirect href={{ pathname: '/coffee/[id]', params: { id: hash } }} />;
 }

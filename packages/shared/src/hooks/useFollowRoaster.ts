@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { TypedSupabaseClient } from '../services/supabaseClientFactory';
 import type { DiscoverRoasterItem } from './useDiscoverRoasters';
 
+type FollowRollbackSnapshot = Array<[readonly unknown[], DiscoverRoasterItem[] | undefined]>;
+
 export async function setRoasterFollowState(params: {
   supabase: TypedSupabaseClient;
   userId: string;
@@ -47,12 +49,12 @@ export function useFollowRoaster(params: { supabase: TypedSupabaseClient; userId
       });
     },
     onMutate: async (input) => {
-      if (!params.userId) return { previous: undefined as DiscoverRoasterItem[] | undefined };
-      const queryKey = ['discoverRoasters', params.userId, 8];
+      if (!params.userId) return { previous: [] as FollowRollbackSnapshot };
+      const queryKey = ['discoverRoasters', params.userId];
       await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<DiscoverRoasterItem[]>(queryKey);
+      const previous = queryClient.getQueriesData<DiscoverRoasterItem[]>({ queryKey }) as FollowRollbackSnapshot;
 
-      queryClient.setQueryData<DiscoverRoasterItem[]>(queryKey, (current) =>
+      queryClient.setQueriesData<DiscoverRoasterItem[]>({ queryKey }, (current) =>
         (current ?? []).map((roaster) =>
           roaster.id === input.roasterId ? { ...roaster, isFollowed: input.follow } : roaster
         )
@@ -62,8 +64,14 @@ export function useFollowRoaster(params: { supabase: TypedSupabaseClient; userId
     },
     onError: (_error, _input, context) => {
       if (!params.userId) return;
-      const queryKey = ['discoverRoasters', params.userId, 8];
-      queryClient.setQueryData(queryKey, context?.previous);
+      for (const [queryKey, value] of context?.previous ?? []) {
+        queryClient.setQueryData(queryKey, value);
+      }
+    },
+    onSettled: (_data, _error, input) => {
+      if (!params.userId) return;
+      void queryClient.invalidateQueries({ queryKey: ['discoverRoasters', params.userId] });
+      void queryClient.invalidateQueries({ queryKey: ['roasterProfile', input.roasterId, params.userId] });
     },
   });
 }

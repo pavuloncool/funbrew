@@ -1,20 +1,19 @@
 /**
- * Pełne literały klas Tailwind dla powłoki auth / formularzy (web).
- * Muszą pozostać dosłowne stringi — JIT Tailwinda skanuje ten plik (patrz apps/web/tailwind.config.ts).
- * Wartości są zsynchronizowane z {@link visualTokens}.
+ * Literal Tailwind classes for auth shells on web.
+ * Keep static strings so Tailwind JIT can discover them.
  */
 export const authWebShellClasses = {
-  page: 'min-h-screen bg-[#e9e9e9] text-[#111]',
+  page: 'min-h-screen bg-neutral-50 text-neutral-900',
   screen: 'flex min-h-screen flex-col items-center px-4',
-  topSection: 'mt-20 flex w-full max-w-[312px] flex-col items-center',
-  title: 'mb-2 text-[28px] font-semibold text-[#111]',
-  subtitle: 'mb-7 text-center text-[15px] text-[#444]',
+  topSection: 'mt-10 flex w-full max-w-[420px] flex-col items-center',
+  title: 'mb-4 text-2xl font-semibold text-neutral-900',
+  subtitle: 'mb-6 text-center text-sm text-neutral-700',
   socialButton:
-    'mb-[30px] flex h-11 w-full cursor-pointer items-center justify-center rounded-[5px] border border-[#1f1f1f] bg-[#f3f3f3] text-[15px] font-medium text-[#171717]',
-  socialButtonText: 'text-[15px] font-medium text-[#171717]',
+    'mb-3 flex h-12 w-full cursor-pointer items-center justify-center rounded border border-neutral-900 bg-neutral-900 px-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50',
+  socialButtonText: 'text-sm font-medium text-white',
   input:
-    'mb-[18px] h-[42px] w-full max-w-[480px] rounded-[10px] border-2 border-[#2a2a2a] bg-[#f3f3f3] px-3 text-[#111] placeholder:text-neutral-500',
-  registerLink: 'font-bold text-[#111] underline',
-  fieldLabel: 'mb-1.5 self-stretch text-[13px] font-semibold text-[#1a1a1a]',
-  err: '-mt-2.5 mb-2 text-xs text-[#b00020]',
+    'mb-3 h-[46px] w-full max-w-[480px] rounded border border-neutral-400 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500',
+  registerLink: 'font-medium text-neutral-900 underline',
+  fieldLabel: 'mb-1.5 self-stretch text-sm font-medium text-neutral-900',
+  err: '-mt-1 mb-2 text-sm text-red-600',
 } as const;

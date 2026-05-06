@@ -46,17 +46,26 @@ serve(async (req) => {
       }
     }
 
-    const { data: flavorData } = await supabase
-      .from('tasting_notes')
-      .select(`
-        flavor_notes!inner (id, name, label, category)
-      `)
-      .eq('coffee_logs.batch_id', batch_id)
+    const { data: logIdsData } = await supabase
+      .from('coffee_logs')
+      .select('id')
+      .eq('batch_id', batch_id)
+
+    const logIds = (logIdsData ?? []).map((row) => row.id)
+
+    const { data: flavorData } = logIds.length
+      ? await supabase
+          .from('coffee_log_tasting_notes')
+          .select(`
+            tasting_notes!inner (id, name, label, category)
+          `)
+          .in('coffee_log_id', logIds)
+      : { data: [] }
 
     const flavorCounts: Record<string, { id: string; name: string; label: string; category: string; count: number }> = {}
     if (flavorData) {
       for (const item of flavorData) {
-        const fn = item.flavor_notes
+        const fn = item.tasting_notes
         if (fn && fn.id) {
           if (!flavorCounts[fn.id]) {
             flavorCounts[fn.id] = { id: fn.id, name: fn.name, label: fn.label, category: fn.category, count: 0 }
@@ -123,14 +132,16 @@ async function recalculateUserReputation(supabase: ReturnType<typeof createClien
 
   const logCount = userLogs?.length || 0
   
-  const { data: user } = await supabase
-    .from('users')
-    .select('sensory_level')
-    .eq('id', userId)
-    .single()
+    const { data: user } = await supabase
+      .from('users')
+      .select('sensory_level,sensory_score')
+      .eq('id', userId)
+      .single()
 
-  let currentLevel = user?.sensory_level || 'beginner'
+  const currentLevel = user?.sensory_level || 'beginner'
+  const currentScore = typeof user?.sensory_score === 'number' ? user.sensory_score : 0
   let newLevel = currentLevel
+  const newScore = logCount
 
   if (logCount >= 50 && currentLevel !== 'expert') {
     newLevel = 'expert'
@@ -138,15 +149,16 @@ async function recalculateUserReputation(supabase: ReturnType<typeof createClien
     newLevel = 'advanced'
   }
 
-  if (newLevel !== currentLevel) {
+  if (newLevel !== currentLevel || newScore !== currentScore) {
     await supabase
       .from('users')
-      .update({ sensory_level: newLevel })
+      .update({ sensory_level: newLevel, sensory_score: newScore })
       .eq('id', userId)
   }
 
   return {
-    updated: newLevel !== currentLevel,
+    updated: newLevel !== currentLevel || newScore !== currentScore,
     newLevel: newLevel !== currentLevel ? newLevel : null,
+    newScore,
   }
 }

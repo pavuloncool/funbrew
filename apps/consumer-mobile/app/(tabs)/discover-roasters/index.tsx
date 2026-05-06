@@ -1,100 +1,82 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { AppButton, AppCard, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
-import { supabase } from '../../../src/services/supabaseClient';
-import { pageStyles } from '../../../src/theme/pageStyles';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { visualSystemTokens } from '@funcup/shared';
 
-type RoasterCardTarget = {
-  id: string;
-  name: string;
-};
+import { DiscoverCoffeesTab } from '../../../src/components/hub/DiscoverCoffeesTab';
+import { DiscoverRoastersTab } from '../../../src/components/hub/DiscoverRoastersTab';
+import { AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
+import { pageStyles } from '../../../src/theme/pageStyles';
 
-type LoadState = 'loading' | 'success' | 'empty' | 'error';
+type DiscoverySection = 'coffees' | 'roasters';
 
 export default function DiscoverRoastersScreen() {
-  const router = useRouter();
-  const [state, setState] = useState<LoadState>('loading');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [roasterTarget, setRoasterTarget] = useState<RoasterCardTarget | null>(null);
-
-  const loadFirstRoaster = async () => {
-    setState('loading');
-    setErrorMessage(null);
-
-    const { data, error } = await supabase
-      .from('roasters')
-      .select('id,name')
-      .order('name', { ascending: true })
-      .limit(1);
-
-    if (error) {
-      setState('error');
-      setErrorMessage(error.message);
-      return;
-    }
-
-    const first = (data as RoasterCardTarget[] | null)?.[0] ?? null;
-    if (!first) {
-      setState('empty');
-      setRoasterTarget(null);
-      return;
-    }
-
-    setRoasterTarget(first);
-    setState('success');
-  };
-
-  useEffect(() => {
-    void loadFirstRoaster();
-  }, []);
+  const [activeSection, setActiveSection] = useState<DiscoverySection>('coffees');
 
   return (
     <AppScrollScreen contentContainerStyle={pageStyles.content}>
-      <AppText variant="h2" weight="700">Discover Roasters</AppText>
-      <AppText tone="secondary">
-        Coming soon: followed roasters and roasters from your rated coffees.
-      </AppText>
+      <View style={styles.header}>
+        <AppText variant="h2" weight="700">Discover</AppText>
+        <AppText tone="secondary">
+          MVP discovery stays simple: browse coffees, open verified roasters, and follow the ones you want to keep on your radar.
+        </AppText>
+      </View>
 
-      <AppCard style={styles.card}>
-        {state === 'loading' ? <AppText>Loading roaster card target...</AppText> : null}
+      <View style={styles.segmentedControl} accessibilityRole="tablist">
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeSection === 'coffees' }}
+          onPress={() => setActiveSection('coffees')}
+          style={[styles.segment, activeSection === 'coffees' ? styles.segmentActive : null]}
+        >
+          <AppText
+            weight="700"
+            tone={activeSection === 'coffees' ? 'onPrimary' : 'secondary'}
+          >
+            Coffees
+          </AppText>
+        </Pressable>
 
-        {state === 'empty' ? (
-          <View style={styles.block}>
-            <AppText>No roasters available yet.</AppText>
-          </View>
-        ) : null}
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeSection === 'roasters' }}
+          onPress={() => setActiveSection('roasters')}
+          style={[styles.segment, activeSection === 'roasters' ? styles.segmentActive : null]}
+        >
+          <AppText
+            weight="700"
+            tone={activeSection === 'roasters' ? 'onPrimary' : 'secondary'}
+          >
+            Roasters
+          </AppText>
+        </Pressable>
+      </View>
 
-        {state === 'error' ? (
-          <View style={styles.block}>
-            <AppText tone="danger">Could not load roaster list.</AppText>
-            {errorMessage ? <AppText tone="secondary">{errorMessage}</AppText> : null}
-            <AppButton label="Retry" variant="secondary" onPress={() => void loadFirstRoaster()} />
-          </View>
-        ) : null}
-
-        {state === 'success' && roasterTarget ? (
-          <View style={styles.block}>
-            <AppText tone="secondary">Sample roaster card</AppText>
-            <AppText variant="h3" weight="700">{roasterTarget.name}</AppText>
-            <AppButton
-              label="Open roaster card"
-              onPress={() =>
-                router.push({
-                  pathname: '/roaster/[id]',
-                  params: { id: roasterTarget.id },
-                })
-              }
-            />
-          </View>
-        ) : null}
-      </AppCard>
+      {activeSection === 'coffees' ? <DiscoverCoffeesTab /> : <DiscoverRoastersTab />}
     </AppScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginTop: visualSystemTokens.spacing.xxs },
-  block: { gap: visualSystemTokens.spacing.xs },
+  header: {
+    gap: visualSystemTokens.spacing.xs,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    gap: visualSystemTokens.spacing.xs,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: visualSystemTokens.colors.borderSubtle,
+    borderRadius: visualSystemTokens.radius.pill,
+    backgroundColor: visualSystemTokens.colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: visualSystemTokens.spacing.sm,
+  },
+  segmentActive: {
+    borderColor: visualSystemTokens.colors.accentPrimary,
+    backgroundColor: visualSystemTokens.colors.accentPrimary,
+  },
 });

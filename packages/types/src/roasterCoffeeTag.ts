@@ -16,6 +16,7 @@ export interface RoasterCoffeeTagForm {
   bean_roast_date: string;
   bean_roast_level: string;
   brew_method: string;
+  tasting_note_ids: string[];
 }
 
 export interface RoasterCoffeeTagRow extends RoasterCoffeeTagForm {

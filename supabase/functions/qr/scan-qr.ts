@@ -153,7 +153,7 @@ serve(async (req) => {
     if (statsData?.top_flavor_notes && statsData.top_flavor_notes.length > 0) {
       const flavorIds = statsData.top_flavor_notes.slice(0, 10)
       const { data: flavorData } = await supabase
-        .from('flavor_notes')
+        .from('tasting_notes')
         .select('id, name, label, category')
         .in('id', flavorIds)
 

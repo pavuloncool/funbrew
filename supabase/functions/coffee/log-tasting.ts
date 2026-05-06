@@ -11,6 +11,7 @@ interface LogTastingRequest {
   rating: number
   brew_method_id?: string
   brew_time_seconds?: number
+  tasting_note_ids?: string[]
   flavor_note_ids?: string[]
   free_text_notes?: string
   review?: string
@@ -49,7 +50,17 @@ serve(async (req) => {
 
     const body: LogTastingRequest = await req.json()
 
-    const { batch_id, rating, brew_method_id, brew_time_seconds, flavor_note_ids, free_text_notes, review } = body
+    const {
+      batch_id,
+      rating,
+      brew_method_id,
+      brew_time_seconds,
+      tasting_note_ids,
+      flavor_note_ids,
+      free_text_notes,
+      review,
+    } = body
+    const selectedTastingNoteIds = tasting_note_ids ?? flavor_note_ids ?? []
 
     if (!batch_id || !rating) {
       return new Response(
@@ -88,14 +99,14 @@ serve(async (req) => {
       )
     }
 
-    if (flavor_note_ids && flavor_note_ids.length > 0) {
-      const tastingNotes = flavor_note_ids.map(flavor_note_id => ({
+    if (selectedTastingNoteIds.length > 0) {
+      const tastingNotes = selectedTastingNoteIds.map(tasting_note_id => ({
         coffee_log_id: coffeeLog.id,
-        flavor_note_id,
+        tasting_note_id,
       }))
 
       const { error: notesError } = await serviceSupabase
-        .from('tasting_notes')
+        .from('coffee_log_tasting_notes')
         .insert(tastingNotes)
 
       if (notesError) {

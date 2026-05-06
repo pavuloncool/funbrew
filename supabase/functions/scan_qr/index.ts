@@ -7,6 +7,13 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type',
 };
 
+type TastingNoteSummary = {
+  id: string;
+  name: string;
+  label: string;
+  category: string;
+};
+
 function isValidUUID(str: string): boolean {
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -162,10 +169,40 @@ serve(async req => {
       .maybeSingle();
 
     if (!tagErr && tagRow) {
+      const selectedIds = Array.isArray(tagRow.tasting_note_ids)
+        ? tagRow.tasting_note_ids.filter((id: unknown): id is string => typeof id === 'string')
+        : [];
+
+      let tastingNotes: TastingNoteSummary[] = [];
+      if (selectedIds.length > 0) {
+        const primary = await supabase
+          .from('tasting_notes')
+          .select('id,name,label,category')
+          .in('id', selectedIds);
+
+        const notesData =
+          !primary.error && primary.data
+            ? primary.data
+            : (
+                await supabase
+                  .from('flavor_notes')
+                  .select('id,name,label,category')
+                  .in('id', selectedIds)
+              ).data;
+
+        if (notesData && notesData.length > 0) {
+          const byId = new Map(notesData.map((item) => [item.id, item] as const));
+          tastingNotes = selectedIds
+            .map((id) => byId.get(id))
+            .filter((item): item is TastingNoteSummary => Boolean(item));
+        }
+      }
+
       return new Response(
         JSON.stringify({
           kind: 'tag',
           tag: tagRow,
+          tasting_notes: tastingNotes,
           archived: false,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

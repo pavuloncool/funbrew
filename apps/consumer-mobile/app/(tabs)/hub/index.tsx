@@ -29,7 +29,7 @@ export default function HubIndexScreen() {
             accessibilityRole="button"
             style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
           >
-            <AppText variant="h3" weight="700" style={styles.tileLabel}>Discover Roasters</AppText>
+            <AppText variant="h3" weight="700" style={styles.tileLabel}>Discover</AppText>
           </Pressable>
 
           <Pressable
@@ -37,7 +37,7 @@ export default function HubIndexScreen() {
             accessibilityRole="button"
             style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
           >
-            <AppText variant="h3" weight="700" style={styles.tileLabel}>Brew Your Skills</AppText>
+            <AppText variant="h3" weight="700" style={styles.tileLabel}>Learn Coffee</AppText>
           </Pressable>
 
           <Pressable

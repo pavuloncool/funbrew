@@ -1,16 +1,5 @@
----
-# yaml-language-server: $schema=schemas/page.schema.json
-Object type:
-    - Page
-Backlinks:
-    - funcup-the-first-structured-feedback-loop-4-co.md
-Creation date: "2026-03-13T18:28:00Z"
-Created by:
-    - Pa Koolig
-id: bafyreihqzwhuvgrb2lxq2mkrpz4b5cmnxgcrrrexfo27jdqt3nqq6nel7u
----
-# ├ 05 Data Model v3 (MVP)   
-# **Purpose:**   
+# 05 Data Model v3 (MVP)   
+**Purpose:**   
 Define the relational database structure for the funcup platform MVP.   
 This model translates the **Information Architecture** into a concrete schema that backend developers can implement.   
 The model is designed for:   

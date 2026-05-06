@@ -21,6 +21,7 @@ CREATE TABLE users (
     display_name text NOT NULL,
     avatar_url text,
     sensory_level sensory_level NOT NULL DEFAULT 'beginner',
+    sensory_score integer NOT NULL DEFAULT 0,
     following_roaster_ids uuid[] NOT NULL DEFAULT '{}',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),

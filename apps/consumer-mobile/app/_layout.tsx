@@ -29,8 +29,7 @@ function AppShellStack() {
     (topSegment === '(tabs)' && ['hub', 'discover-roasters', 'brew-your-skills'].includes(secondSegment ?? '')) ||
     topSegment === 'coffee' ||
     topSegment === 'roaster' ||
-    topSegment === 'learn' ||
-    topSegment === 'home'
+    topSegment === 'learn'
   ) {
     activeTab = thirdSegment === 'log' ? 'journal' : 'home';
   }
@@ -43,8 +42,6 @@ function AppShellStack() {
         <Stack screenOptions={{ headerShown: true }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="test-select-user" options={{ title: 'Wybór roli' }} />
-          <Stack.Screen name="home" options={{ title: 'funcup' }} />
         </Stack>
       </View>
       {showTabBar ? <AppChromeTabBar active={activeTab} /> : null}

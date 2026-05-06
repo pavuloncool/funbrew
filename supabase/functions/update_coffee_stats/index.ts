@@ -63,18 +63,31 @@ serve(async req => {
       }
     }
 
-    const { data: flavorData } = await supabase
-      .from('tasting_notes')
-      .select(`flavor_notes!inner (id, name, label, category)`)
-      .eq('coffee_logs.batch_id', batch_id);
+    const { data: logIdsData } = await supabase
+      .from('coffee_logs')
+      .select('id')
+      .eq('batch_id', batch_id);
+
+    const logIds = (logIdsData ?? []).map((row) => row.id);
+
+    const { data: flavorData } = logIds.length
+      ? await supabase
+          .from('coffee_log_tasting_notes')
+          .select(`tasting_notes!inner (id, name, label, category)`)
+          .in('coffee_log_id', logIds)
+      : { data: [] };
+
+    type FlavorNoteRow = {
+      tasting_notes: { id: string; name: string; label: string; category: string } | null;
+    };
 
     const flavorCounts: Record<
       string,
       { id: string; name: string; label: string; category: string; count: number }
     > = {};
     if (flavorData) {
-      for (const item of flavorData as any[]) {
-        const fn = item.flavor_notes;
+      for (const item of flavorData as FlavorNoteRow[]) {
+        const fn = item.tasting_notes;
         if (fn?.id) {
           if (!flavorCounts[fn.id]) {
             flavorCounts[fn.id] = {
@@ -115,7 +128,7 @@ serve(async req => {
       );
     }
 
-    await supabase.rpc('recalculate_user_reputation', { p_user_id: user_id });
+    const reputationResult = await recalculateUserReputation(supabase, user_id);
 
     return new Response(
       JSON.stringify({
@@ -128,6 +141,9 @@ serve(async req => {
           top_flavor_notes: topFlavorNotes,
           updated_at: new Date().toISOString(),
         },
+        reputation_updated: reputationResult.updated,
+        new_sensory_level: reputationResult.newLevel,
+        new_sensory_score: reputationResult.newScore,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -139,3 +155,44 @@ serve(async req => {
   }
 });
 
+async function recalculateUserReputation(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+) {
+  const { data: userLogs } = await supabase
+    .from('coffee_logs')
+    .select('id, rating')
+    .eq('user_id', userId);
+
+  const logCount = userLogs?.length || 0;
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('sensory_level,sensory_score')
+    .eq('id', userId)
+    .single();
+
+  const currentLevel = user?.sensory_level || 'beginner';
+  const currentScore = typeof user?.sensory_score === 'number' ? user.sensory_score : 0;
+  let newLevel = currentLevel;
+  const newScore = logCount;
+
+  if (logCount >= 50 && currentLevel !== 'expert') {
+    newLevel = 'expert';
+  } else if (logCount >= 20 && currentLevel === 'beginner') {
+    newLevel = 'advanced';
+  }
+
+  if (newLevel !== currentLevel || newScore !== currentScore) {
+    await supabase
+      .from('users')
+      .update({ sensory_level: newLevel, sensory_score: newScore })
+      .eq('id', userId);
+  }
+
+  return {
+    updated: newLevel !== currentLevel || newScore !== currentScore,
+    newLevel: newLevel !== currentLevel ? newLevel : null,
+    newScore,
+  };
+}

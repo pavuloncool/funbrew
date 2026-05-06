@@ -17,7 +17,9 @@ export type Database = {
           id: string;
           display_name: string;
           avatar_url: string | null;
+          favorite_brew_method_id: string | null;
           sensory_level: 'beginner' | 'advanced' | 'expert';
+          sensory_score: number;
           following_roaster_ids: string[];
           created_at: string;
           updated_at: string;
@@ -26,7 +28,9 @@ export type Database = {
           id: string;
           display_name: string;
           avatar_url?: string | null;
+          favorite_brew_method_id?: string | null;
           sensory_level?: 'beginner' | 'advanced' | 'expert';
+          sensory_score?: number;
           following_roaster_ids?: string[];
           created_at?: string;
           updated_at?: string;
@@ -34,7 +38,9 @@ export type Database = {
         Update: {
           display_name?: string;
           avatar_url?: string | null;
+          favorite_brew_method_id?: string | null;
           sensory_level?: 'beginner' | 'advanced' | 'expert';
+          sensory_score?: number;
           following_roaster_ids?: string[];
           created_at?: string;
           updated_at?: string;
@@ -135,7 +141,7 @@ export type Database = {
           sort_order: number;
         };
       };
-      flavor_notes: {
+      tasting_notes: {
         Row: {
           id: string;
           name: string;
@@ -143,6 +149,24 @@ export type Database = {
           category: string;
           sort_order: number;
         };
+      };
+      user_favorite_flavor_notes: {
+        Row: {
+          user_id: string;
+          tasting_note_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tasting_note_id: string;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          tasting_note_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       coffee_logs: {
         Row: {
@@ -158,11 +182,11 @@ export type Database = {
           updated_at: string;
         };
       };
-      tasting_notes: {
+      coffee_log_tasting_notes: {
         Row: {
           id: string;
           coffee_log_id: string;
-          flavor_note_id: string;
+          tasting_note_id: string;
           created_at: string;
         };
       };
@@ -226,6 +250,7 @@ export type Database = {
           bean_roast_date: string;
           bean_roast_level: string;
           brew_method: string;
+          tasting_note_ids: string[];
           created_at: string;
           updated_at: string;
         };
@@ -247,6 +272,7 @@ export type Database = {
           bean_roast_date: string;
           bean_roast_level: string;
           brew_method: string;
+          tasting_note_ids?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -265,6 +291,7 @@ export type Database = {
           bean_roast_date?: string;
           bean_roast_level?: string;
           brew_method?: string;
+          tasting_note_ids?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -281,4 +308,3 @@ export type Database = {
     };
   };
 };
-

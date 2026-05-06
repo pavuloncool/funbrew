@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { authWebShellClasses } from './authWebShellClasses';
-import { visualTokens } from './visualTokens';
-
-describe('authWebShellClasses vs visualTokens', () => {
-  it('uses the same screen background as tokens', () => {
-    expect(authWebShellClasses.page).toContain(visualTokens.colors.screenBackground);
+describe('authWebShellClasses', () => {
+  it('keeps neutral page shell classes', () => {
+    expect(authWebShellClasses.page).toContain('bg-neutral-50');
+    expect(authWebShellClasses.page).toContain('text-neutral-900');
   });
 
-  it('uses the same error color as tokens', () => {
-    expect(authWebShellClasses.err).toContain(visualTokens.colors.error);
+  it('uses neutral input and error classes', () => {
+    expect(authWebShellClasses.input).toContain('border-neutral-400');
+    expect(authWebShellClasses.err).toContain('text-red-600');
   });
 });

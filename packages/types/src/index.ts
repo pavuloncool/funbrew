@@ -99,7 +99,7 @@ export interface CoffeeLog extends BaseEntity {
 
 export interface TastingNote {
   coffee_log_id: string;
-  flavor_note_id: string;
+  tasting_note_id: string;
 }
 
 export interface Review extends BaseEntity {
@@ -200,7 +200,7 @@ export interface LogTastingRequest {
   rating: number;
   brew_method_id?: string;
   brew_time_seconds?: number;
-  flavor_note_ids?: string[];
+  tasting_note_ids?: string[];
   free_text_notes?: string;
   review?: string;
 }

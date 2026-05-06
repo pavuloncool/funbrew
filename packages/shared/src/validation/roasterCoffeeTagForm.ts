@@ -152,7 +152,8 @@ export function assertCoffeeLabelFileSize(file: File): void {
 export function clientFormValuesToInsert(
   v: RoasterCoffeeTagClientFormValues,
   img_coffee_label: string,
-  roaster_id: string
+  roaster_id: string,
+  tasting_note_ids: string[] = []
 ): RoasterCoffeeTagInsert {
   const url = img_coffee_label.trim();
   if (!url) {
@@ -177,5 +178,6 @@ export function clientFormValuesToInsert(
     bean_roast_date: v.bean_roast_date,
     bean_roast_level: v.bean_roast_level,
     brew_method: v.brew_method,
+    tasting_note_ids,
   };
 }
