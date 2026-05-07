@@ -26,14 +26,14 @@ function AppShellStack() {
 
   let activeTab: 'home' | 'journal' | 'settings' | null = null;
   if (
-    (topSegment === '(tabs)' && ['hub', 'discover-roasters', 'brew-your-skills'].includes(secondSegment ?? '')) ||
+    (topSegment === '(tabs)' && ['hub', 'roasters', 'brew-your-skills'].includes(secondSegment ?? '')) ||
     topSegment === 'coffee' ||
     topSegment === 'roaster' ||
     topSegment === 'learn'
   ) {
     activeTab = thirdSegment === 'log' ? 'journal' : 'home';
   }
-  if (topSegment === '(tabs)' && secondSegment === 'journal') activeTab = 'journal';
+  if (topSegment === '(tabs)' && ['journal', 'coffee'].includes(secondSegment ?? '')) activeTab = 'journal';
   if (topSegment === '(tabs)' && secondSegment === 'profile') activeTab = 'settings';
 
   return (

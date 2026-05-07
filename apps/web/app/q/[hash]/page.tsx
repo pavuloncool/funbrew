@@ -120,6 +120,9 @@ export default function ResolveHashPage() {
           <strong>Coffee:</strong> {publicCoffee.product.name}
         </p>
         <p className={resolveHashStyles.bodyText}>
+          <strong>Trade name:</strong> {publicCoffee.product.producerNotes ?? '—'}
+        </p>
+        <p className={resolveHashStyles.bodyText}>
           <strong>Origin:</strong>{' '}
           {[publicCoffee.origin.country, publicCoffee.origin.region, publicCoffee.origin.farm]
             .filter(Boolean)

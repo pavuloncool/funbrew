@@ -1,0 +1,42 @@
+%% Error + offline sync flows around tasting log
+flowchart TD
+
+  A[Consumer submits Tasting Log] --> B{Internet available?}
+
+  B -->|No| C[Save payload to offline queue]
+  C --> D[Show status: queued for retry]
+  D --> E[Background sync checks network]
+
+  B -->|Yes| F[Call log_tasting]
+
+  F --> G{Response kind}
+  G -->|Success| H[Try update_coffee_stats]
+  H --> I{Stats update ok?}
+  I -->|Yes| J[Show status: synced immediately]
+  I -->|No| K[Show status: tasting saved, stats delayed]
+
+  G -->|Retryable error| L[Queue payload offline]
+  L --> D
+
+  G -->|Unauthorized| M[Show error: session expired]
+  G -->|Validation| N[Show validation message]
+  G -->|Not found endpoint| O[Show env/setup message]
+  G -->|Other| P[Show generic sync error]
+
+  E --> Q{Network restored?}
+  Q -->|No| E
+  Q -->|Yes| R[Replay queued tastings]
+  R --> S{Replay result}
+  S -->|Success| T[Remove from queue + refresh counters]
+  S -->|Failure| U[Mark failed sync counter]
+
+  T --> V[Data available in Journal and Web Analytics]
+
+  classDef action fill:#EAF6FF,stroke:#2563EB,color:#0B3B8C;
+  classDef decision fill:#FEF9C3,stroke:#CA8A04,color:#713F12;
+  classDef status fill:#ECFDF5,stroke:#059669,color:#065F46;
+  classDef error fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D;
+
+  class A,C,D,E,F,H,J,K,L,R,T,V action;
+  class B,G,I,Q,S decision;
+  class M,N,O,P,U error;

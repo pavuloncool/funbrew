@@ -329,7 +329,7 @@ export default function ProfileScreen() {
           </View>
 
           <AppButton
-            label="Go to My Coffee House"
+            label="FunCup Hub"
             onPress={onGoToMyCoffeeHouse}
           />
         </AppCard>

@@ -31,7 +31,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="discover-roasters/index"
+        name="coffee/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="roasters/index"
         options={{
           href: null,
         }}

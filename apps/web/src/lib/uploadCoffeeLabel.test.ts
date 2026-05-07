@@ -35,7 +35,14 @@ describe('uploadCoffeeLabelToSupabase', () => {
     const big = new Uint8Array(512_001);
     const file = new File([big], 'big.png', { type: 'image/png' });
 
-    await expect(uploadCoffeeLabelToSupabase(supabase, file, 'R')).rejects.toThrow(/File too large/);
+    await uploadCoffeeLabelToSupabase(supabase, file, 'R')
+      .then(() => {
+        throw new Error('Expected uploadCoffeeLabelToSupabase to reject for oversized files');
+      })
+      .catch((error: unknown) => {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toMatch(/File too large/);
+      });
     expect(from).not.toHaveBeenCalled();
   });
 });

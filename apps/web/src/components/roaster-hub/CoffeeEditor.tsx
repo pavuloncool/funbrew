@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState, type HTMLAttributes } from 'react';
 
+import { CoffeeLabelUploadField } from '@/src/components/ui/coffee-label-upload-field';
 import {
   getBrowserSessionSafely,
   getBrowserUserSafely,
 } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
+import { uploadCoffeeLabelToSupabase } from '@/src/lib/uploadCoffeeLabel';
 import {
   emptyCanonicalCoffeeFormValues,
   mapCoffeeRecordToFormValues,
@@ -28,6 +30,29 @@ type CoffeeEditorProps = {
 };
 
 type FormErrors = Partial<Record<keyof CanonicalCoffeeFormValues, string>>;
+type QrPreview = {
+  created: boolean;
+  hash: string;
+  lotNumber: string;
+  url: string;
+  svg: string;
+  png: string;
+};
+type BatchCreateValues = {
+  lotNumber: string;
+  roastDate: string;
+  brewingNotes: string;
+  roasterStory: string;
+};
+
+function defaultBatchCreateValues(): BatchCreateValues {
+  return {
+    lotNumber: '',
+    roastDate: new Date().toISOString().slice(0, 10),
+    brewingNotes: '',
+    roasterStory: '',
+  };
+}
 
 function validateCoffeeForm(values: CanonicalCoffeeFormValues): FormErrors {
   const trimmed = trimCanonicalCoffeeFormValues(values);
@@ -61,8 +86,76 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [roasterId, setRoasterId] = useState<string | null>(null);
+  const [roasterShortName, setRoasterShortName] = useState<string | null>(null);
+  const [roasterResolved, setRoasterResolved] = useState(false);
+  const [coverImageFile, setCoverImageFile] = useState<File | undefined>(undefined);
   const [status, setStatus] = useState<string>('active');
   const [originId, setOriginId] = useState<string | null>(null);
+  const [batchValues, setBatchValues] = useState<BatchCreateValues>(defaultBatchCreateValues());
+  const [publishPreview, setPublishPreview] = useState<{
+    coffeeId: string;
+    batchId: string;
+    qr: QrPreview;
+  } | null>(null);
+
+  async function createBatchForCoffee(input: {
+    coffeeId: string;
+    lotNumber: string;
+    roastDate: string;
+    brewingNotes: string;
+    roasterStory: string;
+  }): Promise<{ id: string }> {
+    const session = await getBrowserSessionSafely();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!session?.access_token || !supabaseUrl || !anonKey) {
+      throw new Error('Missing auth session or Supabase env.');
+    }
+
+    const response = await fetch(`${supabaseUrl}/rest/v1/roast_batches?select=id`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify({
+        coffee_id: input.coffeeId,
+        lot_number: input.lotNumber,
+        roast_date: input.roastDate,
+        brewing_notes: input.brewingNotes || null,
+        roaster_story: input.roasterStory || null,
+        status: 'active',
+      }),
+    });
+    const rows = (await response.json()) as Array<{ id: string }>;
+    const batchId = rows[0]?.id;
+    if (!response.ok || !batchId) {
+      throw new Error('Unable to create batch.');
+    }
+    return { id: batchId };
+  }
+
+  async function generateQrForBatch(batchId: string): Promise<QrPreview> {
+    const session = await getBrowserSessionSafely();
+    if (!session?.access_token) {
+      throw new Error('Missing auth session.');
+    }
+    const response = await fetch('/api/batch-qr', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ batchId }),
+    });
+    const body = (await response.json()) as QrPreview | { message?: string };
+    if (!response.ok) {
+      throw new Error('message' in body && body.message ? body.message : 'Unable to generate QR.');
+    }
+    return body as QrPreview;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -99,7 +192,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
 
       const { data: roaster, error: roasterError } = await supabaseBrowser
         .from('roasters')
-        .select('id')
+        .select('id, roaster_short_name')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -107,12 +200,15 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
 
       if (roasterError) {
         setSubmitError(roasterError.message);
+        setRoasterResolved(true);
         setLoading(false);
         return;
       }
 
-      const roasterRow = roaster as { id: string } | null;
+      const roasterRow = roaster as { id: string; roaster_short_name: string | null } | null;
       setRoasterId(roasterRow?.id ?? null);
+      setRoasterShortName(roasterRow?.roaster_short_name ?? null);
+      setRoasterResolved(true);
 
       if (mode !== 'edit' || !coffeeId || !roasterRow?.id) {
         setLoading(false);
@@ -175,11 +271,38 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
       setSubmitError('Create your roaster profile before publishing coffee.');
       return;
     }
+    if (mode === 'create') {
+      if (!batchValues.lotNumber.trim()) {
+        setSubmitError('Lot number is required.');
+        return;
+      }
+      if (!batchValues.roastDate.trim()) {
+        setSubmitError('Roast date is required.');
+        return;
+      }
+    }
 
     setSaving(true);
+    setPublishPreview(null);
 
     try {
-      const originPayload = normalizeOriginPayload(values);
+      let nextValues = values;
+      if (coverImageFile) {
+        const shortName = roasterShortName?.trim();
+        if (!shortName) {
+          throw new Error('Set roaster short name in Roaster Profile before uploading cover image.');
+        }
+        const uploadedCoverUrl = await uploadCoffeeLabelToSupabase(
+          supabaseBrowser,
+          coverImageFile,
+          shortName
+        );
+        nextValues = { ...values, coverImageUrl: uploadedCoverUrl };
+        setValues(nextValues);
+        setCoverImageFile(undefined);
+      }
+
+      const originPayload = normalizeOriginPayload(nextValues);
       const session = await getBrowserSessionSafely();
       if (!session?.access_token) {
         throw new Error('Missing auth session.');
@@ -187,7 +310,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
       const coffeePayload = normalizeCoffeePayload({
         roasterId,
         originId,
-        values,
+        values: nextValues,
         status,
       });
       const response = await fetch('/api/canonical-coffee', {
@@ -219,7 +342,19 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
       setOriginId(saved.originId);
 
       if (mode === 'create') {
-        router.push(`/roaster-hub/coffees/${saved.id}`);
+        const createdBatch = await createBatchForCoffee({
+          coffeeId: saved.id,
+          lotNumber: batchValues.lotNumber.trim(),
+          roastDate: batchValues.roastDate.trim(),
+          brewingNotes: batchValues.brewingNotes.trim(),
+          roasterStory: batchValues.roasterStory.trim(),
+        });
+        const qrPreview = await generateQrForBatch(createdBatch.id);
+        setPublishPreview({
+          coffeeId: saved.id,
+          batchId: createdBatch.id,
+          qr: qrPreview,
+        });
         return;
       }
 
@@ -251,7 +386,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
       </h1>
       <p className={`${hubCrudStyles.muted} mb-5 max-w-[640px]`}>{intro}</p>
 
-      {!roasterId ? (
+      {roasterResolved && !roasterId ? (
         <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-neutral-900">
           Create your roaster profile first in{' '}
           <Link href="/roaster-profile" className={hubCrudStyles.linkStrong}>
@@ -279,12 +414,61 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
           value={values.processingMethod}
           onChange={(value) => setValues((prev) => ({ ...prev, processingMethod: value }))}
         />
-        <Field
-          label="Cover image URL"
-          value={values.coverImageUrl}
-          onChange={(value) => setValues((prev) => ({ ...prev, coverImageUrl: value }))}
-          placeholder="https://..."
-        />
+        <label className={hubCrudStyles.formGrid}>
+          <span className={hubCrudStyles.label}>Zdjęcie etykiety / opakowania</span>
+          <CoffeeLabelUploadField
+            file={coverImageFile}
+            onFileChange={setCoverImageFile}
+            className="rounded border border-neutral-200 bg-white p-2"
+            testId="coffee-cover-image-upload"
+          />
+          {mode === 'edit' && values.coverImageUrl ? (
+            <span className={`${hubCrudStyles.muted} text-xs`}>
+              Current image exists. Uploading a new file will replace it.
+            </span>
+          ) : null}
+        </label>
+
+        {mode === 'create' ? (
+          <>
+            <hr className="my-2 border-neutral-300" />
+            <h2 className={hubCrudStyles.pageHeading}>Batch + public QR</h2>
+            <Field
+              label="Lot number"
+              value={batchValues.lotNumber}
+              onChange={(value) => setBatchValues((prev) => ({ ...prev, lotNumber: value }))}
+              required
+            />
+            <label className={hubCrudStyles.formGrid}>
+              <span className={hubCrudStyles.label}>Roast date *</span>
+              <input
+                className={hubCrudStyles.input}
+                type="date"
+                value={batchValues.roastDate}
+                onChange={(event) =>
+                  setBatchValues((prev) => ({ ...prev, roastDate: event.target.value }))
+                }
+                required
+              />
+            </label>
+            <TextAreaField
+              label="Brewing notes"
+              value={batchValues.brewingNotes}
+              onChange={(value) =>
+                setBatchValues((prev) => ({ ...prev, brewingNotes: value }))
+              }
+              placeholder="Recipe hints, water, ratio, grind…"
+            />
+            <TextAreaField
+              label="Roaster story"
+              value={batchValues.roasterStory}
+              onChange={(value) =>
+                setBatchValues((prev) => ({ ...prev, roasterStory: value }))
+              }
+              placeholder="What makes this batch worth tasting?"
+            />
+          </>
+        ) : null}
         <TextAreaField
           label="Producer notes"
           value={values.producerNotes}
@@ -333,27 +517,62 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
         <button
           type="submit"
           className={hubCrudStyles.submitBtn}
-          disabled={saving || !roasterId}
+          disabled={saving || !roasterResolved || !roasterId}
         >
           {saving
             ? mode === 'create'
-              ? 'Creating…'
+              ? 'Publishing…'
               : 'Saving…'
             : mode === 'create'
-              ? 'Create coffee'
+              ? 'Publish coffee + batch + QR'
               : 'Save coffee'}
         </button>
       </form>
 
-      {mode === 'edit' && coffeeId ? (
-        <p className={hubCrudStyles.inlineGapTop}>
-          <Link
-            href={`/roaster-hub/coffees/${coffeeId}/batches/new`}
-            className={hubCrudStyles.actionLink}
-          >
-            + Create batch for this coffee
-          </Link>
-        </p>
+      {mode === 'create' && publishPreview ? (
+        <div className="mt-6 rounded border border-neutral-300 bg-white p-4">
+          <p className={`${hubCrudStyles.bodyStrong} mb-2`}>Publish complete</p>
+          <p className={hubCrudStyles.bodyText}>
+            <strong className={hubCrudStyles.bodyStrong}>Hash:</strong> {publishPreview.qr.hash}
+          </p>
+          <p className={`${hubCrudStyles.bodyText} break-all`}>
+            <strong className={hubCrudStyles.bodyStrong}>Public URL:</strong> {publishPreview.qr.url}
+          </p>
+          {publishPreview.qr.svg ? (
+            <div className="mt-3 space-y-3">
+              <div
+                className="max-w-[240px]"
+                dangerouslySetInnerHTML={{ __html: publishPreview.qr.svg }}
+              />
+              <button
+                type="button"
+                className={hubCrudStyles.submitBtn}
+                onClick={() => {
+                  const blob = new Blob([publishPreview.qr.svg], { type: 'image/svg+xml' });
+                  const href = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = href;
+                  a.download = `batch-${publishPreview.batchId}.svg`;
+                  a.click();
+                  URL.revokeObjectURL(href);
+                }}
+              >
+                Download SVG
+              </button>
+            </div>
+          ) : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href={`/roaster-hub/coffees/${publishPreview.coffeeId}/batches/${publishPreview.batchId}`}
+              className={hubCrudStyles.actionLink}
+            >
+              Batch details
+            </Link>
+            <Link href={`/roaster-hub/analytics/${publishPreview.batchId}`} className={hubCrudStyles.actionLink}>
+              Batch analytics
+            </Link>
+          </div>
+        </div>
       ) : null}
     </main>
   );

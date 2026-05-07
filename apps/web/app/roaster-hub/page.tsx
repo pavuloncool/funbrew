@@ -68,8 +68,8 @@ export default function RoasterHubPage() {
       onClick: () => router.push('/coffee-bank'),
     },
     {
-      label: 'Legacy tag',
-      onClick: () => router.push('/tag'),
+      label: 'User data analytics',
+      onClick: () => router.push('/roaster-hub/analytics'),
     },
   ];
 

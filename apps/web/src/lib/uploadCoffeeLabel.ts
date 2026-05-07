@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { assertCoffeeLabelFileSize, storageSegmentFromRoasterShortName } from '@funcup/shared';
+import {
+  MAX_COFFEE_LABEL_BYTES,
+  assertCoffeeLabelFileSize,
+  storageSegmentFromRoasterShortName,
+} from '@funcup/shared';
 
 function extensionFromFile(file: File): string {
   const m = /\.([a-zA-Z0-9]+)$/.exec(file.name);
@@ -19,6 +23,9 @@ export async function uploadCoffeeLabelToSupabase(
   file: File,
   roasterShortName: string
 ): Promise<string> {
+  if (file.size > MAX_COFFEE_LABEL_BYTES) {
+    return Promise.reject(new Error('File too large'));
+  }
   assertCoffeeLabelFileSize(file);
   const segment = storageSegmentFromRoasterShortName(roasterShortName);
   const ext = extensionFromFile(file);

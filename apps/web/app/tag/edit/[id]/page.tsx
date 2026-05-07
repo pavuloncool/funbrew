@@ -9,25 +9,16 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { FilePond, registerPlugin } from 'react-filepond';
 import { z } from 'zod';
 
 import { Calendar } from '@/src/components/ui/calendar';
 import { Button } from '@/src/components/ui/button';
+import { CoffeeLabelUploadField } from '@/src/components/ui/coffee-label-upload-field';
 import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
 import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import { uploadCoffeeLabelToSupabase } from '@/src/lib/uploadCoffeeLabel';
 import { tagStyles } from '../../tag.styles';
-
-import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
-import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
-import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
-
-import 'filepond/dist/filepond.min.css';
-import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
-
-registerPlugin(FilePondPluginFileValidateType, FilePondPluginFileValidateSize, FilePondPluginImagePreview);
 
 const ORIGIN_COUNTRIES: { value: string; label: string }[] = [
   { value: 'Nicaragua', label: 'Nikaragua' },
@@ -278,7 +269,6 @@ export default function EditCoffeeTagPage() {
   }, []);
 
   const coffeeLabelFile = watch('coffeeLabelFile');
-  const pondFiles = useMemo(() => (coffeeLabelFile instanceof File ? [coffeeLabelFile] : []), [coffeeLabelFile]);
 
   const onSubmit = useCallback(async (values: EditValues) => {
     setPageError(null);
@@ -371,20 +361,10 @@ export default function EditCoffeeTagPage() {
               name="coffeeLabelFile"
               control={control}
               render={({ field: { onChange } }) => (
-                <FilePond
-                  files={pondFiles}
-                  allowMultiple={false}
-                  maxFiles={1}
-                  instantUpload={false}
-                  credits={false}
-                  allowImagePreview
-                  acceptedFileTypes={['image/jpeg', 'image/png', 'image/webp']}
-                  maxFileSize="512KB"
+                <CoffeeLabelUploadField
+                  file={coffeeLabelFile}
+                  onFileChange={onChange}
                   labelIdle='Przeciągnij nowy obraz lub <span class="filepond--label-action">wybierz</span>'
-                  onupdatefiles={(items) => {
-                    const f = items[0]?.file;
-                    onChange(f instanceof File ? f : undefined);
-                  }}
                 />
               )}
             />

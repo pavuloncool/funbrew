@@ -9,6 +9,12 @@ export const coffeeBankStyles = {
   pageTitle: 'mb-2 mt-2 text-[22px] font-bold text-neutral-900',
   backToHub: 'mb-5 inline-block text-sm font-semibold text-neutral-900 underline',
 
+  compatibilityBox: 'mb-4 rounded border border-neutral-300 bg-neutral-50 p-3',
+  compatibilityTitle: 'text-sm font-semibold text-neutral-900',
+  compatibilityBody: 'mt-1 text-[13px] text-neutral-800',
+  compatibilityLink: 'font-semibold underline',
+  inlineCode: 'rounded bg-neutral-200 px-1 py-0.5 text-[12px]',
+
   authGateBox: 'mb-4 rounded border border-amber-300 bg-amber-50 p-3',
   authGateTitle: 'text-sm font-semibold text-amber-900',
   authGateBody: 'mt-1 text-[13px] text-neutral-900',
@@ -19,7 +25,6 @@ export const coffeeBankStyles = {
   roasterGateBody: 'mt-1 text-[13px] text-neutral-900',
   roasterGateCode: 'text-xs',
   roasterGateLinkPrimary: 'mt-2 inline-block text-sm font-semibold underline',
-  roasterGateLinkSecondary: 'mt-2 ml-4 inline-block text-sm font-semibold text-neutral-700 underline',
 
   twoColumnGrid:
     'grid grid-cols-1 gap-8 min-[900px]:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] min-[900px]:items-start',
@@ -33,7 +38,6 @@ export const coffeeBankStyles = {
   tableTh: 'px-3 py-2.5 font-semibold text-neutral-900',
   tableThBtn:
     'inline-flex w-full items-center gap-1 rounded text-left font-semibold text-neutral-900 hover:underline focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-1',
-  /** Łącz z {@link tableThBtn} gdy kolumna jest aktywna w sortowaniu */
   tableThBtnActive: 'text-neutral-900',
   sortIcon: 'text-xs text-neutral-600',
   tableBody: 'bg-white',
@@ -59,6 +63,10 @@ export const coffeeBankStyles = {
   productStrong: 'font-semibold text-neutral-900',
   productEmpty: 'text-sm text-neutral-600',
 
+  actionRow: 'mb-4 flex flex-wrap gap-2',
+  actionLink:
+    'inline-block rounded border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-900 hover:bg-neutral-100',
+
   qrBlock: 'mt-6 border-t border-neutral-200 pt-4',
   qrTitle: 'mb-2 text-sm font-semibold text-neutral-900',
   qrCard: 'rounded border border-neutral-300 bg-neutral-50 p-3',
@@ -66,7 +74,8 @@ export const coffeeBankStyles = {
   qrImagePng: 'mx-auto mt-3 block h-auto w-full max-w-[240px] min-[900px]:hidden',
   qrUrl: 'mt-2 break-all text-[11px] text-neutral-600',
   qrDownloadBtn:
-    'mt-3 w-full rounded border border-neutral-900 bg-white px-3 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100',
+    'mt-3 rounded border border-neutral-900 bg-white px-3 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60',
+  qrActionRow: 'mt-2 flex flex-wrap gap-2',
   qrLoading: 'text-sm text-neutral-600',
   qrError: 'mt-2 text-sm text-red-600',
 

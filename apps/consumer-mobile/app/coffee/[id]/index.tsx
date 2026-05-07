@@ -65,17 +65,20 @@ export default function CoffeePage() {
   const params = useLocalSearchParams<{ id?: string }>();
   const hash = params.id ?? null;
   const coffeeQuery = useCoffeePage({ supabase, hash });
-  const [tagImageFailed, setTagImageFailed] = useState(false);
+  const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
   const demoReputationScore = 52;
-  const tagImageUri = useMemo(() => {
+  const coffeeImageUri = useMemo(() => {
     const d = coffeeQuery.data;
-    if (!d || d.kind !== 'tag') return null;
-    return resolveTagImageUri(d.tag.img_coffee_label);
+    if (!d) return null;
+    if (d.kind === 'tag') {
+      return resolveTagImageUri(d.tag.img_coffee_label);
+    }
+    return d.coffee.cover_image_url ? resolveTagImageUri(d.coffee.cover_image_url) : null;
   }, [coffeeQuery.data]);
 
   useEffect(() => {
-    setTagImageFailed(false);
-  }, [tagImageUri]);
+    setCoffeeImageFailed(false);
+  }, [coffeeImageUri]);
 
   if (!hash) {
     return (
@@ -128,13 +131,13 @@ export default function CoffeePage() {
           </AppText>
 
           <View style={styles.imageWrap}>
-            {!tagImageFailed && tagImageUri ? (
+            {!coffeeImageFailed && coffeeImageUri ? (
               <Image
-                source={{ uri: tagImageUri }}
+                source={{ uri: coffeeImageUri }}
                 style={styles.image}
                 resizeMode="contain"
                 accessibilityLabel="Etykieta kawy"
-                onError={() => setTagImageFailed(true)}
+                onError={() => setCoffeeImageFailed(true)}
               />
             ) : (
               <View style={styles.imageFallback}>
@@ -201,6 +204,21 @@ export default function CoffeePage() {
       ) : null}
 
       <AppText variant="h2" weight="700" accessibilityRole="header">Coffee Page</AppText>
+      <View style={styles.imageWrap}>
+        {!coffeeImageFailed && coffeeImageUri ? (
+          <Image
+            source={{ uri: coffeeImageUri }}
+            style={styles.image}
+            resizeMode="contain"
+            accessibilityLabel="Etykieta kawy"
+            onError={() => setCoffeeImageFailed(true)}
+          />
+        ) : (
+          <View style={styles.imageFallback}>
+            <AppText tone="muted">Brak podglądu etykiety</AppText>
+          </View>
+        )}
+      </View>
 
       <CoffeePageProduct
         coffeeName={publicCoffee.product.name}

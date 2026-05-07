@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { type EntrySplashPhase } from '@funcup/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -85,8 +85,12 @@ function useEntryTimings(reduceMotion: boolean): Timings {
  * FR-012 entry for Expo: same semantic beats as web (white → fingerprint → tap → confetti → bean → dissolve → shell).
  * Reduced motion: shorter fades, no pulse, static bean rise (no travel), no particle confetti.
  */
-export function MobileEntrySplash() {
-  const router = useRouter();
+type MobileEntrySplashProps = {
+  onComplete?: () => void;
+  onPhaseChange?: (phase: EntrySplashPhase) => void;
+};
+
+export function MobileEntrySplash({ onComplete, onPhaseChange }: MobileEntrySplashProps) {
   const reduceMotion = useReduceMotionPreference();
   const timings = useEntryTimings(reduceMotion);
 
@@ -112,6 +116,23 @@ export function MobileEntrySplash() {
   const confettiOpacity = useRef(new Animated.Value(0)).current;
   const beanOpacity = useRef(new Animated.Value(0)).current;
   const beanTranslate = useRef(new Animated.Value(reduceMotion ? 0 : 72)).current;
+  const phaseRef = useRef<EntrySplashPhase>('entry.white');
+
+  const commitPhase = useCallback(
+    (phase: EntrySplashPhase) => {
+      if (phaseRef.current === phase) {
+        return;
+      }
+
+      phaseRef.current = phase;
+      onPhaseChange?.(phase);
+    },
+    [onPhaseChange]
+  );
+
+  useEffect(() => {
+    onPhaseChange?.(phaseRef.current);
+  }, [onPhaseChange]);
 
   useEffect(() => {
     beanTranslate.setValue(reduceMotion ? 0 : 72);
@@ -129,17 +150,21 @@ export function MobileEntrySplash() {
 
   useEffect(() => {
     const afterWhite = setTimeout(() => {
+      commitPhase('entry.fingerprint');
       Animated.timing(fpOpacity, {
         toValue: 1,
         duration: timings.fpIn,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start(({ finished }) => {
-        if (finished) setStage('tap');
+        if (finished) {
+          commitPhase('entry.tap');
+          setStage('tap');
+        }
       });
     }, timings.white);
     return () => clearTimeout(afterWhite);
-  }, [fpOpacity, timings.white, timings.fpIn]);
+  }, [commitPhase, fpOpacity, timings.white, timings.fpIn]);
 
   useEffect(() => {
     if (stage !== 'tap' || reduceMotion) return;
@@ -176,10 +201,11 @@ export function MobileEntrySplash() {
     };
   }, []);
 
-  const finishToLogin = useCallback(() => {
+  const finishEntry = useCallback(() => {
+    commitPhase('entry.mainReveal');
     setStage('done');
-    router.replace('/(auth)/login');
-  }, [router]);
+    onComplete?.();
+  }, [commitPhase, onComplete]);
 
   const onFingerprintTap = useCallback(() => {
     if (stage !== 'tap' || tappedRef.current) return;
@@ -207,6 +233,7 @@ export function MobileEntrySplash() {
       }),
     ]).start(() => {
       const afterMeasure = (ox: number, oy: number) => {
+        commitPhase('entry.confetti');
         setBurstOriginX(ox);
         setBurstOriginY(oy);
         if (!reduceMotion) {
@@ -234,6 +261,7 @@ export function MobileEntrySplash() {
         }
 
         const runBeanSequence = () => {
+          commitPhase('entry.beanRise');
           beanTranslate.setValue(reduceMotion ? 0 : 72);
           beanOpacity.setValue(0);
           Animated.parallel([
@@ -257,13 +285,14 @@ export function MobileEntrySplash() {
             }),
           ]).start(() => {
             setTimeout(() => {
+              commitPhase('entry.beanDissolve');
               Animated.timing(beanOpacity, {
                 toValue: 0,
                 duration: timings.beanOut,
                 easing: Easing.inOut(Easing.quad),
                 useNativeDriver: true,
               }).start(() => {
-                setTimeout(finishToLogin, timings.mainDelay);
+                setTimeout(finishEntry, timings.mainDelay);
               });
             }, timings.beanHold);
           });
@@ -290,7 +319,8 @@ export function MobileEntrySplash() {
     beanOpacity,
     beanTranslate,
     timings,
-    finishToLogin,
+    finishEntry,
+    commitPhase,
   ]);
 
   if (stage === 'done') {

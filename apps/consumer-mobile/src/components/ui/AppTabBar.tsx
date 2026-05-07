@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { visualSystemTokens } from '@funcup/shared';
+import { appShellRules, visualSystemTokens } from '@funcup/shared';
 import { type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
@@ -71,7 +71,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go to QR Scan"
-          onPress={() => router.replace('/(tabs)/scan/scan')}
+          onPress={() => router.replace(appShellRules.centralActionRoute)}
           style={standaloneStyles.centerItem}
         >
           <TabCentralScanFab />
@@ -81,7 +81,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go to Journal"
-          onPress={() => router.replace('/(tabs)/journal')}
+          onPress={() => router.replace('/(tabs)/coffee')}
           style={standaloneStyles.item}
         >
           <TabDotIcon active={active === 'journal'} label="J" />

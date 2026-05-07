@@ -3,13 +3,15 @@ import { expect, test } from '@playwright/test';
 import { dismissAppOpenGate } from './dismiss-app-open-gate';
 
 test.describe('/coffee-bank', () => {
-  test('renders title, hub back link, and unauthenticated or empty-state flow', async ({ page }) => {
+  test('renders canonical heading, hub back link, and legacy compatibility link', async ({ page }) => {
     await page.goto('/coffee-bank');
     await dismissAppOpenGate(page);
     await expect(page.getByRole('heading', { name: 'Coffee Bank' })).toBeVisible({
       timeout: 25_000,
     });
     await expect(page.getByRole('link', { name: 'Wróć do Roaster Hub' })).toHaveAttribute('href', '/roaster-hub');
+    await expect(page.getByText('Canonical management surface')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Legacy tag flow' })).toHaveAttribute('href', '/tag');
   });
 
   test('responds 200 for document navigation (route exists)', async ({ request }) => {
