@@ -8,7 +8,7 @@ import { ScreenError } from '../../../src/components/ScreenError';
 import { DiscoverListSkeleton } from '../../../src/components/ui/Skeleton';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { supabase } from '../../../src/services/supabaseClient';
-import { AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
+import { AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
 import { pageStyles } from '../../../src/theme/pageStyles';
 import { discoverHubStyles, followLabelStyle, followPressableStyle } from '../../../src/components/hub/discoverHub.styles';
 
@@ -19,11 +19,26 @@ function formatError(err: unknown): string {
 
 type RoasterSection = 'followed' | 'discover';
 
+function normalizeSearchValue(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function matchesSearch(
+  roaster: { name: string; city: string | null },
+  normalizedQuery: string
+): boolean {
+  if (!normalizedQuery) return true;
+  const name = roaster.name.toLowerCase();
+  const city = roaster.city?.toLowerCase() ?? '';
+  return name.includes(normalizedQuery) || city.includes(normalizedQuery);
+}
+
 export default function RoastersScreen() {
   const { userId, isLoading: userLoading } = useViewerUserId();
   const roastersQuery = useDiscoverRoasters({ supabase, userId, limit: 16 });
   const followMutation = useFollowRoaster({ supabase, userId });
   const [activeSection, setActiveSection] = useState<RoasterSection>('followed');
+  const [searchQuery, setSearchQuery] = useState('');
 
   if (userLoading || roastersQuery.isLoading) {
     return (
@@ -47,8 +62,13 @@ export default function RoastersScreen() {
   }
 
   const allRoasters = roastersQuery.data ?? [];
-  const followedRoasters = allRoasters.filter((roaster) => roaster.isFollowed);
-  const discoverRoasters = allRoasters.filter((roaster) => !roaster.isFollowed);
+  const normalizedQuery = normalizeSearchValue(searchQuery);
+  const followedRoasters = allRoasters
+    .filter((roaster) => roaster.isFollowed)
+    .filter((roaster) => matchesSearch(roaster, normalizedQuery));
+  const discoverRoasters = allRoasters
+    .filter((roaster) => !roaster.isFollowed)
+    .filter((roaster) => matchesSearch(roaster, normalizedQuery));
 
   return (
     <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content]}>
@@ -57,6 +77,15 @@ export default function RoastersScreen() {
         <AppText tone="secondary">
           Keep your followed roasters close and discover new verified profiles.
         </AppText>
+        <AppInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search roasters by name or city"
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          accessibilityLabel="Search roasters by name or city"
+        />
       </View>
 
       <View style={styles.segmentedControl} accessibilityRole="tablist">
@@ -95,8 +124,12 @@ export default function RoastersScreen() {
             <AppText variant="h3" weight="700">Followed Roasters</AppText>
             {followedRoasters.length === 0 ? (
               <EmptyState
-                title="No followed roasters yet"
-                description="Follow a verified roaster and they will appear here."
+                title={normalizedQuery ? 'No matching followed roasters' : 'No followed roasters yet'}
+                description={
+                  normalizedQuery
+                    ? 'Try a different name or city.'
+                    : 'Follow a verified roaster and they will appear here.'
+                }
               />
             ) : (
               <View style={discoverHubStyles.list} accessibilityRole="list">
@@ -141,8 +174,12 @@ export default function RoastersScreen() {
             <AppText variant="h3" weight="700">Discover Roasters</AppText>
             {discoverRoasters.length === 0 ? (
               <EmptyState
-                title="No new roasters now"
-                description="You already follow all currently available verified roasters."
+                title={normalizedQuery ? 'No matching roasters to discover' : 'No new roasters now'}
+                description={
+                  normalizedQuery
+                    ? 'Try a different name or city.'
+                    : 'You already follow all currently available verified roasters.'
+                }
               />
             ) : (
               <View style={discoverHubStyles.list} accessibilityRole="list">

@@ -3,13 +3,16 @@ import {
   flowErrorUiCopy,
   logTasting,
   logFlowError,
+  normalizeFlowError,
   normalizeTastingSyncError,
+  type RepurchaseIntent,
+  upsertRoasterTelemetryCore,
   updateCoffeeStats,
   visualSystemTokens,
 } from '@funcup/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,6 +39,10 @@ export default function TastingLogScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [sensoryAcidity, setSensoryAcidity] = useState(3);
+  const [sensorySweetness, setSensorySweetness] = useState(3);
+  const [sensoryBody, setSensoryBody] = useState(3);
+  const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
 
   const validate = (): string | null => {
     if (!batchId) return 'Missing batch id';
@@ -80,8 +87,9 @@ export default function TastingLogScreen() {
         return;
       }
 
-      await logTasting(supabase, payload);
+      const saved = await logTasting(supabase, payload);
       let statsRefreshFailed = false;
+      let telemetrySaveFailed = false;
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -95,8 +103,41 @@ export default function TastingLogScreen() {
           // Tasting is already persisted at this point; don't requeue to avoid duplicates.
           statsRefreshFailed = true;
         }
+
+        try {
+          await upsertRoasterTelemetryCore({
+            supabase,
+            coffeeLogId: saved.coffeeLogId,
+            userId: user.id,
+            input: {
+              brewMethodId: payload.brewMethodId,
+              overallRating: payload.rating,
+              sensoryAcidity,
+              sensorySweetness,
+              sensoryBody,
+              repurchaseIntent,
+              experienceLevel: 'beginner',
+            },
+          });
+        } catch (telemetryError) {
+          telemetrySaveFailed = true;
+          const normalized = normalizeFlowError({
+            error: telemetryError,
+            domain: 'tasting_log',
+            fallbackMessage: 'Telemetry profile save failed.',
+          });
+          logFlowError(normalized, 'mobile.tasting-log.telemetry');
+        }
       }
-      setStatus(statsRefreshFailed ? 'Tasting saved. Stats refresh is temporarily unavailable.' : 'Synced immediately.');
+      if (statsRefreshFailed && telemetrySaveFailed) {
+        setStatus('Tasting saved. Stats + telemetry refresh are temporarily unavailable.');
+      } else if (statsRefreshFailed) {
+        setStatus('Tasting saved. Stats refresh is temporarily unavailable.');
+      } else if (telemetrySaveFailed) {
+        setStatus('Tasting saved. Roaster telemetry profile was not saved this time.');
+      } else {
+        setStatus('Synced immediately.');
+      }
       setFreeTextNotes('');
       setReview('');
       setTastingNoteIds([]);
@@ -130,6 +171,33 @@ export default function TastingLogScreen() {
       <RatingInput value={rating} onChange={setRating} />
       <BrewMethodPicker value={brewMethodId} onChange={setBrewMethodId} />
       <FlavorNoteSelector selectedIds={tastingNoteIds} onChange={setTastingNoteIds} />
+      <View style={styles.fieldBlock}>
+        <AppText variant="body" weight="600">Roaster telemetry profile (MVP core)</AppText>
+        <ScorePicker label="Acidity" value={sensoryAcidity} onChange={setSensoryAcidity} />
+        <ScorePicker label="Sweetness" value={sensorySweetness} onChange={setSensorySweetness} />
+        <ScorePicker label="Body" value={sensoryBody} onChange={setSensoryBody} />
+        <View style={styles.intentGroup}>
+          <AppText tone="secondary">Would you buy this lot again?</AppText>
+          <View style={styles.intentRow}>
+            {INTENT_OPTIONS.map((option) => {
+              const active = repurchaseIntent === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setRepurchaseIntent(option.value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.intentChip, active ? styles.intentChipActive : null]}
+                >
+                  <AppText tone={active ? 'onPrimary' : 'secondary'} weight="700">
+                    {option.label}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </View>
 
       <View style={styles.fieldBlock}>
         <AppText variant="body" weight="600">Free-text tasting notes</AppText>
@@ -181,4 +249,79 @@ const styles = StyleSheet.create({
     paddingTop: visualSystemTokens.spacing.sm,
   },
   submit: { gap: visualSystemTokens.spacing.xs, paddingBottom: visualSystemTokens.spacing.md },
+  scoreRow: {
+    gap: visualSystemTokens.spacing.xs,
+  },
+  scoreButtons: {
+    flexDirection: 'row',
+    gap: visualSystemTokens.spacing.xs,
+  },
+  scoreButton: {
+    minWidth: 36,
+    minHeight: 36,
+    borderRadius: visualSystemTokens.radius.pill,
+    borderWidth: 1,
+    borderColor: visualSystemTokens.colors.borderSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scoreButtonActive: {
+    backgroundColor: visualSystemTokens.colors.accentPrimary,
+    borderColor: visualSystemTokens.colors.accentPrimary,
+  },
+  intentGroup: {
+    gap: visualSystemTokens.spacing.xs,
+  },
+  intentRow: {
+    flexDirection: 'row',
+    gap: visualSystemTokens.spacing.xs,
+    flexWrap: 'wrap',
+  },
+  intentChip: {
+    borderWidth: 1,
+    borderColor: visualSystemTokens.colors.borderSubtle,
+    borderRadius: visualSystemTokens.radius.pill,
+    paddingHorizontal: visualSystemTokens.spacing.sm,
+    paddingVertical: visualSystemTokens.spacing.xxs,
+  },
+  intentChipActive: {
+    borderColor: visualSystemTokens.colors.accentPrimary,
+    backgroundColor: visualSystemTokens.colors.accentPrimary,
+  },
 });
+
+const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
+const INTENT_OPTIONS: Array<{ value: RepurchaseIntent; label: string }> = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+  { value: 'unsure', label: 'Not sure' },
+];
+
+function ScorePicker(props: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <View style={styles.scoreRow}>
+      <AppText tone="secondary">{props.label}: {props.value}</AppText>
+      <View style={styles.scoreButtons}>
+        {SCORE_OPTIONS.map((option) => {
+          const active = props.value === option;
+          return (
+            <Pressable
+              key={option}
+              onPress={() => props.onChange(option)}
+              accessibilityRole="button"
+              accessibilityLabel={`${props.label} ${option}`}
+              accessibilityState={{ selected: active }}
+              style={[styles.scoreButton, active ? styles.scoreButtonActive : null]}
+            >
+              <AppText tone={active ? 'onPrimary' : 'secondary'} weight="700">{option}</AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}

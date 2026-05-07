@@ -7,6 +7,7 @@ Folder zawiera diagramy przepływów i opisy ekranów dla:
 ## Jak czytać
 - Otwórz plik `.mmd` w https://mermaidviewer.com.
 - Dla opisu ekranów i ich roli biznesowej użyj `SCREEN_CATALOG.md`.
+- Dla mapowania parity screen/field użyj `SCREEN_FIELD_PARITY_MATRIX.md`.
 - Dla oceny gotowości MVP/Beta użyj `MVP_CANDIDATE_ASSESSMENT.md`.
 
 ## Diagramy
@@ -24,3 +25,6 @@ Folder zawiera diagramy przepływów i opisy ekranów dla:
 
 - `05_error_offline_sync_flows.mmd`  
   Co pokazuje: ścieżki błędów i retry dla Tasting Log (online/offline, kolejka, rodzaje błędów, synchronizacja po odzyskaniu sieci).
+
+- `06_screen_field_parity.mmd`  
+  Co pokazuje: parity danych `apps/web` i `apps/consumer-mobile` na poziomie ekranów i kanonicznych pól (source -> shared/service -> destination).

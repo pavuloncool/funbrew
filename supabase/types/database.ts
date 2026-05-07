@@ -181,6 +181,73 @@ export type Database = {
           created_at: string;
           updated_at: string;
         };
+        Insert: {
+          id?: string;
+          user_id: string;
+          batch_id: string;
+          rating: number;
+          brew_method_id?: string | null;
+          brew_time_seconds?: number | null;
+          free_text_notes?: string | null;
+          logged_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          batch_id?: string;
+          rating?: number;
+          brew_method_id?: string | null;
+          brew_time_seconds?: number | null;
+          free_text_notes?: string | null;
+          logged_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      coffee_log_telemetry_core: {
+        Row: {
+          id: string;
+          coffee_log_id: string;
+          brew_method_id: string;
+          overall_rating: number;
+          sensory_acidity: number;
+          sensory_sweetness: number;
+          sensory_body: number;
+          repurchase_intent: 'yes' | 'no' | 'unsure';
+          experience_level: 'beginner' | 'advanced' | 'expert';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          coffee_log_id: string;
+          brew_method_id: string;
+          overall_rating: number;
+          sensory_acidity: number;
+          sensory_sweetness: number;
+          sensory_body: number;
+          repurchase_intent: 'yes' | 'no' | 'unsure';
+          experience_level?: 'beginner' | 'advanced' | 'expert';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          coffee_log_id?: string;
+          brew_method_id?: string;
+          overall_rating?: number;
+          sensory_acidity?: number;
+          sensory_sweetness?: number;
+          sensory_body?: number;
+          repurchase_intent?: 'yes' | 'no' | 'unsure';
+          experience_level?: 'beginner' | 'advanced' | 'expert';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       coffee_log_tasting_notes: {
         Row: {
@@ -189,6 +256,19 @@ export type Database = {
           tasting_note_id: string;
           created_at: string;
         };
+        Insert: {
+          id?: string;
+          coffee_log_id: string;
+          tasting_note_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coffee_log_id?: string;
+          tasting_note_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       reviews: {
         Row: {
@@ -198,6 +278,21 @@ export type Database = {
           created_at: string;
           updated_at: string;
         };
+        Insert: {
+          id?: string;
+          coffee_log_id: string;
+          body: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          coffee_log_id?: string;
+          body?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       review_votes: {
         Row: {

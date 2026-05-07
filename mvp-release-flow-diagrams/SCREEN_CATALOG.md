@@ -43,8 +43,9 @@ Każdy ekran opisuje: **co użytkownik widzi**, **skąd biorą się dane**, **ja
 | `/coffee/[id]` | Strona kawy (produkt, historia, kontekst) | Public coffee model (`scan_qr`/normalized data) | Decyzja o degustacji i przejście do logu |
 | `/coffee/[id]/log` | Formularz Tasting Log + status sync offline | `log_tasting`, `update_coffee_stats`, offline queue | Zapis feedbacku użytkownika |
 | `/(tabs)/coffee` | Zakładka „Coffee”: Rated + Discover | `coffee_logs` + feed discover | Powrót do historii i odkrywanie nowych kaw |
+| `/coffee-log/[logId]` | Szczegóły pojedynczego wpisu Rated Coffee + post-edycja/usuwanie | `coffee_logs`, `reviews`, `coffee_log_telemetry_core`, `update_coffee_stats` | Korekta i utrzymanie jakości danych po zapisaniu degustacji |
 | `/(tabs)/journal` | Kompatybilny redirect do aktualnej sekcji coffee | Routing lokalny | Utrzymanie kompatybilności starych ścieżek |
-| `/(tabs)/roasters` | Roasters: obserwowani i do odkrycia | `roasters`, follow state w `users` | Budowa relacji consumer -> palarnia |
+| `/(tabs)/roasters` | Roasters: obserwowani i do odkrycia + wyszukiwanie local `contains(name \| city)` | `roasters`, follow state w `users` | Budowa relacji consumer -> palarnia i szybsze odnajdywanie marek |
 | `/roaster/[id]` | Profil pojedynczej palarni + follow/unfollow | `roasters`, `users.following_roaster_ids` | Zwiększanie retencji i powrotów do marek |
 | `/(tabs)/brew-your-skills` | Lista treści edukacyjnych | Statyczne treści | Rozwój wiedzy i częstsze użycie aplikacji |
 | `/learn/[slug]` | Artykuł edukacyjny | Statyczne treści | Edukacja i wsparcie jakości degustacji |

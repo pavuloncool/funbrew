@@ -91,6 +91,22 @@ Result:
 - Backend payload flags dla duplicate/inactive semantics (`010-031`) częściowo poza zakresem tej paczki.
 - Final gate `010-034/036/037` wymaga manualnych dowodów QA (device + accessibility + perf).
 
+## 4b) Data-first hardening update — 2026-05-08
+
+- Dostarczony stock-taking danych screen/field:
+  - `mvp-release-flow-diagrams/SCREEN_FIELD_PARITY_MATRIX.md`
+  - `mvp-release-flow-diagrams/06_screen_field_parity.mmd`
+- Roaster data profile MVP core wdrożony (shared contract + persistence):
+  - `packages/shared/src/roasterDataProfile/telemetryCore.ts`
+  - `packages/shared/src/roasterDataProfile/telemetryCoreService.ts`
+  - `supabase/migrations/0016_coffee_log_telemetry_core.sql`
+- Mobile navigation polish:
+  - Rated Coffees -> detail/edit/delete: `/coffee-log/[logId]`
+  - Roasters local search `contains(name|city)` dla Followed i Discover
+- Conservative cleanup:
+  - usunięte jedynie jednoznaczne artefakty systemowe `.DS_Store`
+  - log cleanupu: `dev-docs/repo-hygiene/CONSERVATIVE_CLEANUP_2026-05-08.md`
+
 ## 5) Rekomendowany następny krok
 1. Zrobić manual evidence sprint dla 010-034/036/037 i dołączyć artefakty (nagrania/screenshoty + checklist PASS/FAIL).
 2. Zamknąć backend `010-031/010-032` (flags + rate-limit responses) i zaktualizować `BETA_ERROR_CONTRACTS.md` o final payload examples.

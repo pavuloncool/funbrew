@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useJournal, visualSystemTokens } from '@funcup/shared';
 
 import { EmptyState } from '../EmptyState';
@@ -128,23 +128,31 @@ export function RatedCoffeesSection() {
         const ratingLabel = row.rating != null ? `${row.rating} / 5` : '—';
 
         return (
-          <AppCard
+          <Link
             key={row.id}
-            style={styles.rowCard}
-            accessibilityLabel={`${title}, ${roaster ?? ''}, rating ${ratingLabel}`}
+            href={{ pathname: '/coffee-log/[logId]', params: { logId: row.id } }}
+            asChild
           >
-            <AppText variant="h3" weight="700">{title}</AppText>
-            {roaster ? <AppText tone="secondary">{roaster}</AppText> : null}
-            <AppText tone="secondary">
-              {ratingLabel}
-              {row.logged_at ? ` · ${new Date(row.logged_at).toLocaleString()}` : ''}
-            </AppText>
-            {row.free_text_notes ? (
-              <AppText tone="muted" style={styles.note} numberOfLines={4}>
-                {row.free_text_notes}
-              </AppText>
-            ) : null}
-          </AppCard>
+            <Pressable accessibilityRole="button">
+              <AppCard
+                style={styles.rowCard}
+                accessibilityLabel={`${title}, ${roaster ?? ''}, rating ${ratingLabel}`}
+              >
+                <AppText variant="h3" weight="700">{title}</AppText>
+                {roaster ? <AppText tone="secondary">{roaster}</AppText> : null}
+                <AppText tone="secondary">
+                  {ratingLabel}
+                  {row.logged_at ? ` · ${new Date(row.logged_at).toLocaleString()}` : ''}
+                </AppText>
+                {row.free_text_notes ? (
+                  <AppText tone="muted" style={styles.note} numberOfLines={4}>
+                    {row.free_text_notes}
+                  </AppText>
+                ) : null}
+                <AppText style={styles.openLabel}>Open details</AppText>
+              </AppCard>
+            </Pressable>
+          </Link>
         );
       })}
     </View>
@@ -166,5 +174,9 @@ const styles = StyleSheet.create({
   },
   note: {
     marginTop: visualSystemTokens.spacing.xxs,
+  },
+  openLabel: {
+    marginTop: visualSystemTokens.spacing.xs,
+    textDecorationLine: 'underline',
   },
 });
