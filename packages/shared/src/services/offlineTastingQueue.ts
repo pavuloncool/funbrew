@@ -1,9 +1,16 @@
 import type { LogTastingInput } from './tastingService';
 import type { TypedSupabaseClient } from './supabaseClientFactory';
-import { logTasting, updateCoffeeStats } from './tastingService';
+import {
+  logTasting,
+  normalizeTastingSyncError,
+  type TastingSyncErrorKind,
+  updateCoffeeStats,
+} from './tastingService';
 
 const OFFLINE_QUEUE_STORAGE_KEY = 'funcup_pending_tastings_v1';
+const FAILED_QUEUE_STORAGE_KEY = 'funcup_failed_tastings_v1';
 const MAX_QUEUE_SIZE = 50;
+const MAX_FAILED_QUEUE_SIZE = 200;
 
 export type QueueStorage = {
   getItem(key: string): Promise<string | null>;
@@ -13,6 +20,14 @@ export type QueueStorage = {
 export type PendingTasting = LogTastingInput & {
   id: string;
   createdAt: string;
+};
+
+export type FailedTasting = PendingTasting & {
+  failedAt: string;
+  errorKind: TastingSyncErrorKind;
+  errorMessage: string;
+  status: number | null;
+  code: string | null;
 };
 
 export type EnqueueResult = {
@@ -49,8 +64,43 @@ async function writeQueue(storage: QueueStorage, queue: PendingTasting[]) {
   await storage.setItem(OFFLINE_QUEUE_STORAGE_KEY, JSON.stringify(queue));
 }
 
+function safeParseFailedQueue(raw: string | null): FailedTasting[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is FailedTasting => {
+      if (!item || typeof item !== 'object') return false;
+      const candidate = item as Partial<FailedTasting>;
+      return (
+        typeof candidate.id === 'string' &&
+        typeof candidate.createdAt === 'string' &&
+        typeof candidate.batchId === 'string' &&
+        typeof candidate.rating === 'number' &&
+        typeof candidate.failedAt === 'string' &&
+        typeof candidate.errorKind === 'string' &&
+        typeof candidate.errorMessage === 'string'
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function readFailedQueue(storage: QueueStorage): Promise<FailedTasting[]> {
+  return safeParseFailedQueue(await storage.getItem(FAILED_QUEUE_STORAGE_KEY));
+}
+
+async function writeFailedQueue(storage: QueueStorage, queue: FailedTasting[]) {
+  await storage.setItem(FAILED_QUEUE_STORAGE_KEY, JSON.stringify(queue.slice(-MAX_FAILED_QUEUE_SIZE)));
+}
+
 export async function getPendingTastings(storage: QueueStorage): Promise<PendingTasting[]> {
   return readQueue(storage);
+}
+
+export async function getFailedTastings(storage: QueueStorage): Promise<FailedTasting[]> {
+  return readFailedQueue(storage);
 }
 
 export async function enqueuePendingTasting(
@@ -80,9 +130,12 @@ export async function enqueuePendingTasting(
 export async function flushPendingTastings(params: {
   storage: QueueStorage;
   supabase: TypedSupabaseClient;
-}): Promise<{ synced: number; remaining: number }> {
+  now?: Date;
+}): Promise<{ synced: number; remainingTransient: number; failedPermanent: number }> {
   const queue = await readQueue(params.storage);
-  if (queue.length === 0) return { synced: 0, remaining: 0 };
+  if (queue.length === 0) {
+    return { synced: 0, remainingTransient: 0, failedPermanent: 0 };
+  }
 
   let userId: string | null = null;
   try {
@@ -100,7 +153,9 @@ export async function flushPendingTastings(params: {
   }
 
   let synced = 0;
-  const remaining: PendingTasting[] = [];
+  const remainingTransient: PendingTasting[] = [];
+  const failedPermanent: FailedTasting[] = [];
+  const nowIso = (params.now ?? new Date()).toISOString();
 
   for (const item of queue) {
     try {
@@ -120,16 +175,40 @@ export async function flushPendingTastings(params: {
         });
       }
       synced += 1;
-    } catch {
-      remaining.push(item);
+    } catch (error) {
+      const syncError = normalizeTastingSyncError(error);
+      if (syncError.retryable) {
+        remainingTransient.push(item);
+        continue;
+      }
+      failedPermanent.push({
+        ...item,
+        failedAt: nowIso,
+        errorKind: syncError.kind,
+        errorMessage: syncError.message,
+        status: syncError.status,
+        code: syncError.code,
+      });
     }
   }
 
-  await writeQueue(params.storage, remaining);
-  return { synced, remaining: remaining.length };
+  await writeQueue(params.storage, remainingTransient);
+
+  if (failedPermanent.length > 0) {
+    const existingFailed = await readFailedQueue(params.storage);
+    await writeFailedQueue(params.storage, [...existingFailed, ...failedPermanent]);
+  }
+
+  return {
+    synced,
+    remainingTransient: remainingTransient.length,
+    failedPermanent: failedPermanent.length,
+  };
 }
 
 export const offlineQueueConfig = {
   storageKey: OFFLINE_QUEUE_STORAGE_KEY,
+  failedStorageKey: FAILED_QUEUE_STORAGE_KEY,
   maxQueueSize: MAX_QUEUE_SIZE,
+  maxFailedQueueSize: MAX_FAILED_QUEUE_SIZE,
 };

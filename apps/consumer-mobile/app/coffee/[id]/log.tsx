@@ -1,8 +1,15 @@
-import { enqueuePendingTasting, logTasting, updateCoffeeStats, visualSystemTokens } from '@funcup/shared';
+import {
+  enqueuePendingTasting,
+  logTasting,
+  normalizeTastingSyncError,
+  updateCoffeeStats,
+  visualSystemTokens,
+} from '@funcup/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrewMethodPicker } from '../../../src/coffee/tasting/BrewMethodPicker';
 import { FlavorNoteSelector } from '../../../src/coffee/tasting/FlavorNoteSelector';
@@ -10,14 +17,15 @@ import { RatingInput } from '../../../src/coffee/tasting/RatingInput';
 import { useOfflineTastingSync } from '../../../src/hooks/useOfflineTastingSync';
 import { offlineQueueStorage } from '../../../src/services/offlineQueueStorage';
 import { supabase } from '../../../src/services/supabaseClient';
-import { AppButton, AppInput, AppScreen, AppText } from '../../../src/components/ui/primitives';
+import { AppButton, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
 import { pageStyles } from '../../../src/theme/pageStyles';
 
 export default function TastingLogScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string; batchId?: string }>();
   const batchId =
     typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : params.id;
-  const { isOnline, pendingCount, refreshPendingCount } = useOfflineTastingSync();
+  const { isOnline, pendingCount, failedCount, refreshPendingCount } = useOfflineTastingSync();
   const [rating, setRating] = useState<number | null>(null);
   const [brewMethodId, setBrewMethodId] = useState<string | null>(null);
   const [tastingNoteIds, setTastingNoteIds] = useState<string[]>([]);
@@ -71,35 +79,52 @@ export default function TastingLogScreen() {
       }
 
       await logTasting(supabase, payload);
+      let statsRefreshFailed = false;
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (user?.id) {
-        await updateCoffeeStats(supabase, {
-          batchId: payload.batchId,
-          userId: user.id,
-        });
+        try {
+          await updateCoffeeStats(supabase, {
+            batchId: payload.batchId,
+            userId: user.id,
+          });
+        } catch {
+          // Tasting is already persisted at this point; don't requeue to avoid duplicates.
+          statsRefreshFailed = true;
+        }
       }
-      setStatus('Synced immediately.');
+      setStatus(statsRefreshFailed ? 'Tasting saved. Stats refresh is temporarily unavailable.' : 'Synced immediately.');
       setFreeTextNotes('');
       setReview('');
       setTastingNoteIds([]);
-    } catch {
-      await enqueuePendingTasting(offlineQueueStorage, payload);
-      await refreshPendingCount();
-      setStatus('Network issue. Queued offline for retry.');
+    } catch (error) {
+      const syncError = normalizeTastingSyncError(error);
+      if (syncError.retryable) {
+        await enqueuePendingTasting(offlineQueueStorage, payload);
+        await refreshPendingCount();
+        setStatus('Temporary connectivity issue. Queued offline for retry.');
+      } else if (syncError.kind === 'unauthorized') {
+        setSubmitError('Session expired. Sign in again and retry.');
+      } else if (syncError.kind === 'validation') {
+        setSubmitError(syncError.message);
+      } else if (syncError.kind === 'not_found') {
+        setSubmitError('Tasting endpoint is unavailable in this environment. Start/deploy log_tasting.');
+      } else {
+        setSubmitError(syncError.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <AppScreen>
-      <View style={[pageStyles.content, styles.page]}>
+    <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content, { paddingBottom: 96 + insets.bottom }]}>
       <AppText variant="h2" weight="700">Tasting Log</AppText>
       <AppText>Batch id: {batchId ?? '(missing)'}</AppText>
       <AppText tone={isOnline ? 'success' : 'danger'}>
         {isOnline ? 'Online' : 'Offline'} | Pending queue: {pendingCount}
+        {failedCount > 0 ? ` | Failed sync: ${failedCount}` : ''}
       </AppText>
 
       <RatingInput value={rating} onChange={setRating} />
@@ -141,13 +166,14 @@ export default function TastingLogScreen() {
         />
         {status ? <AppText tone="secondary">{status}</AppText> : null}
       </View>
-      </View>
-    </AppScreen>
+    </AppScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1 },
+  content: {
+    width: '100%',
+  },
   fieldBlock: { gap: visualSystemTokens.spacing.xs },
   multilineInput: {
     minHeight: 112,

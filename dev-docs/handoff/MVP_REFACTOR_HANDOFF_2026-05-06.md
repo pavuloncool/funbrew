@@ -160,8 +160,10 @@ Kryterium wyjścia:
 - Po `supabase db reset` lokalne loginy seedowe działają z:
   - `bart@ex.com / swetry`
   - `kazik@neoneon.online / swetry`
-- Po restarcie lokalnego Supabase Expo / web QR flow może wymagać ponownego uruchomienia:
-  - `supabase functions serve scan_qr --no-verify-jwt`
+- Po restarcie lokalnego Supabase Expo/web flow może wymagać ponownego uruchomienia funkcji:
+  - `scan_qr`
+  - `log_tasting` (lub potwierdzony alias `coffee/log-tasting`)
+  - `update_coffee_stats`
 
 ## 7) Przy kolejnym wejściu
 
@@ -169,7 +171,8 @@ Kryterium wyjścia:
 ```bash
 pnpm -C apps/web dev --hostname 0.0.0.0 --port 3000
 pnpm -C apps/consumer-mobile start -- --port 8081
-supabase functions serve scan_qr --no-verify-jwt
+supabase functions serve --no-verify-jwt
+./scripts/mobile-functions-smoke-check.sh
 ```
 2. Potwierdzić, że canonical QR nadal przechodzi web -> mobile.
 3. Wejść w [PHASE010_RESTART_HANDOFF_2026-05-06.md](./PHASE010_RESTART_HANDOFF_2026-05-06.md).

@@ -148,8 +148,10 @@ Powód:
 
 ## 6) Ryzyka i uwagi operacyjne
 
-- Lokalny QR flow nadal wymaga działającego:
-  - `supabase functions serve scan_qr --no-verify-jwt`
+- Lokalny flow consumer (scan + tasting log + rated coffees) wymaga działających funkcji:
+  - `scan_qr`
+  - `log_tasting` (lub potwierdzony alias `coffee/log-tasting`)
+  - `update_coffee_stats`
 - Lokalne loginy seedowe po `supabase db reset`:
   - `bart@ex.com / swetry`
   - `kazik@neoneon.online / swetry`
@@ -160,7 +162,8 @@ Powód:
 ```bash
 pnpm -C apps/web dev --hostname 0.0.0.0 --port 3000
 pnpm -C apps/consumer-mobile start -- --port 8081
-supabase functions serve scan_qr --no-verify-jwt
+supabase functions serve --no-verify-jwt
+./scripts/mobile-functions-smoke-check.sh
 ```
 
 ## 8) Co przekazać do nowego czatu

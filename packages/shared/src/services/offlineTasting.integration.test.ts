@@ -31,7 +31,8 @@ describe('offline tasting integration', () => {
     const elapsed = Date.now() - startedAt;
 
     expect(result.synced).toBe(1);
-    expect(result.remaining).toBe(0);
+    expect(result.remainingTransient).toBe(0);
+    expect(result.failedPermanent).toBe(0);
     expect(elapsed).toBeLessThanOrEqual(30_000);
   });
 });

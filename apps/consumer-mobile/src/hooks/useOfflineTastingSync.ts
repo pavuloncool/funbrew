@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { flushPendingTastings, getPendingTastings } from '@funcup/shared';
+import { flushPendingTastings, getFailedTastings, getPendingTastings } from '@funcup/shared';
 import NetInfo from '@react-native-community/netinfo';
 import { onlineManager } from '@tanstack/react-query';
 
@@ -10,11 +10,16 @@ import { supabase } from '../services/supabaseClient';
 export function useOfflineTastingSync() {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
 
   const refreshPendingCount = useMemo(
     () => async () => {
-      const pending = await getPendingTastings(offlineQueueStorage);
+      const [pending, failed] = await Promise.all([
+        getPendingTastings(offlineQueueStorage),
+        getFailedTastings(offlineQueueStorage),
+      ]);
       setPendingCount(pending.length);
+      setFailedCount(failed.length);
     },
     []
   );
@@ -39,10 +44,14 @@ export function useOfflineTastingSync() {
     let stopped = false;
     const flush = async () => {
       if (stopped) return;
-      await flushPendingTastings({
-        storage: offlineQueueStorage,
-        supabase,
-      });
+      try {
+        await flushPendingTastings({
+          storage: offlineQueueStorage,
+          supabase,
+        });
+      } catch {
+        // Keep the sync loop alive; queue state is still refreshed below.
+      }
       await refreshPendingCount();
     };
 
@@ -57,5 +66,5 @@ export function useOfflineTastingSync() {
     };
   }, [isOnline, refreshPendingCount]);
 
-  return { isOnline, pendingCount, refreshPendingCount };
+  return { isOnline, pendingCount, failedCount, refreshPendingCount };
 }
