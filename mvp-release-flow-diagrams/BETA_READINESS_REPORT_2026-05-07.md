@@ -94,3 +94,21 @@ Result:
 ## 5) Rekomendowany następny krok
 1. Zrobić manual evidence sprint dla 010-034/036/037 i dołączyć artefakty (nagrania/screenshoty + checklist PASS/FAIL).
 2. Zamknąć backend `010-031/010-032` (flags + rate-limit responses) i zaktualizować `BETA_ERROR_CONTRACTS.md` o final payload examples.
+
+## Manual evidence sprint — 2026-05-08 (010-034/036/037)
+
+Evidence pack:
+- `dev-docs/DoR/PHASE010_MANUAL_EVIDENCE_2026-05-07/CHECKLIST_010-034_036_037.md`
+- `dev-docs/DoR/PHASE010_MANUAL_EVIDENCE_2026-05-07/ARTIFACTS_MANIFEST.md`
+
+Gate result:
+- 010-034: PARTIAL (Profile Expert PASS, Community BLOCKED in current manual flow)
+- 010-036: FAIL (web keyboard focus missing on Sign in/Create one)
+- 010-037: PARTIAL (Coffee tab scroll PASS, analytics load PASS, Coffee Page entrypoint BLOCKED in this session)
+- Overall: FAIL (accessibility blocker)
+
+Follow-up:
+1. Fix web focus order/visibility on login CTA + register link.
+2. Re-run 010-036 keyboard test and update screenshot evidence.
+3. Expose/verify Community section entrypoint for full 010-034 closure.
+4. Re-run final gate and update checklist from FAIL to PASS/PARTIAL as applicable.
