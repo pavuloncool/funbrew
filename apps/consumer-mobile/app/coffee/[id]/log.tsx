@@ -1,6 +1,8 @@
 import {
   enqueuePendingTasting,
+  flowErrorUiCopy,
   logTasting,
+  logFlowError,
   normalizeTastingSyncError,
   updateCoffeeStats,
   visualSystemTokens,
@@ -100,18 +102,16 @@ export default function TastingLogScreen() {
       setTastingNoteIds([]);
     } catch (error) {
       const syncError = normalizeTastingSyncError(error);
+      logFlowError(syncError, 'mobile.tasting-log.submit');
+      const copy = flowErrorUiCopy(syncError);
       if (syncError.retryable) {
         await enqueuePendingTasting(offlineQueueStorage, payload);
         await refreshPendingCount();
-        setStatus('Temporary connectivity issue. Queued offline for retry.');
-      } else if (syncError.kind === 'unauthorized') {
-        setSubmitError('Session expired. Sign in again and retry.');
+        setStatus(copy.message);
       } else if (syncError.kind === 'validation') {
-        setSubmitError(syncError.message);
-      } else if (syncError.kind === 'not_found') {
-        setSubmitError('Tasting endpoint is unavailable in this environment. Start/deploy log_tasting.');
+        setSubmitError(copy.message);
       } else {
-        setSubmitError(syncError.message);
+        setSubmitError(copy.message);
       }
     } finally {
       setIsSubmitting(false);

@@ -1,7 +1,12 @@
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { normalizeCoffeePageData, useCoffeePage } from '@funcup/shared';
+import {
+  flowErrorUiCopy,
+  normalizeCoffeePageData,
+  normalizeFlowError,
+  useCoffeePage,
+} from '@funcup/shared';
 
 import { ScreenError } from '../../../src/components/ScreenError';
 import { CoffeePageSkeleton } from '../../../src/components/ui/Skeleton';
@@ -15,11 +20,6 @@ import { visualSystemTokens } from '@funcup/shared';
 
 const NO_BOTTOM_SAFE_AREA = { edges: ['right', 'left'] as const };
 const { colors, spacing, radius, typography } = visualSystemTokens;
-
-function formatError(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
 
 function formatRoastDate(iso: string): string {
   const raw = iso.trim();
@@ -100,11 +100,15 @@ export default function CoffeePage() {
   }
 
   if (coffeeQuery.isError) {
+    const flowError = normalizeFlowError({ error: coffeeQuery.error, domain: 'scan' });
+    const copy = flowErrorUiCopy(flowError);
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
         <ScreenError
-          message={formatError(coffeeQuery.error)}
+          title={copy.title}
+          message={copy.message}
           onRetry={() => void coffeeQuery.refetch()}
+          retryLabel={copy.retryLabel ?? 'Retry'}
         />
       </AppScrollScreen>
     );

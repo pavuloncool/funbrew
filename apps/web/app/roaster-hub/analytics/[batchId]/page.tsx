@@ -1,6 +1,11 @@
 'use client';
 
-import { aggregateRatingSummary, useRoasterAnalytics } from '@funcup/shared';
+import {
+  aggregateRatingSummary,
+  flowErrorUiCopy,
+  normalizeFlowError,
+  useRoasterAnalytics,
+} from '@funcup/shared';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -56,7 +61,9 @@ export default function BatchAnalyticsPage() {
       batchId,
     });
 
-  const errorMessage = error instanceof Error ? error.message : error ? String(error) : null;
+  const analyticsError =
+    error != null ? normalizeFlowError({ error, domain: 'analytics' }) : null;
+  const errorCopy = analyticsError ? flowErrorUiCopy(analyticsError) : null;
 
   const emptySummary = {
     totalTastings: 0,
@@ -92,16 +99,18 @@ export default function BatchAnalyticsPage() {
 
       <h1 className="text-2xl font-semibold tracking-tight">Batch analytics</h1>
       <p className="mt-1 font-mono text-sm text-neutral-500">{batchId ?? '—'}</p>
+      <p className="mt-1 text-sm text-neutral-500">Auto-refresh every 30s to keep stats close to live logs.</p>
 
       {isLoading ? <p className="mt-8 text-neutral-600">Loading analytics…</p> : null}
 
-      {errorMessage ? (
-        <p className="mt-8 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {errorMessage}
-        </p>
+      {errorCopy ? (
+        <div className="mt-8 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="font-semibold">{errorCopy.title}</p>
+          <p className="mt-1">{errorCopy.message}</p>
+        </div>
       ) : null}
 
-      {!isLoading && data && !errorMessage ? (
+      {!isLoading && data && !errorCopy ? (
         <>
           {!data.globalFromStats && data.logs.length === 0 ? (
             <p className="mt-8 text-neutral-600">
@@ -117,7 +126,7 @@ export default function BatchAnalyticsPage() {
                   ? `Synced aggregates (updated ${new Date(data.statsUpdatedAt).toLocaleString()})`
                   : data.globalFromStats && data.statsUpdatedAt
                     ? `Stats row is stale (last update ${new Date(data.statsUpdatedAt).toLocaleString()}). Falling back to raw tasting logs below.`
-                  : data.globalFromStats
+                    : data.globalFromStats
                     ? 'Aggregates from batch statistics'
                     : data.logs.length > 0
                       ? 'Derived from tastings on file (batch stats row not present yet).'

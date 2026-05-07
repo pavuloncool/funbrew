@@ -16,13 +16,47 @@ id: bafyreiphase010productuxuibacklogdraft
 
 Drafted: 2026-04-10 \| Depends on: Phase 009 (T081–T088) **SIGN-OFF: PASS**  
 - Phase 010 **010-001** **DONE** (2026-04-10) — Entry UX spec: [funcup-src-docs/02-specs/08-entry-ux-spec-fr012.md](../02-specs/08-entry-ux-spec-fr012.md)  
-- Phase 010 **010-002** **DONE** (2026-04-10) — Entry: pierwotny `AnimatedSplash` (`home-print.svg` / `home-bean.svg`) w `apps/frontend` i `apps/web` (`AppOpenGate` w layout); mobile Expo `app/index.tsx` → `/home` (bez duplikacji animacji DOM).  
-- Phase 010 **010-003** **DONE** (2026-04-10) — Mobile: `MobileEntrySplash` + reduce-motion branch (`AccessibilityInfo`), SR cues; `app/index.tsx` mounts entry then `replace('/home')`.  
+- Phase 010 **010-002** **DONE** (re-baseline 2026-05-06) — Active entry owner is `apps/web` (`AnimatedSplash` + `AppOpenGate`) and `apps/consumer-mobile` (`app/index.tsx` + `MobileEntrySplash`). Historical `apps/frontend` remains archived only.  
+- Phase 010 **010-003** **DONE** (re-baseline 2026-05-06) — Mobile keeps `MobileEntrySplash` + reduce-motion branch (`AccessibilityInfo`) and SR cues; no active `/home` route remains in the product app.  
+- Phase 010 **010-004** **DONE** (2026-05-06) — Post-entry routing now resolves from restored auth state and splash replay is limited to process restarts.  
+- Phase 010 **010-005** **DONE** (2026-05-06) — Shared entry contract exported from `packages/shared/src/entry/entryState.ts`.  
+- Phase 010 **010-006** **DONE** (2026-05-06) — Gate checklist captured in [PHASE010_010-006_ENTRY_GATE_SIGNOFF_2026-05-06.md](../../../DoR/PHASE010_010-006_ENTRY_GATE_SIGNOFF_2026-05-06.md).  
+- Phase 010 **010-019** **DONE** (2026-05-06) — Mobile Hub now exposes four FR-006 sections with a dominant `Scan Coffee` hero and direct routing into scan / discovery surfaces.  
 Source of truth (product scenarios): [funcup-src-docs/02-specs/spec.md](funcup-src-docs/02-specs/spec.md)  
 Reference style: [funcup-src-docs/04-tasks/13-tasks-002-qr-coffee-platform-88-tasks.md](funcup-src-docs/04-tasks/13-tasks-002-qr-coffee-platform-88-tasks.md)  
 Architecture: [funcup-src-docs/02-specs/07-technical-architecture-blueprint-mvp.md](funcup-src-docs/02-specs/07-technical-architecture-blueprint-mvp.md)
 
 **Non-regression (constitution / spec):** Fingerprint-bean entry sequence is **protected** per **FR-012** in `spec.md`. Any change to that sequence requires **explicit approval** (constitution amendment), not a routine PR. **Scope:** that sequence is the **app opening** flow only; UI work elsewhere MUST NOT re-mount or replay it on every route after the shell is active.
+
+## Re-baseline (2026-05-06)
+
+Validated against active repo state, not historical handoff text:
+
+- `010-002` real status: `done`
+- `010-003` real status: `done`
+- `010-004` real status: `done`
+- `010-005` real status: `done`
+- `010-006` real status: `done`
+- `010-007` real status: `partial`
+  - canonical tokens exist in `packages/shared/src/visualSystem.ts`
+  - `packages/ui` still carries a divergent legacy theme, so cross-surface alignment is not closed yet
+- `010-008` real status: `partial`
+  - mobile primitives exist in `apps/consumer-mobile/src/components/ui/primitives.tsx`
+  - web primitives exist in `apps/web/src/components/ui` and `packages/ui/src/components`
+  - the primitive set is incomplete for the backlog target and not yet unified on one token source
+- `010-025` real status: `partial`
+  - `Coffee Bank` now reads canonical `coffees + roast_batches + qr_codes`
+  - archive affordance / full CRUD polish remains open
+- `010-026` real status: `done`
+  - canonical publish flow exposes QR preview + SVG download + post-publish CTA to batch routes
+- `010-027` real status: `done`
+  - analytics route remains batch-level with summary/distribution/top-notes/brew-filter/no-PII review list
+  - analytics hub now lists roaster batches and deep-links to batch analytics
+- `010-028` real status: `done`
+  - empty analytics state now directs roaster to publish canonical coffee+batch+QR
+- `010-029` real status: `partial`
+  - roaster web IA moved toward canonical surfaces (`/coffee-bank`, batch-first analytics)
+  - final responsive/navigation polish across all core screens is still open
 
 ---
 
@@ -143,11 +177,11 @@ flowchart TD
 **Scenarios covered:** **App open** is the first touchpoint for all stories (one time per launch into the shell, not on every route). **FR-012** mandates a fixed animation sequence (white screen → fingerprint → tap → confetti → bean → dissolve → main). Phase 010 adds **documented** timing, failure behavior (e.g. asset load), and **accessibility** without altering that sequence.
 
 - [x] **010-001** Author **Entry UX spec** (timing, motion tokens, tap affordance, loading if assets slow, error fallback copy). **Depends:** —. **Surfaces:** mobile (doc), shared (doc). **Deliverable:** [08-entry-ux-spec-fr012.md](../02-specs/08-entry-ux-spec-fr012.md).
-- [x] **010-002** [P] **Mobile:** Implement/refactor entry flow module so sequence is isolated (single owner component / route group). **Depends:** 010-001. **Surfaces:** web (Next), Vite (`apps/frontend`). **Deliverable:** `apps/web/components/AnimatedSplash.tsx` (port z `apps/frontend/src/AnimatedSplash.jsx`), `apps/web/public/assets/home-*.svg`, `AppOpenGate` w `app/layout.tsx`; mobile: `app/index.tsx` → `/home`.
+- [x] **010-002** [P] **Mobile:** Implement/refactor entry flow module so sequence is isolated (single owner component / route group). **Depends:** 010-001. **Surfaces:** web + mobile active apps. **Deliverable:** `apps/web/components/AnimatedSplash.tsx`, `apps/web/components/AppOpenGate.tsx`, `apps/web/public/assets/home-*.svg`, `apps/consumer-mobile/app/index.tsx`, `apps/consumer-mobile/src/components/entry/MobileEntrySplash.tsx`. Historical `apps/frontend` stays archived and is not a runtime dependency.
 - [x] **010-003** [P] **Mobile:** **Reduced motion / accessibility:** alternative path (e.g. static frame + haptic or screen-reader announcement) that does **not** replace or reorder FR-012 steps for default users. **Depends:** 010-001, 010-002. **Surfaces:** mobile.
-- [ ] **010-004** **Mobile:** Post-entry routing: cold start → splash **once** → auth stack vs main tabs; document transition and **session rule** (splash must not replay on tab/stack navigation or deep link when app already running). **Depends:** 010-002. **Surfaces:** mobile.
-- [ ] **010-005** [P] **Shared:** Document entry **state contract** (e.g. `splashComplete`, `minDisplayMs`) for analytics or future A/B (no behavior change required). **Depends:** 010-001. **Surfaces:** shared.
-- [ ] **010-006** **Gate:** Sign-off checklist — FR-012 sequence byte-for-byte storyboard match; video or frame capture; **explicit approval** field if any deviation. **Depends:** 010-002, 010-003, 010-004. **Surfaces:** mobile, shared (checklist in repo or doc link).
+- [x] **010-004** **Mobile:** Post-entry routing: cold start → splash **once** → auth stack vs main tabs; document transition and **session rule** (splash must not replay on tab/stack navigation or deep link when app already running). **Depends:** 010-002. **Surfaces:** mobile. **Deliverable:** `apps/consumer-mobile/app/index.tsx` + runtime policy in [08-entry-ux-spec-fr012.md](../02-specs/08-entry-ux-spec-fr012.md).
+- [x] **010-005** [P] **Shared:** Document entry **state contract** (e.g. `splashComplete`, `minDisplayMs`) for analytics or future A/B (no behavior change required). **Depends:** 010-001. **Surfaces:** shared. **Deliverable:** `packages/shared/src/entry/entryState.ts`.
+- [x] **010-006** **Gate:** Sign-off checklist — FR-012 sequence byte-for-byte storyboard match; video or frame capture; **explicit approval** field if any deviation. **Depends:** 010-002, 010-003, 010-004. **Surfaces:** mobile, shared (checklist in repo or doc link). **Deliverable:** [PHASE010_010-006_ENTRY_GATE_SIGNOFF_2026-05-06.md](../../../DoR/PHASE010_010-006_ENTRY_GATE_SIGNOFF_2026-05-06.md).
 
 ---
 
@@ -183,7 +217,7 @@ flowchart TD
 
 **Scenarios covered:** Hub **four sections**; Discover Coffees sortable; Roaster profile + **Follow**; Learn articles (US3 scenarios 1–4). **Independent Test:** seeded DB, **≥5 coffees / 3 roasters** recommended for UX review (align seed in separate data task if needed). **FR-006, FR-007.**
 
-- [ ] **010-019** **Mobile:** Hub layout — **Scan Coffee** visually dominant (min ~40% / primary CTA per founding philosophy). **Depends:** 010-006, 010-010. **Surfaces:** mobile.
+- [x] **010-019** **Mobile:** Hub layout — **Scan Coffee** visually dominant (min ~40% / primary CTA per founding philosophy). **Depends:** 010-006, 010-010. **Surfaces:** mobile. **Deliverable:** `apps/consumer-mobile/app/(tabs)/hub/index.tsx` + discovery deep-link selection in `apps/consumer-mobile/app/(tabs)/discover-roasters/index.tsx`.
 - [ ] **010-020** [P] **Mobile:** Discover Coffees — cards, sort (newest / most rated), loading/empty. **Depends:** 010-008, 010-009. **Surfaces:** mobile.
 - [ ] **010-021** [P] **Mobile:** Discover Roasters — cards → profile. **Depends:** 010-008. **Surfaces:** mobile.
 - [ ] **010-022** **Mobile:** Roaster profile — follow CTA, coffee list. **Depends:** 010-021. **Surfaces:** mobile, shared.
@@ -196,11 +230,11 @@ flowchart TD
 **Scenarios covered (US2):** Verified flow; create coffee; create batch; **PNG + SVG** QR; pending state; profile edits keep QR stable (US2 scenarios 1–5). **Scenarios (US6):** aggregates, distribution, top flavors, brew filter, empty state, **anonymized** reviews (US6 scenarios 1–4). **FR-013–017, FR-018–019, FR-021.**
 
 - [ ] **010-024** **Web:** Auth screens polish — register/login/pending alignment with **010-007–009**. **Depends:** 010-007. **Surfaces:** web.
-- [ ] **010-025** **Web:** Coffee list + create/edit coffee forms — field grouping, validation, archive affordance. **Depends:** 010-008, 010-009. **Surfaces:** web.
-- [ ] **010-026** **Web:** Batch create + **QR download** (PNG/SVG) prominence and success feedback. **Depends:** 010-025. **Surfaces:** web.
-- [ ] **010-027** **Web:** Analytics route — summary, distribution, top notes, **brew filter**, review list **no PII**. **Depends:** 010-008, 010-009. **Surfaces:** web, shared.
-- [ ] **010-028** [P] **Web:** Empty analytics — guidance to promote QR (US6 scenario 3). **Depends:** 010-027. **Surfaces:** web.
-- [ ] **010-029** **Web:** Dashboard navigation + responsive layout for core roaster tasks. **Depends:** 010-007. **Surfaces:** web.
+- [ ] **010-025** **Web:** Coffee list + create/edit coffee forms — field grouping, validation, archive affordance. **Depends:** 010-008, 010-009. **Surfaces:** web. **Status 2026-05-06:** partial (canonical coffee+batch inventory/actions landed; archive affordance still open).
+- [x] **010-026** **Web:** Batch create + **QR download** (PNG/SVG) prominence and success feedback. **Depends:** 010-025. **Surfaces:** web.
+- [x] **010-027** **Web:** Analytics route — summary, distribution, top notes, **brew filter**, review list **no PII**. **Depends:** 010-008, 010-009. **Surfaces:** web, shared.
+- [x] **010-028** [P] **Web:** Empty analytics — guidance to promote QR (US6 scenario 3). **Depends:** 010-027. **Surfaces:** web.
+- [ ] **010-029** **Web:** Dashboard navigation + responsive layout for core roaster tasks. **Depends:** 010-007. **Surfaces:** web. **Status 2026-05-06:** partial (canonical IA alignment done; final responsive polish pass still open).
 
 ---
 
@@ -208,10 +242,10 @@ flowchart TD
 
 **Scenarios covered:** **FR-011** public coffee view vs auth log; **FR-020** archive semantics; **SC-006–008** where UX needs reliable errors and freshness.
 
-- [ ] **010-030** **Shared + doc:** Map **scan_qr** / coffee page errors to **UI copy** matrix. **Depends:** —. **Surfaces:** shared, backend (functions), mobile.
+- [ ] **010-030** **Shared + doc:** Map **scan_qr** / coffee page errors to **UI copy** matrix. **Depends:** —. **Surfaces:** shared, backend (functions), mobile. **Status 2026-05-07:** implemented in shared + app integrations (`flowError.ts`, `BETA_ERROR_CONTRACTS.md`); pending backend payload alignment examples.
 - [ ] **010-031** [P] **Backend:** Ensure responses include flags for **inactive batch**, **duplicate log hints** if product requires (coordinate with 010-016, 010-017). **Depends:** 010-030. **Surfaces:** backend, shared.
-- [ ] **010-032** **Backend:** Rate-limit / abuse responses user-safe (no internals). **Depends:** 010-030. **Surfaces:** backend.
-- [ ] **010-033** **Web + backend:** Roaster analytics **refresh** behavior documented; implement polling or tag invalidation to approach **SC-008**. **Depends:** 010-027. **Surfaces:** web, backend.
+- [ ] **010-032** **Backend:** Rate-limit / abuse responses user-safe (no internals). **Depends:** 010-030. **Surfaces:** backend. **Status 2026-05-07:** UI contract and retry handling ready; backend enforcement still open.
+- [ ] **010-033** **Web + backend:** Roaster analytics **refresh** behavior documented; implement polling or tag invalidation to approach **SC-008**. **Depends:** 010-027. **Surfaces:** web, backend. **Status 2026-05-07:** web polling + docs done (`refetchInterval 30s`); backend invalidation strategy still open.
 
 ---
 
@@ -219,11 +253,11 @@ flowchart TD
 
 **Scenarios covered:** **US4** silent level + Expert label (**FR-008**); **US5** offline cache, pending sync, auto sync **30s** (**FR-009**); **SC-001–008** where measurable in Phase 010.
 
-- [ ] **010-034** **Mobile:** **US4** UX audit — no progress bars, no unlock toasts; profile + Community subtle Expert. **Depends:** 010-013. **Surfaces:** mobile.
-- [ ] **010-035** **Mobile:** **US5** UX audit — cached page readable offline, pending indicator, sync clears within **30s** of reconnect (manual or device test). **Depends:** 010-015. **Surfaces:** mobile.
-- [ ] **010-036** **Cross:** WCAG-oriented pass (contrast, labels, focus) on touched screens. **Depends:** 010-012–010-029. **Surfaces:** mobile, web.
-- [ ] **010-037** **Cross:** Performance sanity — image sizes, list virtualization where needed (**SC-007** journal). **Depends:** 010-015. **Surfaces:** mobile.
-- [ ] **010-038** **Release:** Phase 010 sign-off — run **Independent Tests** US1–US6 from `spec.md`; attach evidence; update traceability table status. **Depends:** 010-006, 010-018, 010-023, 010-029, 010-033, 010-036. **Surfaces:** all.
+- [ ] **010-034** **Mobile:** **US4** UX audit — no progress bars, no unlock toasts; profile + Community subtle Expert. **Depends:** 010-013. **Surfaces:** mobile. **Status 2026-05-07:** pending manual evidence.
+- [ ] **010-035** **Mobile:** **US5** UX audit — cached page readable offline, pending indicator, sync clears within **30s** of reconnect (manual or device test). **Depends:** 010-015. **Surfaces:** mobile. **Status 2026-05-07:** auto-sync path verified in code + smoke, pending device evidence.
+- [ ] **010-036** **Cross:** WCAG-oriented pass (contrast, labels, focus) on touched screens. **Depends:** 010-012–010-029. **Surfaces:** mobile, web. **Status 2026-05-07:** pending manual accessibility pass.
+- [ ] **010-037** **Cross:** Performance sanity — image sizes, list virtualization where needed (**SC-007** journal). **Depends:** 010-015. **Surfaces:** mobile. **Status 2026-05-07:** pending profiling run.
+- [ ] **010-038** **Release:** Phase 010 sign-off — run **Independent Tests** US1–US6 from `spec.md`; attach evidence; update traceability table status. **Depends:** 010-006, 010-018, 010-023, 010-029, 010-033, 010-036. **Surfaces:** all. **Status 2026-05-07:** in progress; smoke script + runbook + readiness report added.
 
 ---
 

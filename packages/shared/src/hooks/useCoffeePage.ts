@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { RoasterCoffeeTagRow } from '@funcup/types';
 
 import type { TypedSupabaseClient } from '../services/supabaseClientFactory';
+import { logFlowError, normalizeFlowError } from '../errors/flowError';
 
 /** Payload for a legacy / batch QR (`qr_codes` → roast batch). */
 export type ScanQrBatchResponse = {
@@ -58,14 +59,23 @@ export type ScanQrResult = ScanQrBatchResponse | ScanQrTagResponse;
 
 function parseScanQrResult(raw: unknown): ScanQrResult {
   if (!raw || typeof raw !== 'object') {
-    throw new Error('Invalid scan_qr response');
+    throw normalizeFlowError({
+      error: new Error('Invalid scan_qr response'),
+      domain: 'scan',
+      fallbackMessage: 'Invalid scan_qr response',
+    });
   }
   const o = raw as Record<string, unknown>;
 
   if (o.error && typeof o.error === 'string') {
-    throw new Error(
-      typeof o.message === 'string' ? o.message : o.error
-    );
+    throw normalizeFlowError({
+      error: {
+        message: typeof o.message === 'string' ? o.message : o.error,
+        status: typeof o.status === 'number' ? o.status : null,
+        code: typeof o.code === 'string' ? o.code : null,
+      },
+      domain: 'scan',
+    });
   }
 
   if (o.kind === 'tag' && o.tag && typeof o.tag === 'object') {
@@ -80,7 +90,10 @@ function parseScanQrResult(raw: unknown): ScanQrResult {
     return { ...(o as Omit<ScanQrBatchResponse, 'kind'>), kind: 'batch' };
   }
 
-  throw new Error('Unexpected scan_qr response shape');
+  throw normalizeFlowError({
+    error: new Error('Unexpected scan_qr response shape'),
+    domain: 'scan',
+  });
 }
 
 export function useCoffeePage(params: {
@@ -92,13 +105,39 @@ export function useCoffeePage(params: {
     enabled: Boolean(params.hash),
     staleTime: Number.POSITIVE_INFINITY,
     queryFn: async (): Promise<ScanQrResult> => {
-      if (!params.hash) throw new Error('hash is required');
-      const { data, error } = await params.supabase.functions.invoke<unknown>('scan_qr', {
-        body: { hash: params.hash },
-      });
-      if (error) throw error;
-      if (!data) throw new Error('Empty scan_qr response');
-      return parseScanQrResult(data);
+      try {
+        if (!params.hash) {
+          throw normalizeFlowError({
+            error: new Error('hash is required'),
+            domain: 'scan',
+            fallbackMessage: 'Missing QR hash.',
+          });
+        }
+
+        const { data, error } = await params.supabase.functions.invoke<unknown>('scan_qr', {
+          body: { hash: params.hash },
+        });
+        if (error) {
+          throw normalizeFlowError({
+            error,
+            domain: 'scan',
+          });
+        }
+        if (!data) {
+          throw normalizeFlowError({
+            error: new Error('Empty scan_qr response'),
+            domain: 'scan',
+          });
+        }
+        return parseScanQrResult(data);
+      } catch (error) {
+        const normalized = normalizeFlowError({
+          error,
+          domain: 'scan',
+        });
+        logFlowError(normalized, 'useCoffeePage.queryFn');
+        throw normalized;
+      }
     },
   });
 }

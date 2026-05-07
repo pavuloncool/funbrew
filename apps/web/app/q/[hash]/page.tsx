@@ -1,6 +1,11 @@
 'use client';
 
-import { normalizeCoffeePageData } from '@funcup/shared';
+import {
+  flowErrorUiCopy,
+  logFlowError,
+  normalizeCoffeePageData,
+  normalizeFlowError,
+} from '@funcup/shared';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -21,7 +26,12 @@ export default function ResolveHashPage() {
     async function resolve() {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       if (!supabaseUrl) {
-        setState({ status: 'error', message: 'Missing NEXT_PUBLIC_SUPABASE_URL.' });
+        const flowError = normalizeFlowError({
+          error: new Error('Missing NEXT_PUBLIC_SUPABASE_URL.'),
+          domain: 'scan',
+        });
+        logFlowError(flowError, 'web.resolve-hash.missing-env');
+        setState({ status: 'error', message: flowErrorUiCopy(flowError).message });
         return;
       }
 
@@ -42,11 +52,16 @@ export default function ResolveHashPage() {
 
       const body = (await response.json()) as unknown;
       if (!response.ok) {
-        const msg =
-          typeof body === 'object' && body !== null && 'message' in body
-            ? String((body as { message?: string }).message)
-            : 'Unable to resolve hash.';
-        setState({ status: 'error', message: msg });
+        const flowError = normalizeFlowError({
+          error:
+            typeof body === 'object' && body !== null
+              ? body
+              : { message: 'Unable to resolve hash.', status: response.status },
+          domain: 'scan',
+          fallbackMessage: 'Unable to resolve hash.',
+        });
+        logFlowError(flowError, 'web.resolve-hash.http');
+        setState({ status: 'error', message: flowErrorUiCopy(flowError).message });
         return;
       }
 
@@ -60,12 +75,23 @@ export default function ResolveHashPage() {
         } else if (raw.batch && raw.coffee) {
           data = { ...(raw as object), kind: 'batch' } as ScanQrResult;
         } else {
-          setState({ status: 'error', message: 'Unexpected response from scan.' });
+          const flowError = normalizeFlowError({
+            error: new Error('Unexpected response from scan.'),
+            domain: 'scan',
+          });
+          logFlowError(flowError, 'web.resolve-hash.shape');
+          setState({ status: 'error', message: flowErrorUiCopy(flowError).message });
           return;
         }
         setState({ status: 'ok', data });
-      } catch {
-        setState({ status: 'error', message: 'Unable to parse scan response.' });
+      } catch (error) {
+        const flowError = normalizeFlowError({
+          error,
+          domain: 'scan',
+          fallbackMessage: 'Unable to parse scan response.',
+        });
+        logFlowError(flowError, 'web.resolve-hash.parse');
+        setState({ status: 'error', message: flowErrorUiCopy(flowError).message });
       }
     }
     void resolve();

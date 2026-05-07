@@ -92,8 +92,46 @@ describe('normalizeCoffeePageData', () => {
 
     expect(result.source).toBe('tag');
     expect(result.product.name).toBe('Konga');
+    expect(result.product.variety).toBe('arabica · Heirloom');
+    expect(result.product.producerNotes).toBeNull();
     expect(result.brewing.recommendedMethod).toBe('V60');
     expect(result.tastingNotes).toHaveLength(1);
     expect(result.logBatchId).toBeNull();
+  });
+
+  it('preserves tag trade name separately from the display name when present', () => {
+    const result = normalizeCoffeePageData(
+      {
+        kind: 'tag',
+        archived: false,
+        tag: {
+          id: 'tag-2',
+          public_hash: 'hash-3',
+          roaster_id: 'roaster-2',
+          roaster_short_name: 'Bean Lab',
+          img_coffee_label: '',
+          bean_origin_country: 'Colombia',
+          bean_origin_farm: 'El Diviso',
+          bean_origin_tradename: 'Kolumb Special',
+          bean_origin_region: 'Huila',
+          bean_type: 'arabica',
+          bean_varietal_main: 'Caturra',
+          bean_varietal_extra: 'Castillo',
+          bean_origin_height: 1750,
+          bean_processing: 'washed',
+          bean_roast_date: '2026-05-03',
+          bean_roast_level: 'medium',
+          brew_method: 'Kalita',
+          tasting_note_ids: [],
+          created_at: '',
+          updated_at: '',
+        },
+      },
+      { hash: 'hash-3' }
+    );
+
+    expect(result.product.name).toBe('Kolumb Special');
+    expect(result.product.producerNotes).toBe('Kolumb Special');
+    expect(result.product.variety).toBe('arabica · Caturra · Castillo');
   });
 });

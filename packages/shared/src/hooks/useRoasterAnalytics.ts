@@ -12,6 +12,7 @@ import {
   type RatingSummary,
   type RoasterTastingLog,
 } from '../analytics/roasterBatchAnalytics';
+import { logFlowError, normalizeFlowError } from '../errors/flowError';
 import type { TypedSupabaseClient } from '../services/supabaseClientFactory';
 
 type CoffeeStatsRow = {
@@ -97,78 +98,105 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
   const query = useQuery({
     queryKey: ['roasterAnalytics', params.batchId],
     enabled: Boolean(params.batchId),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
     queryFn: async (): Promise<RoasterAnalyticsFetched> => {
-      if (!params.batchId) throw new Error('batchId is required');
+      try {
+        if (!params.batchId) {
+          throw normalizeFlowError({
+            error: new Error('batchId is required'),
+            domain: 'analytics',
+            fallbackMessage: 'Missing batch id for analytics.',
+          });
+        }
 
-      const [statsRes, logsRes] = await Promise.all([
-        params.supabase
-          .from('coffee_stats')
-          .select(
-            'batch_id, total_count, avg_rating, rating_distribution, top_flavor_notes, updated_at'
-          )
-          .eq('batch_id', params.batchId)
-          .maybeSingle(),
-        params.supabase
-          .from('coffee_logs')
-          .select(
-            `
-            id,
-            rating,
-            brew_method_id,
-            brew_methods ( id, name ),
-            reviews ( body, created_at ),
-            coffee_log_tasting_notes (
-              tasting_note_id,
-              tasting_notes ( id, name, label, category )
+        const [statsRes, logsRes] = await Promise.all([
+          params.supabase
+            .from('coffee_stats')
+            .select(
+              'batch_id, total_count, avg_rating, rating_distribution, top_flavor_notes, updated_at'
             )
-          `
-          )
-          .eq('batch_id', params.batchId),
-      ]);
+            .eq('batch_id', params.batchId)
+            .maybeSingle(),
+          params.supabase
+            .from('coffee_logs')
+            .select(
+              `
+              id,
+              rating,
+              brew_method_id,
+              brew_methods ( id, name ),
+              reviews ( body, created_at ),
+              coffee_log_tasting_notes (
+                tasting_note_id,
+                tasting_notes ( id, name, label, category )
+              )
+            `
+            )
+            .eq('batch_id', params.batchId),
+        ]);
 
-      if (statsRes.error) throw statsRes.error;
-      if (logsRes.error) throw logsRes.error;
+        if (statsRes.error) {
+          throw normalizeFlowError({
+            error: statsRes.error,
+            domain: 'analytics',
+          });
+        }
+        if (logsRes.error) {
+          throw normalizeFlowError({
+            error: logsRes.error,
+            domain: 'analytics',
+          });
+        }
 
-      const stats = statsRes.data as CoffeeStatsRow | null;
-      const rawLogs = (logsRes.data ?? []) as LogRow[];
-      const logs = rawLogs.map(mapLogRow);
-      const derivedSummary = aggregateRatingSummary(logs);
-      const statsAreFresh =
-        stats == null
-          ? logs.length === 0
-          : stats.total_count === derivedSummary.totalTastings &&
-            Number(stats.avg_rating) === derivedSummary.avgRating &&
-            JSON.stringify(stats.rating_distribution) ===
-              JSON.stringify(derivedSummary.ratingDistribution);
+        const stats = statsRes.data as CoffeeStatsRow | null;
+        const rawLogs = (logsRes.data ?? []) as LogRow[];
+        const logs = rawLogs.map(mapLogRow);
+        const derivedSummary = aggregateRatingSummary(logs);
+        const statsAreFresh =
+          stats == null
+            ? logs.length === 0
+            : stats.total_count === derivedSummary.totalTastings &&
+              Number(stats.avg_rating) === derivedSummary.avgRating &&
+              JSON.stringify(stats.rating_distribution) ===
+                JSON.stringify(derivedSummary.ratingDistribution);
 
-      const globalFromStats: RatingSummary | null = stats
-        ? {
-            totalTastings: stats.total_count,
-            avgRating: Number(stats.avg_rating),
-            ratingDistribution: {
-              ...stats.rating_distribution,
-            },
-          }
-        : null;
+        const globalFromStats: RatingSummary | null = stats
+          ? {
+              totalTastings: stats.total_count,
+              avgRating: Number(stats.avg_rating),
+              ratingDistribution: {
+                ...stats.rating_distribution,
+              },
+            }
+          : null;
 
-      return {
-        globalFromStats,
-        statsUpdatedAt: stats?.updated_at ?? null,
-        statsAreFresh,
-        logs,
-        brewMethodOptions: brewMethodsPresentInLogs(logs),
-        globalTopFlavorNotes: topFlavorNotesFromLogs(logs, 10),
-        anonymizedReviews: logs
-          .filter((log) => log.review?.body)
-          .map((log) => ({
-            coffeeLogId: log.id,
-            body: log.review!.body,
-            createdAt: log.review!.createdAt,
-            rating: log.rating,
-            brewMethodName: log.brewMethodName,
-          }))
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-      };
+        return {
+          globalFromStats,
+          statsUpdatedAt: stats?.updated_at ?? null,
+          statsAreFresh,
+          logs,
+          brewMethodOptions: brewMethodsPresentInLogs(logs),
+          globalTopFlavorNotes: topFlavorNotesFromLogs(logs, 10),
+          anonymizedReviews: logs
+            .filter((log) => log.review?.body)
+            .map((log) => ({
+              coffeeLogId: log.id,
+              body: log.review!.body,
+              createdAt: log.review!.createdAt,
+              rating: log.rating,
+              brewMethodName: log.brewMethodName,
+            }))
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+        };
+      } catch (error) {
+        const normalized = normalizeFlowError({
+          error,
+          domain: 'analytics',
+        });
+        logFlowError(normalized, 'useRoasterAnalytics.queryFn');
+        throw normalized;
+      }
     },
   });
 

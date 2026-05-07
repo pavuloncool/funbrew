@@ -1,4 +1,9 @@
 import type { TypedSupabaseClient } from './supabaseClientFactory';
+import {
+  normalizeFlowError,
+  type FlowError,
+  type FlowErrorKind,
+} from '../errors/flowError';
 
 export type LogTastingInput = {
   batchId: string;
@@ -10,21 +15,11 @@ export type LogTastingInput = {
   review?: string;
 };
 
-export type TastingSyncErrorKind =
-  | 'offline'
-  | 'timeout'
-  | 'unauthorized'
-  | 'validation'
-  | 'not_found'
-  | 'server'
-  | 'unknown';
+export type TastingSyncErrorKind = FlowErrorKind;
 
-export type TastingSyncError = Error & {
-  kind: TastingSyncErrorKind;
-  status: number | null;
-  code: string | null;
-  retryable: boolean;
-  raw: unknown;
+export type TastingSyncError = FlowError & {
+  name: 'TastingSyncError';
+  domain: 'tasting_log';
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -32,103 +27,14 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value : null;
-}
-
-function readNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function extractStatus(error: Record<string, unknown>): number | null {
-  const direct = readNumber(error.status) ?? readNumber(error.statusCode);
-  if (direct != null) return direct;
-  const context = asRecord(error.context);
-  if (!context) return null;
-  return readNumber(context.status) ?? readNumber(context.statusCode);
-}
-
-function extractCode(error: Record<string, unknown>): string | null {
-  const direct = readString(error.code);
-  if (direct) return direct;
-  const context = asRecord(error.context);
-  if (!context) return null;
-  return readString(context.code);
-}
-
-function extractMessage(error: unknown): string {
-  if (typeof error === 'string' && error.trim().length > 0) return error;
-  const candidate = asRecord(error);
-  if (!candidate) return 'Unexpected tasting sync failure.';
-  const fromMessage = readString(candidate.message);
-  if (fromMessage) return fromMessage;
-  const context = asRecord(candidate.context);
-  if (context) {
-    const fromContext = readString(context.message);
-    if (fromContext) return fromContext;
-  }
-  return 'Unexpected tasting sync failure.';
-}
-
-function isTastingSyncError(error: unknown): error is TastingSyncError {
-  const candidate = asRecord(error);
-  if (!candidate) return false;
-  return (
-    typeof candidate.kind === 'string' &&
-    typeof candidate.retryable === 'boolean' &&
-    Object.prototype.hasOwnProperty.call(candidate, 'status')
-  );
-}
-
-function classifyTastingSyncError(params: {
-  message: string;
-  status: number | null;
-  code: string | null;
-}): TastingSyncErrorKind {
-  const status = params.status;
-  const message = params.message.toLowerCase();
-  const code = (params.code ?? '').toLowerCase();
-
-  if (status === 401 || status === 403) return 'unauthorized';
-  if (status === 400 || status === 422) return 'validation';
-  if (status === 404 || code === 'not_found') return 'not_found';
-  if (status != null && status >= 500) return 'server';
-  if (
-    message.includes('timeout') ||
-    message.includes('timed out') ||
-    code.includes('timeout')
-  ) {
-    return 'timeout';
-  }
-  if (
-    message.includes('network') ||
-    message.includes('fetch') ||
-    message.includes('offline') ||
-    message.includes('internet')
-  ) {
-    return 'offline';
-  }
-  return 'unknown';
-}
-
 export function normalizeTastingSyncError(error: unknown): TastingSyncError {
-  if (isTastingSyncError(error)) return error;
-
-  const candidate = asRecord(error);
-  const status = candidate ? extractStatus(candidate) : null;
-  const code = candidate ? extractCode(candidate) : null;
-  const message = extractMessage(error);
-  const kind = classifyTastingSyncError({ message, status, code });
-  const retryable = kind === 'offline' || kind === 'timeout' || kind === 'server';
-
-  const next = new Error(message) as TastingSyncError;
-  next.name = 'TastingSyncError';
-  next.kind = kind;
-  next.status = status;
-  next.code = code;
-  next.retryable = retryable;
-  next.raw = error;
-  return next;
+  const normalized = normalizeFlowError({
+    error,
+    domain: 'tasting_log',
+    fallbackMessage: 'Unexpected tasting sync failure.',
+  });
+  (normalized as Error).name = 'TastingSyncError';
+  return normalized as TastingSyncError;
 }
 
 async function invokeLogTastingWithFallback(

@@ -66,3 +66,15 @@ Nie: **repo nie jest jeszcze beta-ready** bez domknięcia obszarów jakościowyc
 - Zależność od Supabase functions (`scan_qr`, `log_tasting`, `update_coffee_stats`) i ich środowiskowego stanu.
 - Niejednorodne dane historyczne (legacy vs canonical) mogą powodować edge-case’y w prezentacji.
 - Offline queue wymaga monitorowania liczby pending/failed na dłuższych sesjach terenowych.
+
+## 6) Status update P0 (2026-05-07)
+
+### Zrealizowane
+- `010-030`: ujednolicony kontrakt błędów + mapa UI copy dla `scan/log/analytics` w [BETA_ERROR_CONTRACTS.md](./BETA_ERROR_CONTRACTS.md).
+- `010-033`: analytics refresh policy udokumentowany i wdrożony (`refetchInterval=30s` + komunikat UI) w web batch analytics.
+- Krytyczny smoke flow RC dodany i uruchamialny przez `scripts/beta-smoke-tests.sh`; runbook: [BETA_SMOKE_RUNBOOK.md](./BETA_SMOKE_RUNBOOK.md).
+
+### Częściowo / otwarte
+- `010-034..010-037`: pozostają manualne evidence QA (US4/US5 device audit, accessibility pass, performance sanity) — status i kryteria w [BETA_RELEASE_CHECKLIST.md](./BETA_RELEASE_CHECKLIST.md).
+- `010-031`: wymaga backend decision dla sygnałów duplicate-log hints (nie domknięte w tym zakresie kodowym).
+- `010-032`: brak wdrożonej warstwy rate-limit w backend functions (kontrakt UI gotowy, enforcement backend nadal do domknięcia).
