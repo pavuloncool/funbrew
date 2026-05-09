@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:e2e": "env -u FORCE_COLOR -u NO_COLOR playwright test",
-    "test:generate-qr": "env -u FORCE_COLOR -u NO_COLOR playwright test tests/generate-qr.spec.ts"
+    "test:generate-qr": "echo \"Removed with legacy QR flow decommission\""
   },
   "dependencies": {
     "@funcup/shared": "workspace:*",

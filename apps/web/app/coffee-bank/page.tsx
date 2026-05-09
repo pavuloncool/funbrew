@@ -370,12 +370,8 @@ function CoffeeBankContent() {
           <p className={coffeeBankStyles.compatibilityTitle}>Canonical management surface</p>
           <p className={coffeeBankStyles.compatibilityBody}>
             Ta strona pokazuje canonical rekordy ({' '}
-            <code className={coffeeBankStyles.inlineCode}>coffees + roast_batches + qr_codes</code>). Legacy tag
-            workflow pozostaje dostępny w{' '}
-            <Link href="/tag" className={coffeeBankStyles.compatibilityLink}>
-              Legacy tag flow
-            </Link>
-            .
+            <code className={coffeeBankStyles.inlineCode}>coffees + roast_batches + qr_codes</code>) i jest jedyną
+            ścieżką zarządzania danymi kaw w wersji beta.
           </p>
         </div>
 

@@ -144,42 +144,6 @@ export async function insertQrCodeForBatch(
   expect(response.ok()).toBeTruthy();
 }
 
-export async function insertRoasterCoffeeTag(
-  request: APIRequestContext,
-  actor: TestActor,
-  label: string
-): Promise<{ id: string; public_hash: string }> {
-  const { url, serviceRoleKey } = supabaseEnv();
-  const response = await request.post(`${url}/rest/v1/roaster_coffee_tags?select=id,public_hash`, {
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    data: {
-      roaster_id: actor.roasterId,
-      roaster_short_name: `Tag ${label}`,
-      img_coffee_label: 'https://example.com/label.png',
-      bean_origin_country: 'Ethiopia',
-      bean_origin_farm: 'Farm',
-      bean_origin_tradename: 'Trade',
-      bean_origin_region: 'Sidamo',
-      bean_type: 'arabica',
-      bean_varietal_main: 'Heirloom',
-      bean_varietal_extra: '',
-      bean_origin_height: 1800,
-      bean_processing: 'washed',
-      bean_roast_date: '2026-04-01',
-      bean_roast_level: 'light',
-      brew_method: 'filter',
-    },
-  });
-  expect(response.ok()).toBeTruthy();
-  const rows = (await response.json()) as Array<{ id: string; public_hash: string }>;
-  return rows[0]!;
-}
-
 export async function createCoffeeAndBatch(
   request: APIRequestContext,
   actor: TestActor,

@@ -50,7 +50,7 @@ export default function RoasterSetupPage() {
       const rows = (await res.json()) as Array<{ id: string }>;
       if (cancelled) return;
       if (rows[0]?.id) {
-        router.replace('/tag');
+        router.replace('/roaster-hub/coffees/new');
         return;
       }
       setChecking(false);
@@ -123,7 +123,7 @@ export default function RoasterSetupPage() {
     }
 
     await queryClient.invalidateQueries({ queryKey: ['roaster-coffees'] });
-    router.push('/tag');
+    router.push('/roaster-hub/coffees/new');
   }
 
   if (checking) {
@@ -156,17 +156,13 @@ export default function RoasterSetupPage() {
           autoComplete="organization"
         />
         <button type="submit" className={hubCrudStyles.submitBtn} disabled={loading}>
-          {loading ? 'Zapisywanie…' : 'Zapisz i przejdź do tagu kawy'}
+          {loading ? 'Zapisywanie…' : 'Zapisz i przejdź do tworzenia batcha'}
         </button>
       </form>
       {error ? <p className={hubCrudStyles.error}>{error}</p> : null}
       <p className={hubCrudStyles.footerLinks}>
         <Link href="/coffee-bank" className={hubCrudStyles.link}>
           Wróć do Coffee Bank
-        </Link>
-        <span className="text-vs-text-muted">·</span>
-        <Link href="/tag" className={hubCrudStyles.link}>
-          Tag kawy
         </Link>
       </p>
     </main>

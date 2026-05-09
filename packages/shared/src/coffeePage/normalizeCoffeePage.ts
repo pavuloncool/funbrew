@@ -1,7 +1,7 @@
 import type { ScanQrResult } from '../hooks/useCoffeePage';
 
 export type NormalizedCoffeePageData = {
-  source: 'canonical' | 'tag';
+  source: 'canonical';
   hash: string;
   archived: boolean;
   roaster: {
@@ -51,18 +51,6 @@ export type NormalizedCoffeePageData = {
   logBatchId: string | null;
 };
 
-function displayTagName(tag: {
-  bean_origin_tradename: string;
-  bean_origin_farm: string;
-  id: string;
-}): string {
-  const tradename = tag.bean_origin_tradename.trim();
-  if (tradename) return tradename;
-  const farm = tag.bean_origin_farm.trim();
-  if (farm) return farm;
-  return `Kawa ${tag.id.slice(0, 8)}`;
-}
-
 function normalizeAltitudeLabel(input: {
   min?: number | null;
   max?: number | null;
@@ -90,116 +78,61 @@ export function normalizeCoffeePageData(
   input: ScanQrResult,
   params: { hash: string }
 ): NormalizedCoffeePageData {
-  if (input.kind === 'batch') {
-    const origin = (input.origin ?? {}) as {
-      country?: string | null;
-      region?: string | null;
-      farm?: string | null;
-      producer?: string | null;
-      altitude_min?: number | null;
-      altitude_max?: number | null;
-    };
+  const origin = (input.origin ?? {}) as {
+    country?: string | null;
+    region?: string | null;
+    farm?: string | null;
+    producer?: string | null;
+    altitude_min?: number | null;
+    altitude_max?: number | null;
+  };
 
-    return {
-      source: 'canonical',
-      hash: params.hash,
-      archived: input.archived,
-      roaster: {
-        name: input.roaster.name,
-        city: input.roaster.city,
-        country: input.roaster.country,
-        logoUrl: input.roaster.logo_url,
-        shortName: input.roaster.name,
-      },
-      product: {
-        id: input.coffee.id,
-        name: input.coffee.name,
-        variety: input.coffee.variety,
-        processingMethod: input.coffee.processing_method,
-        producerNotes: input.coffee.producer_notes,
-        imageUrl: input.coffee.cover_image_url,
-      },
-      origin: {
-        country: origin.country ?? null,
-        region: origin.region ?? null,
-        farm: origin.farm ?? null,
-        producer: origin.producer ?? null,
-        altitudeLabel: normalizeAltitudeLabel({
-          min: origin.altitude_min,
-          max: origin.altitude_max,
-        }),
-      },
-      roast: {
-        date: input.batch.roast_date,
-        lotNumber: input.batch.lot_number,
-        level: null,
-      },
-      brewing: {
-        recommendedMethod: null,
-        notes: input.batch.brewing_notes,
-      },
-      story: {
-        roasterStory: input.batch.roaster_story,
-      },
-      stats: {
-        totalTastings: input.stats.total_count,
-        avgRating: input.stats.avg_rating,
-      },
-      tastingNotes: [],
-      logBatchId: input.batch.id,
-    };
-  }
-
-  const tag = input.tag;
   return {
-    source: 'tag',
+    source: 'canonical',
     hash: params.hash,
-    archived: false,
+    archived: input.archived,
     roaster: {
-      name: tag.roaster_short_name || null,
-      city: null,
-      country: null,
-      logoUrl: null,
-      shortName: tag.roaster_short_name || null,
+      name: input.roaster.name,
+      city: input.roaster.city,
+      country: input.roaster.country,
+      logoUrl: input.roaster.logo_url,
+      shortName: input.roaster.name,
     },
     product: {
-      id: tag.id,
-      name: displayTagName(tag),
-      variety:
-        [tag.bean_type, tag.bean_varietal_main, tag.bean_varietal_extra]
-          .filter(Boolean)
-          .join(' · ') || null,
-      processingMethod: tag.bean_processing || null,
-      producerNotes: tag.bean_origin_tradename || null,
-      imageUrl: tag.img_coffee_label || null,
+      id: input.coffee.id,
+      name: input.coffee.name,
+      variety: input.coffee.variety,
+      processingMethod: input.coffee.processing_method,
+      producerNotes: input.coffee.producer_notes,
+      imageUrl: input.coffee.cover_image_url,
     },
     origin: {
-      country: tag.bean_origin_country || null,
-      region: tag.bean_origin_region || null,
-      farm: tag.bean_origin_farm || null,
-      producer: null,
+      country: origin.country ?? null,
+      region: origin.region ?? null,
+      farm: origin.farm ?? null,
+      producer: origin.producer ?? null,
       altitudeLabel: normalizeAltitudeLabel({
-        exact:
-          tag.bean_origin_height == null ? null : String(tag.bean_origin_height),
+        min: origin.altitude_min,
+        max: origin.altitude_max,
       }),
     },
     roast: {
-      date: tag.bean_roast_date || null,
-      lotNumber: null,
-      level: tag.bean_roast_level || null,
+      date: input.batch.roast_date,
+      lotNumber: input.batch.lot_number,
+      level: null,
     },
     brewing: {
-      recommendedMethod: tag.brew_method || null,
-      notes: null,
+      recommendedMethod: null,
+      notes: input.batch.brewing_notes,
     },
     story: {
-      roasterStory: null,
+      roasterStory: input.batch.roaster_story,
     },
     stats: {
-      totalTastings: 0,
-      avgRating: 0,
+      totalTastings: input.stats.total_count,
+      avgRating: input.stats.avg_rating,
     },
-    tastingNotes: input.tasting_notes ?? [],
-    logBatchId: null,
+    tastingNotes: [],
+    logBatchId: input.batch.id,
   };
 }

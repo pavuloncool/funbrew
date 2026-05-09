@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 
-import type { RoasterCoffeeTagRow } from '@funcup/types';
-
 import type { TypedSupabaseClient } from '../services/supabaseClientFactory';
 import { logFlowError, normalizeFlowError } from '../errors/flowError';
 
-/** Payload for a legacy / batch QR (`qr_codes` → roast batch). */
+/** Payload for canonical QR (`qr_codes` → roast batch). */
 export type ScanQrBatchResponse = {
   kind: 'batch';
   batch: {
@@ -42,20 +40,7 @@ export type ScanQrBatchResponse = {
   archived: boolean;
 };
 
-/** Payload when QR resolves to a `roaster_coffee_tags` row (`public_hash`). */
-export type ScanQrTagResponse = {
-  kind: 'tag';
-  tag: RoasterCoffeeTagRow;
-  tasting_notes?: Array<{
-    id: string;
-    name: string;
-    label: string;
-    category: string;
-  }>;
-  archived: false;
-};
-
-export type ScanQrResult = ScanQrBatchResponse | ScanQrTagResponse;
+export type ScanQrResult = ScanQrBatchResponse;
 
 function parseScanQrResult(raw: unknown): ScanQrResult {
   if (!raw || typeof raw !== 'object') {
@@ -76,10 +61,6 @@ function parseScanQrResult(raw: unknown): ScanQrResult {
       },
       domain: 'scan',
     });
-  }
-
-  if (o.kind === 'tag' && o.tag && typeof o.tag === 'object') {
-    return o as ScanQrTagResponse;
   }
 
   if (o.kind === 'batch' && o.batch && o.coffee) {

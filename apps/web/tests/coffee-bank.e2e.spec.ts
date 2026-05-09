@@ -11,7 +11,7 @@ test.describe('/coffee-bank', () => {
     });
     await expect(page.getByRole('link', { name: 'Wróć do Roaster Hub' })).toHaveAttribute('href', '/roaster-hub');
     await expect(page.getByText('Canonical management surface')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Legacy tag flow' })).toHaveAttribute('href', '/tag');
+    await expect(page.getByText('jedyną ścieżką zarządzania danymi kaw')).toBeVisible();
   });
 
   test('responds 200 for document navigation (route exists)', async ({ request }) => {
