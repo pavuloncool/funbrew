@@ -26,8 +26,10 @@ type CoffeeStatsRow = {
 
 type LogRow = {
   id: string;
+  logged_at: string;
   rating: number;
   brew_method_id: string | null;
+  free_text_notes: string | null;
   brew_methods: { id: string; name: string } | null;
   reviews: { body: string; created_at: string }[] | null;
   coffee_log_tasting_notes: Array<{
@@ -35,6 +37,94 @@ type LogRow = {
     tasting_notes: { id: string; name: string; label: string; category: string } | null;
   }> | null;
 };
+
+type TelemetryRow = {
+  coffee_log_id: string;
+  sensory_acidity: number;
+  sensory_sweetness: number;
+  sensory_body: number;
+  repurchase_intent: 'yes' | 'no' | 'unsure';
+  experience_level: 'beginner' | 'advanced' | 'expert';
+};
+
+type RepurchaseIntentDistribution = {
+  yes: number;
+  no: number;
+  unsure: number;
+};
+
+type ExperienceLevelDistribution = {
+  beginner: number;
+  advanced: number;
+  expert: number;
+};
+
+export type TelemetrySummary = {
+  totalLogs: number;
+  logsWithTelemetry: number;
+  coveragePercent: number;
+  avgSensoryAcidity: number | null;
+  avgSensorySweetness: number | null;
+  avgSensoryBody: number | null;
+  repurchaseIntentDistribution: RepurchaseIntentDistribution;
+  experienceLevelDistribution: ExperienceLevelDistribution;
+};
+
+export type AnonymizedTextEntry = {
+  coffeeLogId: string;
+  body: string;
+  createdAt: string;
+  rating: number;
+  brewMethodName: string | null;
+};
+
+function round2(value: number): number {
+  return Number(value.toFixed(2));
+}
+
+function summarizeTelemetry(logs: RoasterTastingLog[]): TelemetrySummary {
+  const telemetryLogs = logs.filter((log) => log.telemetry !== null);
+  const repurchaseIntentDistribution: RepurchaseIntentDistribution = {
+    yes: 0,
+    no: 0,
+    unsure: 0,
+  };
+  const experienceLevelDistribution: ExperienceLevelDistribution = {
+    beginner: 0,
+    advanced: 0,
+    expert: 0,
+  };
+
+  let aciditySum = 0;
+  let sweetnessSum = 0;
+  let bodySum = 0;
+  for (const log of telemetryLogs) {
+    const telemetry = log.telemetry;
+    if (!telemetry) continue;
+    aciditySum += telemetry.sensoryAcidity;
+    sweetnessSum += telemetry.sensorySweetness;
+    bodySum += telemetry.sensoryBody;
+    repurchaseIntentDistribution[telemetry.repurchaseIntent] += 1;
+    experienceLevelDistribution[telemetry.experienceLevel] += 1;
+  }
+
+  const logsWithTelemetry = telemetryLogs.length;
+  const coveragePercent =
+    logs.length > 0 ? round2((logsWithTelemetry / logs.length) * 100) : 0;
+
+  return {
+    totalLogs: logs.length,
+    logsWithTelemetry,
+    coveragePercent,
+    avgSensoryAcidity:
+      logsWithTelemetry > 0 ? round2(aciditySum / logsWithTelemetry) : null,
+    avgSensorySweetness:
+      logsWithTelemetry > 0 ? round2(sweetnessSum / logsWithTelemetry) : null,
+    avgSensoryBody: logsWithTelemetry > 0 ? round2(bodySum / logsWithTelemetry) : null,
+    repurchaseIntentDistribution,
+    experienceLevelDistribution,
+  };
+}
 
 function mapLogRow(row: LogRow): RoasterTastingLog {
   const flavorNotes: RoasterTastingLog['flavorNotes'] = [];
@@ -51,9 +141,11 @@ function mapLogRow(row: LogRow): RoasterTastingLog {
   }
   return {
     id: row.id,
+    loggedAt: row.logged_at,
     rating: row.rating,
     brewMethodId: row.brew_method_id,
     brewMethodName: row.brew_methods?.name ?? null,
+    freeTextNotes: row.free_text_notes,
     review:
       Array.isArray(row.reviews) && row.reviews[0]?.body
         ? {
@@ -61,6 +153,7 @@ function mapLogRow(row: LogRow): RoasterTastingLog {
             createdAt: row.reviews[0].created_at,
           }
         : null,
+    telemetry: null,
     flavorNotes,
   };
 }
@@ -78,6 +171,8 @@ export type RoasterAnalyticsFetched = {
   brewMethodOptions: BrewMethodOption[];
   globalTopFlavorNotes: FlavorNoteRank[];
   anonymizedReviews: AnonymizedReview[];
+  anonymizedFreeTextNotes: AnonymizedTextEntry[];
+  globalTelemetrySummary: TelemetrySummary;
 };
 
 export type RoasterAnalyticsData = RoasterAnalyticsFetched & {
@@ -86,6 +181,7 @@ export type RoasterAnalyticsData = RoasterAnalyticsFetched & {
   /** Subset matching the brew-method filter; separate from globalFromStats. */
   filteredSummary: RatingSummary;
   filteredTopFlavorNotes: FlavorNoteRank[];
+  filteredTelemetrySummary: TelemetrySummary;
 };
 
 export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
@@ -123,8 +219,10 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
             .select(
               `
               id,
+              logged_at,
               rating,
               brew_method_id,
+              free_text_notes,
               brew_methods ( id, name ),
               reviews ( body, created_at ),
               coffee_log_tasting_notes (
@@ -151,7 +249,41 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
 
         const stats = statsRes.data as CoffeeStatsRow | null;
         const rawLogs = (logsRes.data ?? []) as LogRow[];
-        const logs = rawLogs.map(mapLogRow);
+        const baseLogs = rawLogs.map(mapLogRow);
+
+        const logIds = baseLogs.map((log) => log.id);
+        const telemetryByLogId = new Map<string, RoasterTastingLog['telemetry']>();
+
+        if (logIds.length > 0) {
+          const telemetryRes = await params.supabase
+            .from('coffee_log_telemetry_core')
+            .select(
+              'coffee_log_id,sensory_acidity,sensory_sweetness,sensory_body,repurchase_intent,experience_level'
+            )
+            .in('coffee_log_id', logIds);
+
+          if (telemetryRes.error) {
+            throw normalizeFlowError({
+              error: telemetryRes.error,
+              domain: 'analytics',
+            });
+          }
+
+          for (const row of (telemetryRes.data ?? []) as TelemetryRow[]) {
+            telemetryByLogId.set(row.coffee_log_id, {
+              sensoryAcidity: row.sensory_acidity,
+              sensorySweetness: row.sensory_sweetness,
+              sensoryBody: row.sensory_body,
+              repurchaseIntent: row.repurchase_intent,
+              experienceLevel: row.experience_level,
+            });
+          }
+        }
+
+        const logs = baseLogs.map((log) => ({
+          ...log,
+          telemetry: telemetryByLogId.get(log.id) ?? null,
+        }));
         const derivedSummary = aggregateRatingSummary(logs);
         const statsAreFresh =
           stats == null
@@ -178,6 +310,20 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
           logs,
           brewMethodOptions: brewMethodsPresentInLogs(logs),
           globalTopFlavorNotes: topFlavorNotesFromLogs(logs, 10),
+          anonymizedFreeTextNotes: logs
+            .filter(
+              (log) =>
+                typeof log.freeTextNotes === 'string' &&
+                log.freeTextNotes.trim().length > 0
+            )
+            .map((log) => ({
+              coffeeLogId: log.id,
+              body: log.freeTextNotes!.trim(),
+              createdAt: log.loggedAt,
+              rating: log.rating,
+              brewMethodName: log.brewMethodName,
+            }))
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
           anonymizedReviews: logs
             .filter((log) => log.review?.body)
             .map((log) => ({
@@ -188,6 +334,7 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
               brewMethodName: log.brewMethodName,
             }))
             .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+          globalTelemetrySummary: summarizeTelemetry(logs),
         };
       } catch (error) {
         const normalized = normalizeFlowError({
@@ -209,7 +356,9 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
       statsAreFresh,
       brewMethodOptions,
       globalTopFlavorNotes,
+      anonymizedFreeTextNotes,
       anonymizedReviews,
+      globalTelemetrySummary,
     } =
       query.data;
     const filteredLogs = filterLogsByBrewMethod(logs, selectedBrewMethodId);
@@ -220,11 +369,14 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
       logs,
       brewMethodOptions,
       globalTopFlavorNotes,
+      anonymizedFreeTextNotes,
       anonymizedReviews,
+      globalTelemetrySummary,
       selectedBrewMethodId,
       setSelectedBrewMethodId,
       filteredSummary: aggregateRatingSummary(filteredLogs),
       filteredTopFlavorNotes: topFlavorNotesFromLogs(filteredLogs, 10),
+      filteredTelemetrySummary: summarizeTelemetry(filteredLogs),
     };
   }, [query.data, selectedBrewMethodId]);
 

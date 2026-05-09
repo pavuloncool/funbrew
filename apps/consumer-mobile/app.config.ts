@@ -3,10 +3,11 @@ import { config as loadDotenv } from 'dotenv';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 loadDotenv({ path: path.join(__dirname, '.env') });
-loadDotenv({ path: path.join(__dirname, '.env.local'), override: true });
+loadDotenv({ path: path.join(__dirname, '.env.local') });
 
 /** Default local Supabase (CLI). Used when EXPO_PUBLIC_* are missing at bundle/config time. */
-const LOCAL_SUPABASE_URL = 'http://192.168.1.106:54321';
+const LAN_FALLBACK_HOST = process.env.REACT_NATIVE_PACKAGER_HOSTNAME || '127.0.0.1';
+const LOCAL_SUPABASE_URL = `http://${LAN_FALLBACK_HOST}:54321`;
 const LOCAL_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.9kEXx9GFfgcZ21LlMB1qI-LOwSGOzI8g8c92UgEHQDk';
 

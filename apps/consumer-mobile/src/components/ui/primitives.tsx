@@ -4,23 +4,38 @@ import { useContext } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewProps, type TextInputProps, type TextProps, type ViewProps } from 'react-native';
 import { SafeAreaView, type Edge, type SafeAreaViewProps } from 'react-native-safe-area-context';
 
-const { colors, spacing, radius, typography, recipes } = visualSystemTokens;
+const { colors, spacing, radius, typography, recipes, elevation, motion } = visualSystemTokens;
 
-type TextVariant = 'hero' | 'h1' | 'h2' | 'h3' | 'body' | 'bodySm' | 'caption';
-type TextTone = 'primary' | 'secondary' | 'muted' | 'onPrimary' | 'danger' | 'success';
+/** @deprecated Keep aliases for older callsites. */
+type TextVariant =
+  | 'hero'
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'body'
+  | 'bodySm'
+  | 'caption'
+  | 'display'
+  | 'label'
+  | 'mono';
+type TextTone = 'primary' | 'secondary' | 'muted' | 'onPrimary' | 'inverse' | 'danger' | 'success' | 'warning' | 'info';
 
-type ButtonVariant = 'primary' | 'secondary';
+type ButtonVariant = 'primary' | 'secondary' | 'contrast' | 'ghost';
 
 const toneColor: Record<TextTone, string> = {
   primary: colors.textPrimary,
   secondary: colors.textSecondary,
   muted: colors.textMuted,
   onPrimary: colors.textOnPrimary,
+  inverse: colors.textInverse,
   danger: colors.danger,
   success: colors.success,
+  warning: colors.warning,
+  info: colors.info,
 };
 
 const textSize: Record<TextVariant, number> = {
+  display: typography.headingXL,
   hero: typography.hero,
   h1: typography.headingXL,
   h2: typography.headingLG,
@@ -28,7 +43,46 @@ const textSize: Record<TextVariant, number> = {
   body: typography.bodyMD,
   bodySm: typography.bodySM,
   caption: typography.caption,
+  label: typography.bodySM,
+  mono: typography.bodySM,
 };
+
+const textLineHeight: Record<TextVariant, number> = {
+  display: typography.lineHeight.headingXL,
+  hero: typography.lineHeight.hero,
+  h1: typography.lineHeight.headingXL,
+  h2: typography.lineHeight.headingLG,
+  h3: typography.lineHeight.headingSM,
+  body: typography.lineHeight.bodyMD,
+  bodySm: typography.lineHeight.bodySM,
+  caption: typography.lineHeight.caption,
+  label: typography.lineHeight.bodySM,
+  mono: typography.lineHeight.bodySM,
+};
+
+const textTracking: Partial<Record<TextVariant, number>> = {
+  display: typography.tracking.tight,
+  h1: typography.tracking.tight,
+  h2: typography.tracking.normal,
+  caption: typography.tracking.wide,
+  label: typography.tracking.wide,
+};
+
+const textFamily: Partial<Record<TextVariant, string>> = {
+  display: typography.fontFamily.displayNative,
+  hero: typography.fontFamily.displayNative,
+  mono: typography.fontFamily.monoNative,
+};
+
+function resolveTextFontFamily(variant: TextVariant, weight: '400' | '500' | '600' | '700' | '800'): string {
+  if (variant === 'mono') return typography.fontFamily.monoNative;
+  if (variant === 'display' || variant === 'hero' || variant === 'h1' || variant === 'h2') {
+    return 'SplineSans_700Bold';
+  }
+  if (weight === '700' || weight === '800') return 'SplineSans_700Bold';
+  if (weight === '500' || weight === '600') return 'SplineSans_500Medium';
+  return textFamily[variant] ?? typography.fontFamily.bodyNative;
+}
 
 const SAFE_AREA_EDGES_ALL: Edge[] = ['top', 'right', 'bottom', 'left'];
 const SAFE_AREA_EDGES_UNDER_HEADER: Edge[] = ['right', 'bottom', 'left'];
@@ -63,23 +117,31 @@ export function AppText(props: TextProps & { variant?: TextVariant; tone?: TextT
   const variant = props.variant ?? 'body';
   const tone = props.tone ?? 'primary';
   const weight = props.weight ?? '500';
+  const fontFamily = resolveTextFontFamily(variant, weight);
   return (
     <Text
       {...props}
       style={[
         primitives.text,
-        { fontSize: textSize[variant], color: toneColor[tone], fontWeight: weight },
+        {
+          fontSize: textSize[variant],
+          lineHeight: textLineHeight[variant],
+          letterSpacing: textTracking[variant] ?? typography.tracking.normal,
+          fontFamily,
+          color: toneColor[tone],
+          fontWeight: variant === 'mono' ? '400' : undefined,
+        },
         props.style,
       ]}
     />
   );
 }
 
-export function AppCard(props: ViewProps & { elevated?: boolean }) {
+export function AppCard(props: ViewProps & { elevated?: boolean; hero?: boolean }) {
   return (
     <View
       {...props}
-      style={[primitives.card, props.elevated && primitives.cardElevated, props.style]}
+      style={[primitives.card, props.elevated !== false && primitives.cardElevated, props.hero && primitives.cardHero, props.style]}
     />
   );
 }
@@ -92,7 +154,7 @@ export function AppButton(props: {
   accessibilityLabel?: string;
 }) {
   const variant = props.variant ?? 'primary';
-  const pressedStyle = variant === 'primary' ? primitives.buttonPrimaryPressed : primitives.buttonSecondaryPressed;
+  const isPrimaryLike = variant === 'primary' || variant === 'contrast';
   return (
     <Pressable
       onPress={props.onPress}
@@ -101,12 +163,15 @@ export function AppButton(props: {
       accessibilityLabel={props.accessibilityLabel ?? props.label}
       style={({ pressed }) => [
         primitives.buttonBase,
-        variant === 'primary' ? primitives.buttonPrimary : primitives.buttonSecondary,
-        pressed && !props.disabled ? pressedStyle : null,
+        variant === 'primary' && primitives.buttonPrimary,
+        variant === 'secondary' && primitives.buttonSecondary,
+        variant === 'contrast' && primitives.buttonContrast,
+        variant === 'ghost' && primitives.buttonGhost,
+        pressed && !props.disabled ? primitives.buttonPressed : null,
         props.disabled ? primitives.buttonDisabled : null,
       ]}
     >
-      <AppText variant="body" weight="700" tone={variant === 'primary' ? 'onPrimary' : 'primary'}>
+      <AppText variant="body" weight="700" tone={isPrimaryLike ? 'onPrimary' : 'primary'}>
         {props.label}
       </AppText>
     </Pressable>
@@ -114,19 +179,29 @@ export function AppButton(props: {
 }
 
 export function AppInput(props: TextInputProps & { hasError?: boolean }) {
+  const multilineStyle = props.multiline
+    ? {
+        height: undefined,
+        minHeight: recipes.input.height * 2.4,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.sm,
+        textAlignVertical: 'top' as const,
+      }
+    : null;
+
   return (
     <TextInput
       {...props}
       placeholderTextColor={colors.textSecondary}
-      style={[primitives.input, props.hasError && primitives.inputError, props.style]}
+      style={[primitives.input, multilineStyle, props.hasError && primitives.inputError, props.style]}
     />
   );
 }
 
-export function AppChip(props: { label: string }) {
+export function AppChip(props: { label: string; inverse?: boolean }) {
   return (
-    <View style={primitives.chip}>
-      <AppText variant="bodySm" tone="secondary">
+    <View style={[primitives.chip, props.inverse && primitives.chipInverse]}>
+      <AppText variant="bodySm" tone={props.inverse ? 'inverse' : 'secondary'}>
         {props.label}
       </AppText>
     </View>
@@ -163,11 +238,11 @@ export const primitives = StyleSheet.create({
     gap: spacing.xs,
   },
   cardElevated: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    ...elevation.native.sm,
+  },
+  cardHero: {
+    backgroundColor: colors.heroPrimary,
+    borderColor: colors.borderInverse,
   },
   buttonBase: {
     minHeight: 48,
@@ -179,16 +254,22 @@ export const primitives = StyleSheet.create({
   buttonPrimary: {
     backgroundColor: recipes.button.primary.background,
   },
-  buttonPrimaryPressed: {
-    backgroundColor: recipes.button.primary.backgroundPressed,
+  buttonContrast: {
+    backgroundColor: recipes.button.contrast.background,
   },
   buttonSecondary: {
     backgroundColor: recipes.button.secondary.background,
     borderWidth: 1,
     borderColor: recipes.button.secondary.borderColor,
   },
-  buttonSecondaryPressed: {
-    backgroundColor: recipes.button.secondary.backgroundPressed,
+  buttonGhost: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  buttonPressed: {
+    opacity: motion.press.opacity,
+    transform: [{ scale: motion.press.scale }],
   },
   buttonDisabled: {
     opacity: 0.55,
@@ -213,5 +294,9 @@ export const primitives = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xxs,
     backgroundColor: colors.surfaceElevated,
+  },
+  chipInverse: {
+    borderColor: colors.borderInverse,
+    backgroundColor: colors.heroContrast,
   },
 });

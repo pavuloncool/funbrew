@@ -244,9 +244,7 @@ const styles = StyleSheet.create({
   },
   fieldBlock: { gap: visualSystemTokens.spacing.xs },
   multilineInput: {
-    minHeight: 112,
-    textAlignVertical: 'top',
-    paddingTop: visualSystemTokens.spacing.sm,
+    minHeight: 132,
   },
   submit: { gap: visualSystemTokens.spacing.xs, paddingBottom: visualSystemTokens.spacing.md },
   scoreRow: {

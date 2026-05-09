@@ -5,18 +5,19 @@ import * as React from 'react';
 import { cn } from '@/src/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'vs-focus-ring inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border-2 px-5 py-2 text-sm font-semibold transition-all duration-220 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:translate-y-[1px] active:shadow-none',
   {
     variants: {
       variant: {
-        default: 'bg-[#111] text-white hover:bg-[#333]',
-        outline: 'border border-[#ccc] bg-white hover:bg-[#f5f5f5]',
-        ghost: 'hover:bg-[#f0f0f0]',
+        default: 'border-vs-border-strong bg-vs-accent-secondary text-vs-text-primary shadow-vs-sm hover:bg-vs-accent-secondaryPressed',
+        secondary: 'border-vs-border-strong bg-vs-elevated text-vs-text-primary shadow-vs-sm hover:bg-vs-surface',
+        outline: 'border-vs-border-default bg-vs-elevated text-vs-text-primary hover:bg-vs-surface',
+        ghost: 'border-transparent bg-transparent text-vs-text-primary hover:bg-vs-surface',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        icon: 'h-10 w-10',
+        default: 'h-12 text-base',
+        sm: 'h-10 px-4 text-sm',
+        icon: 'h-10 w-10 rounded-full p-0',
       },
     },
     defaultVariants: {

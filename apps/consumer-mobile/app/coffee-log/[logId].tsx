@@ -1,16 +1,20 @@
 import {
   fetchRoasterTelemetryCore,
   labelRepurchaseIntent,
+  normalizeFlowError,
   type RepurchaseIntent,
   upsertRoasterTelemetryCore,
   updateCoffeeStats,
   visualSystemTokens,
 } from '@funcup/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrewMethodPicker } from '../../src/coffee/tasting/BrewMethodPicker';
+import { FlavorNoteSelector } from '../../src/coffee/tasting/FlavorNoteSelector';
 import { useViewerUserId } from '../../src/hooks/useViewerUserId';
 import { supabase } from '../../src/services/supabaseClient';
 import { AppButton, AppCard, AppInput, AppScrollScreen, AppText } from '../../src/components/ui/primitives';
@@ -24,8 +28,21 @@ type LogDetails = {
   roasterName: string | null;
   loggedAt: string;
   rating: number;
+  tastingNoteIds: string[];
   freeTextNotes: string | null;
   reviewBody: string | null;
+};
+
+type JournalCacheRow = {
+  id: string;
+  rating: number | null;
+  free_text_notes: string | null;
+  logged_at: string;
+  roast_batches: {
+    id: string;
+    lot_number: string | null;
+    coffees: { id: string; name: string; roasters: { id: string; name: string } | null } | null;
+  } | null;
 };
 
 function parseLogDetails(raw: unknown): LogDetails | null {
@@ -43,6 +60,7 @@ function parseLogDetails(raw: unknown): LogDetails | null {
         roasters?: { name?: string | null } | null;
       } | null;
     } | null;
+    coffee_log_tasting_notes?: Array<{ tasting_note_id: string }> | null;
     reviews?: Array<{ body: string }> | null;
   };
 
@@ -54,9 +72,23 @@ function parseLogDetails(raw: unknown): LogDetails | null {
     roasterName: row.roast_batches?.coffees?.roasters?.name ?? null,
     loggedAt: row.logged_at,
     rating: row.rating,
+    tastingNoteIds: (row.coffee_log_tasting_notes ?? []).map((item) => item.tasting_note_id),
     freeTextNotes: row.free_text_notes,
     reviewBody: row.reviews?.[0]?.body ?? null,
   };
+}
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    const maybeMessage = (error as { message?: unknown }).message;
+    if (typeof maybeMessage === 'string' && maybeMessage.trim().length > 0) {
+      return maybeMessage;
+    }
+  }
+  return 'Could not save tasting update.';
 }
 
 const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
@@ -67,9 +99,13 @@ const INTENT_OPTIONS: Array<{ value: RepurchaseIntent; label: string }> = [
 ];
 
 type CoffeeLogsTable = {
-  update: (value: { rating?: number; free_text_notes?: string | null }) => {
+  update: (value: { rating?: number; brew_method_id?: string | null; free_text_notes?: string | null }) => {
     eq: (column: string, value: string) => {
-      eq: (column: string, value: string) => Promise<{ error: Error | null }>;
+      eq: (column: string, value: string) => {
+        select: (columns: string) => {
+          maybeSingle: () => Promise<{ data: { id: string; rating: number } | null; error: Error | null }>;
+        };
+      };
     };
   };
   delete: () => {
@@ -94,49 +130,67 @@ type ReviewsTable = {
   };
 };
 
+type CoffeeLogTastingNotesTable = {
+  delete: () => {
+    eq: (column: string, value: string) => Promise<{ error: Error | null }>;
+  };
+  insert: (
+    value: Array<{ coffee_log_id: string; tasting_note_id: string }>
+  ) => Promise<{ error: Error | null }>;
+};
+
 export default function CoffeeLogDetailsScreen() {
   const params = useLocalSearchParams<{ logId?: string }>();
   const logId = typeof params.logId === 'string' ? params.logId : '';
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { userId, isLoading: userLoading } = useViewerUserId();
+  const insets = useSafeAreaInsets();
+  const contentBottomPadding = insets.bottom + 124;
 
-  const query = useQuery({
+  const detailsQuery = useQuery({
     queryKey: ['coffeeLogDetails', logId, userId ?? null],
     enabled: Boolean(logId && userId) && !userLoading,
     queryFn: async () => {
       if (!logId || !userId) throw new Error('Missing context');
 
-      const [{ data, error }, telemetry] = await Promise.all([
-        supabase
-          .from('coffee_logs')
-          .select(
-            `
-            id,
-            batch_id,
-            brew_method_id,
-            rating,
-            free_text_notes,
-            logged_at,
-            roast_batches (
-              coffees (
-                name,
-                roasters ( name )
-              )
-            ),
-            reviews ( body )
+      const { data, error } = await supabase
+        .from('coffee_logs')
+        .select(
           `
-          )
-          .eq('id', logId)
-          .eq('user_id', userId)
-          .maybeSingle(),
-        fetchRoasterTelemetryCore(supabase, logId),
-      ]);
+          id,
+          batch_id,
+          brew_method_id,
+          rating,
+          free_text_notes,
+          logged_at,
+          roast_batches (
+            coffees (
+              name,
+              roasters ( name )
+            )
+          ),
+          coffee_log_tasting_notes ( tasting_note_id ),
+          reviews ( body )
+        `
+        )
+        .eq('id', logId)
+        .eq('user_id', userId)
+        .maybeSingle();
 
       if (error) throw error;
       const details = parseLogDetails(data);
-      if (!details) return null;
+      return details;
+    },
+  });
 
-      return { details, telemetry };
+  const telemetryQuery = useQuery({
+    queryKey: ['coffeeLogTelemetry', logId, userId ?? null],
+    enabled: Boolean(logId && userId) && !userLoading,
+    retry: 1,
+    queryFn: async () => {
+      if (!logId) return null;
+      return fetchRoasterTelemetryCore(supabase, logId);
     },
   });
 
@@ -144,7 +198,10 @@ export default function CoffeeLogDetailsScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [rating, setRating] = useState(3);
+  const [brewMethodId, setBrewMethodId] = useState<string | null>(null);
+  const [tastingNoteIds, setTastingNoteIds] = useState<string[]>([]);
   const [freeTextNotes, setFreeTextNotes] = useState('');
   const [reviewBody, setReviewBody] = useState('');
   const [sensoryAcidity, setSensoryAcidity] = useState(3);
@@ -153,42 +210,87 @@ export default function CoffeeLogDetailsScreen() {
   const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
 
   useEffect(() => {
-    const payload = query.data;
-    if (!payload) return;
+    const details = detailsQuery.data;
+    if (!details || isEditing) return;
 
-    setRating(payload.details.rating);
-    setFreeTextNotes(payload.details.freeTextNotes ?? '');
-    setReviewBody(payload.details.reviewBody ?? '');
-    setSensoryAcidity(payload.telemetry?.sensoryAcidity ?? 3);
-    setSensorySweetness(payload.telemetry?.sensorySweetness ?? 3);
-    setSensoryBody(payload.telemetry?.sensoryBody ?? 3);
-    setRepurchaseIntent(payload.telemetry?.repurchaseIntent ?? 'unsure');
-  }, [query.data]);
+    setRating(details.rating);
+    setBrewMethodId(details.brewMethodId);
+    setTastingNoteIds(details.tastingNoteIds);
+    setFreeTextNotes(details.freeTextNotes ?? '');
+    setReviewBody(details.reviewBody ?? '');
+  }, [detailsQuery.data, isEditing]);
 
-  const details = query.data?.details ?? null;
+  useEffect(() => {
+    const telemetry = telemetryQuery.data;
+    if (!telemetry || isEditing) return;
+    setSensoryAcidity(telemetry.sensoryAcidity);
+    setSensorySweetness(telemetry.sensorySweetness);
+    setSensoryBody(telemetry.sensoryBody);
+    setRepurchaseIntent(telemetry.repurchaseIntent);
+  }, [telemetryQuery.data, isEditing]);
+
+  const details = detailsQuery.data ?? null;
+
+  const validate = (): string | null => {
+    if (rating < 1 || rating > 5) {
+      return 'Rating must be between 1 and 5';
+    }
+    if (!brewMethodId) {
+      return 'Select a brew method';
+    }
+    if (tastingNoteIds.length === 0) {
+      return 'Select at least one tasting note';
+    }
+    return null;
+  };
 
   const save = async () => {
     if (!details || !userId) return;
-    if (!details.brewMethodId) {
-      setSaveError('This legacy entry has no brew method. Save from Tasting Log to migrate it.');
+    const validationError = validate();
+    if (validationError) {
+      setSaveError(validationError);
       return;
     }
 
     setSaveError(null);
+    setSaveStatus(null);
     setIsSaving(true);
 
     try {
       const coffeeLogsTable = supabase.from('coffee_logs') as unknown as CoffeeLogsTable;
       const reviewsTable = supabase.from('reviews') as unknown as ReviewsTable;
+      const tastingNotesTable = supabase.from('coffee_log_tasting_notes') as unknown as CoffeeLogTastingNotesTable;
 
-      const { error: logError } = await coffeeLogsTable
+      const { data: updatedLogRow, error: logError } = await coffeeLogsTable
         .update({
           rating,
+          brew_method_id: brewMethodId,
           free_text_notes: freeTextNotes.trim() || null,
         })
         .eq('id', details.id)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('id,rating')
+        .maybeSingle();
       if (logError) throw logError;
+      if (!updatedLogRow) {
+        throw new Error('Tasting update was not applied. Re-open the entry and try again.');
+      }
+      if (updatedLogRow.rating !== rating) {
+        throw new Error('Tasting rating was not persisted. Try again in a moment.');
+      }
+
+      const { error: deleteTastingNotesError } = await tastingNotesTable
+        .delete()
+        .eq('coffee_log_id', details.id);
+      if (deleteTastingNotesError) throw deleteTastingNotesError;
+
+      const uniqueTastingNoteIds = Array.from(new Set(tastingNoteIds));
+      const nextTastingNoteRows = uniqueTastingNoteIds.map((tastingNoteId) => ({
+        coffee_log_id: details.id,
+        tasting_note_id: tastingNoteId,
+      }));
+      const { error: insertTastingNotesError } = await tastingNotesTable.insert(nextTastingNoteRows);
+      if (insertTastingNotesError) throw insertTastingNotesError;
 
       const trimmedReview = reviewBody.trim();
       if (trimmedReview.length > 0) {
@@ -215,30 +317,105 @@ export default function CoffeeLogDetailsScreen() {
         if (deleteReviewError) throw deleteReviewError;
       }
 
-      await upsertRoasterTelemetryCore({
-        supabase,
-        coffeeLogId: details.id,
-        userId,
-        input: {
-          brewMethodId: details.brewMethodId,
-          overallRating: rating,
-          sensoryAcidity,
-          sensorySweetness,
-          sensoryBody,
-          repurchaseIntent,
-          experienceLevel: query.data?.telemetry?.experienceLevel ?? 'beginner',
-        },
-      });
+      let telemetrySaveFailed = false;
+      let statsRefreshFailed = false;
+      let telemetrySaveErrorMessage: string | null = null;
+      let savedTelemetry: Awaited<ReturnType<typeof upsertRoasterTelemetryCore>> | null = null;
 
-      await updateCoffeeStats(supabase, {
-        batchId: details.batchId,
-        userId,
-      });
+      try {
+        savedTelemetry = await upsertRoasterTelemetryCore({
+          supabase,
+          coffeeLogId: details.id,
+          userId,
+          input: {
+            brewMethodId: brewMethodId as string,
+            overallRating: rating,
+            sensoryAcidity,
+            sensorySweetness,
+            sensoryBody,
+            repurchaseIntent,
+            experienceLevel: telemetryQuery.data?.experienceLevel ?? 'beginner',
+          },
+        });
+      } catch (telemetryError) {
+        telemetrySaveFailed = true;
+        const normalizedTelemetryError = normalizeFlowError({
+          error: telemetryError,
+          domain: 'tasting_log',
+          fallbackMessage: 'Telemetry profile save failed.',
+        });
+        telemetrySaveErrorMessage = extractErrorMessage(normalizedTelemetryError);
+      }
+
+      try {
+        await updateCoffeeStats(supabase, {
+          batchId: details.batchId,
+          userId,
+        });
+      } catch {
+        statsRefreshFailed = true;
+      }
+
+      if (telemetrySaveFailed && statsRefreshFailed) {
+        setSaveStatus('Tasting updated. Stats + telemetry refresh are temporarily unavailable.');
+      } else if (telemetrySaveFailed) {
+        setSaveStatus(
+          telemetrySaveErrorMessage
+            ? `Tasting updated. Telemetry refresh failed: ${telemetrySaveErrorMessage}`
+            : 'Tasting updated. Telemetry refresh is temporarily unavailable.'
+        );
+      } else if (statsRefreshFailed) {
+        setSaveStatus('Tasting updated. Stats refresh is temporarily unavailable.');
+      } else {
+        setSaveStatus('Tasting updated.');
+      }
+
+      const nextFreeTextNotes = freeTextNotes.trim() || null;
+      const nextReviewBody = reviewBody.trim() || null;
+      queryClient.setQueryData<LogDetails | null>(
+        ['coffeeLogDetails', logId, userId],
+        (current) => {
+          if (!current || current.id !== details.id) return current;
+          return {
+            ...current,
+            rating,
+            brewMethodId,
+            tastingNoteIds: [...tastingNoteIds],
+            freeTextNotes: nextFreeTextNotes,
+            reviewBody: nextReviewBody,
+          };
+        }
+      );
+      queryClient.setQueryData<JournalCacheRow[]>(
+        ['journal', userId],
+        (current) => {
+          if (!Array.isArray(current)) return current;
+          return current.map((row) => (row.id === details.id
+            ? { ...row, rating, free_text_notes: nextFreeTextNotes }
+            : row));
+        }
+      );
+      if (savedTelemetry) {
+        queryClient.setQueryData(
+          ['coffeeLogTelemetry', logId, userId],
+          savedTelemetry
+        );
+      }
 
       setIsEditing(false);
-      await query.refetch();
+      await Promise.all([
+        detailsQuery.refetch(),
+        telemetryQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: ['journal', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['coffeePage'] }),
+      ]);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Could not save tasting update.');
+      const normalized = normalizeFlowError({
+        error,
+        domain: 'tasting_log',
+        fallbackMessage: 'Could not save tasting update.',
+      });
+      setSaveError(extractErrorMessage(normalized));
     } finally {
       setIsSaving(false);
     }
@@ -269,6 +446,7 @@ export default function CoffeeLogDetailsScreen() {
                 userId,
               });
 
+              await queryClient.invalidateQueries({ queryKey: ['journal', userId] });
               router.replace('/(tabs)/coffee');
             } catch (deleteError) {
               setSaveError(
@@ -287,23 +465,29 @@ export default function CoffeeLogDetailsScreen() {
 
   if (!logId) {
     return (
-      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+      <AppScrollScreen
+        contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
+      >
         <AppText>Missing log id.</AppText>
       </AppScrollScreen>
     );
   }
 
-  if (query.isLoading || userLoading) {
+  if (detailsQuery.isLoading || userLoading) {
     return (
-      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+      <AppScrollScreen
+        contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
+      >
         <AppText>Loading tasting entry...</AppText>
       </AppScrollScreen>
     );
   }
 
-  if (query.isError) {
+  if (detailsQuery.isError) {
     return (
-      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+      <AppScrollScreen
+        contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
+      >
         <AppText tone="danger">Could not load tasting details.</AppText>
       </AppScrollScreen>
     );
@@ -311,7 +495,9 @@ export default function CoffeeLogDetailsScreen() {
 
   if (!details) {
     return (
-      <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+      <AppScrollScreen
+        contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
+      >
         <AppText>Tasting entry not found.</AppText>
       </AppScrollScreen>
     );
@@ -323,7 +509,9 @@ export default function CoffeeLogDetailsScreen() {
     : new Date(details.loggedAt).toLocaleString();
 
   return (
-    <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+    <AppScrollScreen
+      contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
+    >
       <View style={styles.navRow}>
         <Link href="/(tabs)/coffee">Back to Coffee</Link>
       </View>
@@ -354,20 +542,38 @@ export default function CoffeeLogDetailsScreen() {
           })}
         </View>
 
-        <AppText variant="body" weight="600">Notes</AppText>
+        <BrewMethodPicker
+          value={brewMethodId}
+          onChange={(value) => {
+            if (!isEditing) return;
+            setBrewMethodId(value);
+          }}
+        />
+
+        <FlavorNoteSelector
+          selectedIds={tastingNoteIds}
+          onChange={(nextIds) => {
+            if (!isEditing) return;
+            setTastingNoteIds(nextIds);
+          }}
+        />
+
+        <AppText variant="body" weight="600">Free-text tasting notes</AppText>
         <AppInput
           value={freeTextNotes}
           onChangeText={setFreeTextNotes}
           editable={isEditing}
+          placeholder="Acidity, sweetness, balance, aftertaste..."
           multiline
           style={styles.multilineInput}
         />
 
-        <AppText variant="body" weight="600">Review</AppText>
+        <AppText variant="body" weight="600">Optional review</AppText>
         <AppInput
           value={reviewBody}
           onChangeText={setReviewBody}
           editable={isEditing}
+          placeholder="Share a short review for roaster analytics."
           multiline
           style={styles.multilineInput}
         />
@@ -406,10 +612,18 @@ export default function CoffeeLogDetailsScreen() {
       </AppCard>
 
       {saveError ? <AppText tone="danger">{saveError}</AppText> : null}
+      {saveStatus ? <AppText tone="secondary">{saveStatus}</AppText> : null}
+
+      <View style={styles.submit}>
+        <AppText variant="body" weight="600">Submit tasting</AppText>
+        <AppText tone="secondary">
+          Required: rating, brew method, at least one tasting note.
+        </AppText>
+      </View>
 
       <View style={styles.actionsRow}>
         <AppButton
-          label={isEditing ? (isSaving ? 'Saving...' : 'Save changes') : 'Edit entry'}
+          label={isEditing ? (isSaving ? 'Saving...' : 'Save tasting') : 'Edit entry'}
           onPress={() => {
             if (isEditing) {
               void save();
@@ -425,14 +639,16 @@ export default function CoffeeLogDetailsScreen() {
             variant="secondary"
             onPress={() => {
               setIsEditing(false);
-              if (query.data) {
-                setRating(query.data.details.rating);
-                setFreeTextNotes(query.data.details.freeTextNotes ?? '');
-                setReviewBody(query.data.details.reviewBody ?? '');
-                setSensoryAcidity(query.data.telemetry?.sensoryAcidity ?? 3);
-                setSensorySweetness(query.data.telemetry?.sensorySweetness ?? 3);
-                setSensoryBody(query.data.telemetry?.sensoryBody ?? 3);
-                setRepurchaseIntent(query.data.telemetry?.repurchaseIntent ?? 'unsure');
+              if (detailsQuery.data) {
+                setRating(detailsQuery.data.rating);
+                setBrewMethodId(detailsQuery.data.brewMethodId);
+                setTastingNoteIds(detailsQuery.data.tastingNoteIds);
+                setFreeTextNotes(detailsQuery.data.freeTextNotes ?? '');
+                setReviewBody(detailsQuery.data.reviewBody ?? '');
+                setSensoryAcidity(telemetryQuery.data?.sensoryAcidity ?? 3);
+                setSensorySweetness(telemetryQuery.data?.sensorySweetness ?? 3);
+                setSensoryBody(telemetryQuery.data?.sensoryBody ?? 3);
+                setRepurchaseIntent(telemetryQuery.data?.repurchaseIntent ?? 'unsure');
               }
             }}
             disabled={isSaving || isDeleting}
@@ -508,9 +724,7 @@ const styles = StyleSheet.create({
     backgroundColor: visualSystemTokens.colors.accentPrimary,
   },
   multilineInput: {
-    minHeight: 112,
-    textAlignVertical: 'top',
-    paddingTop: visualSystemTokens.spacing.sm,
+    minHeight: 132,
   },
   intentGroup: {
     gap: visualSystemTokens.spacing.xs,
@@ -533,5 +747,8 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     gap: visualSystemTokens.spacing.xs,
+  },
+  submit: {
+    gap: visualSystemTokens.spacing.xxs,
   },
 });

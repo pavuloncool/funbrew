@@ -4,3 +4,90 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --vs-canvas: 233 227 127;
+    --vs-surface: 228 228 228;
+    --vs-elevated: 242 242 242;
+    --vs-muted: 216 216 216;
+
+    --vs-text-primary: 22 22 28;
+    --vs-text-secondary: 46 46 55;
+    --vs-text-muted: 107 107 118;
+    --vs-text-inverse: 253 253 253;
+
+    --vs-border-default: 31 31 38;
+    --vs-border-strong: 17 17 23;
+    --vs-border-subtle: 31 31 38;
+    --vs-border-inverse: 255 255 255;
+
+    --vs-accent-primary: 23 23 29;
+    --vs-accent-pressed: 13 13 18;
+    --vs-accent-secondary: 236 229 125;
+    --vs-accent-secondary-pressed: 221 214 109;
+
+    --vs-hero-primary: 223 109 230;
+    --vs-hero-secondary: 115 226 222;
+    --vs-hero-contrast: 23 23 29;
+
+    --vs-success: 123 227 143;
+    --vs-warning: 212 203 90;
+    --vs-danger: 255 95 142;
+
+    --vs-font-display: 'Spline Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+    --vs-font-body: 'Spline Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+    --vs-font-mono: 'IBM Plex Mono';
+
+    --vs-shadow-sm: 4px 4px 0 rgba(17, 17, 23, 1);
+    --vs-shadow-md: 8px 8px 0 rgba(17, 17, 23, 1);
+    --vs-shadow-lg: 12px 12px 0 rgba(17, 17, 23, 1);
+
+    --vs-gradient-hero: linear-gradient(135deg, #df6de6 0%, #ffb55e 45%, #73e2de 100%);
+    --vs-gradient-mesh: linear-gradient(180deg, #e9e37f 0%, #e9e37f 100%);
+  }
+
+  html,
+  body {
+    --vs-font-display: var(--font-display, 'Spline Sans', 'Avenir Next', 'Segoe UI', sans-serif);
+    --vs-font-body: var(--font-body, 'Spline Sans', 'Avenir Next', 'Segoe UI', sans-serif);
+    @apply bg-vs-canvas text-vs-text-primary font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--vs-font-display), sans-serif;
+    letter-spacing: -0.03em;
+  }
+
+  p,
+  span,
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  label {
+    font-family: var(--vs-font-body), system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .vs-focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60 focus-visible:ring-offset-2;
+  }
+
+  .vs-surface-card {
+    @apply rounded-vs-md border border-vs-border-default bg-vs-elevated shadow-vs-sm;
+  }
+
+  .vs-button-primary {
+    @apply rounded-full border-2 border-vs-border-strong bg-vs-accent-secondary px-5 py-2 text-vs-text-primary shadow-vs-sm transition-all duration-220 hover:bg-vs-accent-secondaryPressed active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  .vs-button-secondary {
+    @apply rounded-full border-2 border-vs-border-strong bg-vs-elevated px-5 py-2 text-vs-text-primary shadow-vs-sm transition-all duration-220 hover:bg-vs-surface active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-55;
+  }
+}

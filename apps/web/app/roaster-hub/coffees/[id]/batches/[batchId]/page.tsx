@@ -214,7 +214,7 @@ export default function BatchDetailsPage() {
             {batch.roaster_story ?? '—'}
           </p>
 
-          <div className="mt-5 rounded border border-neutral-300 bg-white p-4">
+          <div className="mt-5 rounded border border-vs-border-default bg-vs-elevated p-4">
             <p className={`${hubCrudStyles.bodyStrong} mb-2`}>Public QR</p>
             <p className={`${hubCrudStyles.muted} mb-3`}>
               Canonical batch flow now generates its own public `/q/{'{hash}'}` link instead of delegating to `/tag`.

@@ -1,3 +1,4 @@
+import { useFonts } from 'expo-font';
 import { Stack, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Platform, View } from 'react-native';
@@ -50,6 +51,17 @@ function AppShellStack() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontsError] = useFonts({
+    SplineSans_400Regular: require('../assets/fonts/spline-sans/SplineSans-Regular.ttf'),
+    SplineSans_500Medium: require('../assets/fonts/spline-sans/SplineSans-Medium.ttf'),
+    SplineSans_600SemiBold: require('../assets/fonts/spline-sans/SplineSans-SemiBold.ttf'),
+    SplineSans_700Bold: require('../assets/fonts/spline-sans/SplineSans-Bold.ttf'),
+  });
+
+  if (!fontsLoaded && !fontsError) {
+    return null;
+  }
+
   return (
     <RootErrorBoundary>
       <QueryClientProvider client={queryClient}>

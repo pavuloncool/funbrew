@@ -11,8 +11,10 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import AnalyticsSummary from '@/src/components/analytics/AnalyticsSummary';
+import AnonymizedFreeTextNotes from '@/src/components/analytics/AnonymizedFreeTextNotes';
 import AnonymizedReviews from '@/src/components/analytics/AnonymizedReviews';
 import BrewMethodFilter from '@/src/components/analytics/BrewMethodFilter';
+import TelemetrySummary from '@/src/components/analytics/TelemetrySummary';
 import TopFlavorNotes from '@/src/components/analytics/TopFlavorNotes';
 import { getBrowserUserSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
@@ -84,28 +86,30 @@ export default function BatchAnalyticsPage() {
         : '/coffee-bank';
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10 font-sans text-neutral-900">
-      <nav className="mb-6 text-sm">
-        <Link href="/coffee-bank" className="text-neutral-700 underline hover:text-neutral-900">
+    <main className="mx-auto w-full max-w-[1240px] px-6 py-10 font-sans text-vs-text-primary">
+      <nav className="mb-6 flex flex-wrap items-center gap-2 text-lg">
+        <Link href="/coffee-bank" className="font-semibold text-vs-text-secondary underline underline-offset-4 hover:text-vs-text-primary">
           Coffee Bank
         </Link>
-        <span className="mx-2 text-neutral-400">/</span>
-        <Link href={backHref} className="text-neutral-700 underline hover:text-neutral-900">
+        <span className="text-vs-text-muted">/</span>
+        <Link href={backHref} className="font-semibold text-vs-text-secondary underline underline-offset-4 hover:text-vs-text-primary">
           Batch
         </Link>
-        <span className="mx-2 text-neutral-400">/</span>
-        <span className="text-neutral-800">Analytics</span>
+        <span className="text-vs-text-muted">/</span>
+        <span className="font-semibold text-vs-text-primary">Analytics</span>
       </nav>
 
-      <h1 className="text-2xl font-semibold tracking-tight">Batch analytics</h1>
-      <p className="mt-1 font-mono text-sm text-neutral-500">{batchId ?? '—'}</p>
-      <p className="mt-1 text-sm text-neutral-500">Auto-refresh every 30s to keep stats close to live logs.</p>
+      <h1 className="font-display text-5xl uppercase tracking-[-0.03em] text-vs-text-primary">Batch analytics</h1>
+      <p className="mt-2 inline-flex rounded-vs-sm border border-vs-border-subtle/40 bg-vs-surface px-3 py-1 font-mono text-sm text-vs-text-muted">
+        {batchId ?? '—'}
+      </p>
+      <p className="mt-3 text-base text-vs-text-muted">Auto-refresh every 30s to keep stats close to live logs.</p>
 
-      {isLoading ? <p className="mt-8 text-neutral-600">Loading analytics…</p> : null}
+      {isLoading ? <p className="mt-8 text-lg text-vs-text-secondary">Loading analytics…</p> : null}
 
       {errorCopy ? (
-        <div className="mt-8 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          <p className="font-semibold">{errorCopy.title}</p>
+        <div className="mt-8 rounded-vs-md border-2 border-vs-danger/30 bg-vs-danger/10 px-5 py-4 text-base text-vs-danger shadow-vs-sm">
+          <p className="font-display text-2xl uppercase tracking-[-0.02em]">{errorCopy.title}</p>
           <p className="mt-1">{errorCopy.message}</p>
         </div>
       ) : null}
@@ -113,7 +117,7 @@ export default function BatchAnalyticsPage() {
       {!isLoading && data && !errorCopy ? (
         <>
           {!data.globalFromStats && data.logs.length === 0 ? (
-            <p className="mt-8 text-neutral-600">
+            <p className="mt-8 text-lg text-vs-text-secondary">
               No tastings logged for this batch yet. Totals will appear after the first tasting.
             </p>
           ) : null}
@@ -141,6 +145,12 @@ export default function BatchAnalyticsPage() {
               notes={data.globalTopFlavorNotes}
             />
 
+            <TelemetrySummary
+              title="Roaster telemetry (all tastings)"
+              caption="Telemetry fields captured in consumer tasting log: acidity, sweetness, body, repurchase intent, experience level."
+              summary={data.globalTelemetrySummary}
+            />
+
             <BrewMethodFilter
               options={data.brewMethodOptions}
               value={selectedBrewMethodId}
@@ -159,13 +169,19 @@ export default function BatchAnalyticsPage() {
                   caption="Same selection as the brew-method filter."
                   notes={data.filteredTopFlavorNotes}
                 />
+                <TelemetrySummary
+                  title="Roaster telemetry (filtered)"
+                  caption="Telemetry subset matching the same brew-method filter."
+                  summary={data.filteredTelemetrySummary}
+                />
               </>
             ) : (
-              <p className="text-sm text-neutral-500">
+              <p className="rounded-vs-md border-2 border-dashed border-vs-border-strong bg-vs-surface px-5 py-4 text-base text-vs-text-muted">
                 Select a brew method to compare flavor notes and ratings for that subset.
               </p>
             )}
 
+            <AnonymizedFreeTextNotes notes={data.anonymizedFreeTextNotes} />
             <AnonymizedReviews reviews={data.anonymizedReviews} />
           </div>
         </>

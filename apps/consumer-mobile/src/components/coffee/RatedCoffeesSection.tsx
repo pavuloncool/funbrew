@@ -1,6 +1,8 @@
 import { Link } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useJournal, visualSystemTokens } from '@funcup/shared';
+import { useCallback } from 'react';
 
 import { EmptyState } from '../EmptyState';
 import { ScreenError } from '../ScreenError';
@@ -32,6 +34,14 @@ export function RatedCoffeesSection() {
   const { pendingCount, failedCount } = useOfflineTastingQueueStatus();
   const journalQuery = useJournal({ supabase, userId });
   const hasQueueWarnings = pendingCount > 0 || failedCount > 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return undefined;
+      void journalQuery.refetch();
+      return undefined;
+    }, [journalQuery, userId])
+  );
 
   if (authLoading) {
     return (
@@ -130,7 +140,7 @@ export function RatedCoffeesSection() {
         return (
           <Link
             key={row.id}
-            href={{ pathname: '/coffee-log/[logId]', params: { logId: row.id } }}
+            href={`/coffee-log/${row.id}`}
             asChild
           >
             <Pressable accessibilityRole="button">

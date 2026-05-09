@@ -6,29 +6,29 @@ flowchart TD
   L2[(Data Source)]:::data
   L3{{API/Function}}:::api
 
-  subgraph WEB[apps/web]
-    W0[/\//]
-    W1[/login/]
-    W2[/register/]
-    W3[/pending/]
-    W4[/roaster-hub/]
-    W5[/roaster-hub/setup/]
-    W6[/roaster-profile/]
-    W7[/roaster-hub/coffees/new/]
-    W8[/coffee-bank/]
-    W9[/tag/]
-    W10[/tag/edit/{id}/]
-    W11[/roaster-hub/analytics/]
-    W12[/roaster-hub/analytics/{batchId}/]
-    W13[/roaster-hub/coffees/{id}/batches/{batchId}/]
-    W14[/q/{hash}/]
-    W15[/scan/]
+  subgraph WEB["apps/web"]
+    W0["/"]
+    W1["/login"]
+    W2["/register"]
+    W3["/pending"]
+    W4["/roaster-hub"]
+    W5["/roaster-hub/setup"]
+    W6["/roaster-profile"]
+    W7["/roaster-hub/coffees/new"]
+    W8["/coffee-bank"]
+    W9["/tag"]
+    W10["/tag/edit/{id}"]
+    W11["/roaster-hub/analytics"]
+    W12["/roaster-hub/analytics/{batchId}"]
+    W13["/roaster-hub/coffees/{id}/batches/{batchId}"]
+    W14["/q/{hash}"]
+    W15["/scan"]
     A1{{/api/canonical-coffee}}
     A2{{/api/batch-qr}}
     A3{{/api/qr}}
   end
 
-  subgraph DATA[Supabase / Backend]
+  subgraph DATA["Supabase / Backend"]
     D1[(Auth Session)]
     D2[(roasters)]
     D3[(coffees)]

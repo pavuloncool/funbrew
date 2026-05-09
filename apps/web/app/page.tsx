@@ -51,7 +51,7 @@ export default function RootEntryPage() {
 
   return (
     <div
-      className="min-h-screen bg-neutral-50"
+      className="min-h-screen bg-vs-surface"
       aria-hidden
     />
   );

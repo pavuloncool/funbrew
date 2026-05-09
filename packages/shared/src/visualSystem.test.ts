@@ -18,10 +18,18 @@ describe('visualSystem', () => {
     expect(visualSystemTokens.recipes.button.primary.background).toBe(semanticColors.accentPrimary);
   });
 
+  it('exposes typography extensions and motion tokens', () => {
+    expect(visualSystemTokens.typography.fontFamily.displayWeb.length).toBeGreaterThan(0);
+    expect(visualSystemTokens.typography.lineHeight.hero).toBeGreaterThan(0);
+    expect(visualSystemTokens.typography.tracking.wide).toBeGreaterThan(0);
+    expect(visualSystemTokens.motion.duration.normal).toBeGreaterThan(0);
+    expect(visualSystemTokens.gradients.heroWeb.startsWith('linear-gradient')).toBe(true);
+  });
+
   it('defines post-login tabbar shell rule with scan action route', () => {
     expect(appShellRules.tabsVisibleInAuth).toBe(false);
     expect(appShellRules.tabsVisibleInPostLogin).toBe(true);
     expect(appShellRules.centralActionLabel).toBe('Scan Coffee');
-    expect(appShellRules.centralActionRoute).toBe('/(tabs)/hub/scan');
+    expect(appShellRules.centralActionRoute).toBe('/(tabs)/scan/scan');
   });
 });

@@ -24,4 +24,10 @@ Jawne archiwum dla wygaszonych plików repo.
 Ten katalog jest przygotowany pod repo cleanup po audycie MVP.
 Pierwsze approval-ready grupy są opisane w:
 
-- [MVP_REPO_CLEANUP_APPROVAL_PACKET_2026-05-06.md](/Users/pa/projects/funcup/dev-docs/handoff/MVP_REPO_CLEANUP_APPROVAL_PACKET_2026-05-06.md)
+- [MVP_REPO_CLEANUP_APPROVAL_PACKET_2026-05-06.md](/Users/pa/projects/funcup/archive/dev-docs/handoff/MVP_REPO_CLEANUP_APPROVAL_PACKET_2026-05-06.md)
+
+## Aktualna zawartość historyczna
+
+- `archive/dev-docs/handoff/` — handoffy fazowe i noty finalizacyjne.
+- `archive/dev-docs/DoR/` — historyczne Definition of Ready i evidence zamkniętych faz.
+- `archive/dev-docs/Beta-Hardening-sprint.md` — sprint hardening notatki historyczne.

@@ -57,3 +57,8 @@ Gemini_Generated_Image_yxgopbyxgopbyxgo.png
 
 *storybook.log
 storybook-static
+
+# Repo hygiene: local/source artifacts not needed in VCS
+Spline_Sans.zip
+gt-walsheim-font-family/
+supabase/.temp/

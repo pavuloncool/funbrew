@@ -164,7 +164,7 @@ export default function RoasterSetupPage() {
         <Link href="/coffee-bank" className={hubCrudStyles.link}>
           Wróć do Coffee Bank
         </Link>
-        <span className="text-neutral-400">·</span>
+        <span className="text-vs-text-muted">·</span>
         <Link href="/tag" className={hubCrudStyles.link}>
           Tag kawy
         </Link>

@@ -1,41 +1,46 @@
+import { visualSystemTokens } from '@funcup/shared';
 import { StyleSheet } from 'react-native';
+
+const { colors, radius, spacing, typography } = visualSystemTokens;
 
 export const selectFieldStyles = StyleSheet.create({
   wrap: {
     width: '100%',
-    marginBottom: 14,
+    marginBottom: spacing.sm + 2,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 6,
+    fontSize: typography.bodySM,
+    fontFamily: 'SplineSans_500Medium',
+    color: colors.textPrimary,
+    marginBottom: spacing.xs - 2,
   },
   trigger: {
     minHeight: 44,
-    borderWidth: 2,
-    borderColor: '#2a2a2a',
-    borderRadius: 10,
-    backgroundColor: '#f3f3f3',
-    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.sm,
     justifyContent: 'center',
   },
   triggerText: {
-    fontSize: 15,
-    color: '#090909',
+    fontSize: typography.bodyMD,
+    fontFamily: 'SplineSans_400Regular',
+    color: colors.textPrimary,
   },
   triggerPlaceholder: {
-    fontSize: 15,
-    color: '#666666',
+    fontSize: typography.bodyMD,
+    fontFamily: 'SplineSans_400Regular',
+    color: colors.textMuted,
   },
   modalRoot: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   backdropFill: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlayScrim,
   },
   sheetWrap: {
     flex: 1,
@@ -44,20 +49,21 @@ export const selectFieldStyles = StyleSheet.create({
   },
   sheet: {
     maxHeight: 360,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#1f1f1f',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     overflow: 'hidden',
   },
   optionRow: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#cccccc',
+    borderBottomColor: colors.borderDefault,
   },
   optionText: {
-    fontSize: 16,
-    color: '#111111',
+    fontSize: typography.bodyLG,
+    fontFamily: 'SplineSans_400Regular',
+    color: colors.textPrimary,
   },
 });

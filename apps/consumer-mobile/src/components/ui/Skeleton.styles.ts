@@ -1,20 +1,22 @@
 import { StyleSheet } from 'react-native';
 import { visualSystemTokens } from '@funcup/shared';
 
+const { colors, spacing, radius } = visualSystemTokens;
+
 export const skeletonStyles = StyleSheet.create({
-  page: { padding: 24, gap: 16 },
-  section: { gap: 10, paddingVertical: 8 },
-  list: { gap: 12 },
+  page: { padding: spacing.xl, gap: spacing.md },
+  section: { gap: spacing.sm - 2, paddingVertical: spacing.xs },
+  list: { gap: spacing.sm },
   card: {
     borderWidth: 1,
-    borderColor: visualSystemTokens.colors.borderSubtle,
-    borderRadius: 10,
-    padding: 12,
-    gap: 8,
-    backgroundColor: visualSystemTokens.colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
   },
   block: {
-    borderRadius: 6,
-    backgroundColor: visualSystemTokens.colors.borderSubtle,
+    borderRadius: radius.xs,
+    backgroundColor: colors.borderSubtle,
   },
 });

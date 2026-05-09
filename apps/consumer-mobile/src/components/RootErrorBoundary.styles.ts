@@ -1,28 +1,41 @@
+import { visualSystemTokens } from '@funcup/shared';
 import { StyleSheet } from 'react-native';
+
+const { colors, radius, spacing, typography } = visualSystemTokens;
 
 export const rootErrorBoundaryStyles = StyleSheet.create({
   center: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#fafafa',
+    padding: spacing.xl,
+    backgroundColor: colors.canvas,
   },
   card: {
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    padding: 20,
-    backgroundColor: '#ffffff',
-    gap: 12,
+    borderColor: colors.borderSubtle,
+    padding: spacing.lg,
+    backgroundColor: colors.surfaceElevated,
+    gap: spacing.sm,
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  body: { fontSize: 15, color: '#4b5563' },
+  title: {
+    fontSize: typography.headingMD,
+    lineHeight: typography.lineHeight.headingMD,
+    fontFamily: 'SplineSans_700Bold',
+    color: colors.textPrimary,
+  },
+  body: {
+    fontSize: typography.bodyMD,
+    lineHeight: typography.lineHeight.bodyMD,
+    fontFamily: 'SplineSans_400Regular',
+    color: colors.textSecondary,
+  },
   button: {
     alignSelf: 'flex-start',
-    backgroundColor: '#111827',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: colors.accentPrimary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
   },
-  buttonLabel: { color: '#ffffff', fontWeight: '600', fontSize: 16 },
+  buttonLabel: { color: colors.textOnPrimary, fontFamily: 'SplineSans_700Bold', fontSize: typography.bodyLG },
 });

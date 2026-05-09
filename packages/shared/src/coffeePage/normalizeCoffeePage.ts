@@ -165,7 +165,10 @@ export function normalizeCoffeePageData(
     product: {
       id: tag.id,
       name: displayTagName(tag),
-      variety: [tag.bean_varietal_main, tag.bean_varietal_extra].filter(Boolean).join(' · ') || null,
+      variety:
+        [tag.bean_type, tag.bean_varietal_main, tag.bean_varietal_extra]
+          .filter(Boolean)
+          .join(' · ') || null,
       processingMethod: tag.bean_processing || null,
       producerNotes: tag.bean_origin_tradename || null,
       imageUrl: tag.img_coffee_label || null,

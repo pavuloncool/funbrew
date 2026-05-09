@@ -16,8 +16,7 @@
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "prettier",
-    "plugin:storybook/recommended"
+    "prettier"
   ],
   "plugins": [
     "@typescript-eslint"

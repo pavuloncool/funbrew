@@ -67,7 +67,7 @@ export default function RegisterPage() {
       {error ? <p className={authPagesStyles.error}>{error}</p> : null}
       <p className={authPagesStyles.footer}>
         Already have account?{' '}
-        <Link href="/login" className="font-medium text-neutral-900 underline">
+        <Link href="/login" className="font-medium text-vs-text-primary underline">
           Log in
         </Link>
       </p>

@@ -109,13 +109,13 @@ const styles = StyleSheet.create({
   link: { 
     fontSize: visualSystemTokens.typography.bodyMD,
     color: visualSystemTokens.colors.accentPrimary, 
-    fontWeight: '700',
+    fontFamily: 'SplineSans_700Bold',
     marginTop: visualSystemTokens.spacing.xxs,
   },
   linkBelowCamera: {
     fontSize: visualSystemTokens.typography.bodyMD,
     color: visualSystemTokens.colors.accentPrimary,
-    fontWeight: '700',
+    fontFamily: 'SplineSans_700Bold',
     marginHorizontal: visualSystemTokens.spacing.lg,
     marginBottom: visualSystemTokens.spacing.sm,
   },

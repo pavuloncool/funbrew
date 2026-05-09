@@ -13,12 +13,21 @@ export const EMPTY_RATING_DISTRIBUTION: Record<string, number> = {
 
 export type RoasterTastingLog = {
   id: string;
+  loggedAt: string;
   rating: number;
   brewMethodId: string | null;
   brewMethodName: string | null;
+  freeTextNotes: string | null;
   review: {
     body: string;
     createdAt: string;
+  } | null;
+  telemetry: {
+    sensoryAcidity: number;
+    sensorySweetness: number;
+    sensoryBody: number;
+    repurchaseIntent: 'yes' | 'no' | 'unsure';
+    experienceLevel: 'beginner' | 'advanced' | 'expert';
   } | null;
   flavorNotes: Array<{
     id: string;

@@ -12,7 +12,7 @@ type SupabaseExtra = {
 };
 
 /** Same defaults as app.config.ts — used only if env + manifest extra are empty. */
-const LOCAL_SUPABASE_URL = 'http://192.168.1.106:54321';
+const LOCAL_SUPABASE_URL = 'http://127.0.0.1:54321';
 const LOCAL_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.9kEXx9GFfgcZ21LlMB1qI-LOwSGOzI8g8c92UgEHQDk';
 

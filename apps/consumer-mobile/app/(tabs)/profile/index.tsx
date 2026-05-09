@@ -503,7 +503,7 @@ const local = StyleSheet.create({
   avatarCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: visualSystemTokens.radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -5,24 +5,30 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { recipes, spacing, radius } = visualSystemTokens;
-const TAB_BAR_HEIGHT = 52;
+const { recipes, spacing, radius, colors, motion } = visualSystemTokens;
+const TAB_BAR_HEIGHT = 56;
 
 export function TabDotIcon(props: { active: boolean; label: string }) {
   return (
     <View
       style={{
-        width: props.active ? 30 : 30,
-        height: props.active ? 30 : 30,
+        width: 32,
+        height: 32,
         borderRadius: radius.pill,
         borderWidth: 1.5,
         borderColor: props.active ? recipes.tabbar.activeIcon : recipes.tabbar.inactiveIcon,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: props.active ? visualSystemTokens.colors.surface : 'transparent',
+        backgroundColor: props.active ? colors.surface : 'transparent',
       }}
     >
-      <Text style={{ fontSize: 15, color: props.active ? recipes.tabbar.activeIcon : recipes.tabbar.inactiveIcon }}>
+      <Text
+        style={{
+          fontSize: visualSystemTokens.typography.bodyMD,
+          fontFamily: 'SplineSans_700Bold',
+          color: props.active ? recipes.tabbar.activeIcon : recipes.tabbar.inactiveIcon,
+        }}
+      >
         {props.label}
       </Text>
     </View>
@@ -33,18 +39,23 @@ export function TabCentralScanFab() {
   return (
     <View
       style={{
-        width: 84,
-        height: 84,
+        width: 86,
+        height: 86,
         borderRadius: radius.pill,
-        marginTop: -52,
+        marginTop: -54,
         backgroundColor: recipes.tabbar.fabBackground,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 2.5,
+        borderWidth: 3,
         borderColor: recipes.tabbar.background,
+        shadowColor: colors.textPrimary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 18,
+        elevation: 6,
       }}
     >
-      <Ionicons name="qr-code-outline" size={32} color={recipes.tabbar.fabIcon} />
+      <Ionicons name="qr-code-outline" size={33} color={recipes.tabbar.fabIcon} />
     </View>
   );
 }
@@ -56,13 +67,13 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[standaloneStyles.shell, { paddingBottom: insets.bottom }]}>
+    <View style={[standaloneStyles.shell, { paddingBottom: insets.bottom }]}> 
       <View style={standaloneStyles.bar}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go to Home"
           onPress={() => router.replace('/(tabs)/hub')}
-          style={standaloneStyles.item}
+          style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
         >
           <TabDotIcon active={active === 'home'} label="H" />
           <Text style={standaloneStyles.label}>Home</Text>
@@ -72,7 +83,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
           accessibilityRole="button"
           accessibilityLabel="Go to QR Scan"
           onPress={() => router.replace(appShellRules.centralActionRoute)}
-          style={standaloneStyles.centerItem}
+          style={({ pressed }) => [standaloneStyles.centerItem, pressed && { opacity: motion.press.opacity }]}
         >
           <TabCentralScanFab />
           <Text style={standaloneStyles.label}>QR Scan</Text>
@@ -82,7 +93,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
           accessibilityRole="button"
           accessibilityLabel="Go to Journal"
           onPress={() => router.replace('/(tabs)/coffee')}
-          style={standaloneStyles.item}
+          style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
         >
           <TabDotIcon active={active === 'journal'} label="J" />
           <Text style={standaloneStyles.label}>Journal</Text>
@@ -92,7 +103,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
           accessibilityRole="button"
           accessibilityLabel="Go to Settings"
           onPress={() => router.replace('/(tabs)/profile')}
-          style={standaloneStyles.item}
+          style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
         >
           <TabDotIcon active={active === 'settings'} label="S" />
           <Text style={standaloneStyles.label}>Settings</Text>
@@ -146,7 +157,8 @@ const standaloneStyles = {
     gap: 6,
   },
   label: {
-    fontSize: 11,
+    fontSize: visualSystemTokens.typography.caption,
+    fontFamily: 'SplineSans_500Medium',
     color: recipes.tabbar.inactiveIcon,
   },
 } as const;

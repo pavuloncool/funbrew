@@ -157,7 +157,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
   }, [onFinish, stage]);
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-white">
+    <div className="flex h-screen w-screen items-center justify-center bg-vs-elevated">
       {(stage === 'dissolve' || stage === 'bean') && (
         <canvas
           ref={canvasRef}

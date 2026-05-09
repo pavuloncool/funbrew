@@ -21,9 +21,12 @@ function log(
   }
 ): RoasterTastingLog {
   return {
+    loggedAt: '2026-01-01T00:00:00.000Z',
     brewMethodId: null,
     brewMethodName: null,
+    freeTextNotes: null,
     review: null,
+    telemetry: null,
     flavorNotes: [],
     ...partial,
   };

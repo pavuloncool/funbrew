@@ -78,27 +78,72 @@ export default function RoasterHubPage() {
   return (
     <div className={roasterHubStyles.pageWithPad}>
       <div className={roasterHubStyles.narrowContentTop}>
-        <h1 className={roasterHubStyles.hubTitle}>{shortName}</h1>
-        <p className={roasterHubStyles.hubSubtitle}>
-          Wybierz sekcję palarni. Canonical publisher dla MVP startuje teraz od „Publikuj batch MVP”.
-        </p>
+        <section className={roasterHubStyles.splitHero}>
+          <div className={roasterHubStyles.leftPanel}>
+            <div>
+              <span className={roasterHubStyles.heroEyebrow}>Roaster workspace</span>
+              <h1 className={roasterHubStyles.hubTitle}>{shortName} moves faster with funcup</h1>
+              <p className={roasterHubStyles.hubSubtitle}>
+                Publish batches, keep your coffee bank synced and monitor consumer signals in one place.
+                Everything below is optimized for the core beta-demo loop.
+              </p>
 
-        <div className={roasterHubStyles.tileGrid}>
-          {tiles.map((tile) => (
-            <button
-              key={tile.label}
-              type="button"
-              className={`${roasterHubStyles.hubTile} ${
-                tile.disabled ? roasterHubStyles.hubTileDisabled : roasterHubStyles.hubTileEnabled
-              }`}
-              onClick={tile.onClick}
-              disabled={tile.disabled}
-              aria-disabled={tile.disabled}
-            >
-              <span className={roasterHubStyles.hubTileLabel}>{tile.label}</span>
-            </button>
-          ))}
-        </div>
+              <div className={roasterHubStyles.actionRow}>
+                <button
+                  type="button"
+                  className={roasterHubStyles.primaryCta}
+                  onClick={() => router.push('/roaster-hub/coffees/new')}
+                >
+                  Publish batch
+                  <span aria-hidden>↗</span>
+                </button>
+                <button
+                  type="button"
+                  className={roasterHubStyles.secondaryCta}
+                  onClick={() => router.push('/roaster-hub/analytics')}
+                >
+                  Open analytics
+                  <span aria-hidden>→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className={roasterHubStyles.rightPanel}>
+            <div className={roasterHubStyles.rightCard}>
+              <p className={roasterHubStyles.rightCardTitle}>Beta ready</p>
+              <p className={roasterHubStyles.rightCardBody}>
+                Canonical publish flow, QR resolution, tasting logs and batch analytics are now aligned in one visual system.
+              </p>
+            </div>
+            <div className={roasterHubStyles.rightDecoA} aria-hidden />
+            <div className={roasterHubStyles.rightDecoB} aria-hidden />
+            <div className={roasterHubStyles.rightDecoC} aria-hidden />
+          </div>
+        </section>
+
+        <section className={roasterHubStyles.tileSection}>
+          <h2 className={roasterHubStyles.tileSectionTitle}>Choose your next action</h2>
+          <div className={roasterHubStyles.tileGrid}>
+            {tiles.map((tile) => (
+              <button
+                key={tile.label}
+                type="button"
+                className={`${roasterHubStyles.hubTile} ${
+                  tile.disabled ? roasterHubStyles.hubTileDisabled : roasterHubStyles.hubTileEnabled
+                }`}
+                onClick={tile.onClick}
+                disabled={tile.disabled}
+                aria-disabled={tile.disabled}
+              >
+                <span className={roasterHubStyles.hubTileLabel}>{tile.label}</span>
+                <span className={roasterHubStyles.hubTileArrow} aria-hidden>
+                  ↗
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );

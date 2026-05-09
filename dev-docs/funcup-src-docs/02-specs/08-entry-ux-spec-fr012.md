@@ -144,13 +144,37 @@ This path is **not** a replacement for FR-012 for users who **can** run the anim
 
 ---
 
+## Runtime routing policy (010-004)
+
+The mobile runtime policy is now:
+
+- process start on `/` mounts `MobileEntrySplash`
+- after `entry.mainReveal`, route resolution happens from restored auth state:
+  - unauthenticated or locked session -> `/(auth)/login`
+  - authenticated without completed profile -> `/(auth)/complete-profile`
+  - authenticated with completed profile -> `/(tabs)/hub`
+- the splash is session-scoped and MUST NOT replay when the user navigates back to `/`, switches tabs, opens stacked routes, or follows deep links while the same app process remains alive
+- a full process restart resets the session-scoped splash completion flag and allows the entry sequence to run again
+
+This policy is implemented in:
+
+- [index.tsx](/Users/pa/projects/funcup/apps/consumer-mobile/app/index.tsx)
+- [MobileEntrySplash.tsx](/Users/pa/projects/funcup/apps/consumer-mobile/src/components/entry/MobileEntrySplash.tsx)
+
+---
+
 ## State contract (preview for 010-005)
 
 Implementation SHOULD expose machine-readable progression for QA and analytics (full detail in task **010-005**):
 
 - `splashPhase`: enum matching beat IDs or `errorFallback`.
 - `splashComplete`: boolean true after successful `entry.mainReveal` or error **Continue**.
-- `minDisplayMs`: optional guard to avoid subliminal flashes (product decision; document in **010-005**).
+- `minDisplayMs`: current product guard target is `400`.
+- `sessionRule`: `per-process-start`.
+
+Shared contract source:
+
+- [entryState.ts](/Users/pa/projects/funcup/packages/shared/src/entry/entryState.ts)
 
 ---
 
@@ -177,3 +201,4 @@ Any change to **order**, **number of beats**, or **replacement of fingerprint/co
 | 2026-04-10 | **010-002** | Pierwotna implementacja: `apps/frontend/src/AnimatedSplash.jsx` + assety `public/assets/home-*.svg`. Next (`apps/web`): ten sam flow w `components/AnimatedSplash.tsx` + `AppOpenGate` w root layout (bez powtórzeń przy client-side navigacji). Expo mobile: bez duplikacji canvas/DOM — `app/index.tsx` → `/home`. |
 | 2026-04-10 | Clarification | Documented: FR-012 splash is **app-open only**; does not repeat on in-app navigation. |
 | 2026-04-10 | **010-003** | Mobile (`apps/consumer-mobile`): FR-012 entry via `MobileEntrySplash` + `AccessibilityInfo.isReduceMotionEnabled()` / `reduceMotionChanged`; shortened fades, no pulse, static bean translation when reduce motion; same beat order as web; optional SR announce on white + home landing. |
+| 2026-05-06 | **010-004 / 010-005 / 010-006** | Mobile root route now resolves post-entry destination from restored auth state, keeps splash once per process start, exports shared contract (`splashPhase`, `splashComplete`, `minDisplayMs`, `sessionRule`), and references gate checklist: [PHASE010_010-006_ENTRY_GATE_SIGNOFF_2026-05-06.md](../../../DoR/PHASE010_010-006_ENTRY_GATE_SIGNOFF_2026-05-06.md). |

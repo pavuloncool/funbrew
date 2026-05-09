@@ -1,8 +1,9 @@
 export default function WebFooter() {
   return (
-    <footer className="w-full border-t border-neutral-200 bg-neutral-50">
-      <div className="mx-auto w-full max-w-6xl px-4 py-3 text-center text-sm text-neutral-600">
-        Copyright 2026: funcup.
+    <footer className="w-full border-t-2 border-vs-border-strong bg-vs-elevated">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between border-x-2 border-vs-border-strong px-8 py-4 text-[14px] text-vs-text-secondary">
+        <span>Copyright 2026: funcup.</span>
+        <span className="font-medium text-vs-text-primary">Made in Europe.</span>
       </div>
     </footer>
   );

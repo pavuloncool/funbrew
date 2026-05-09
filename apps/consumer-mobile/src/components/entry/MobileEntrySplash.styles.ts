@@ -1,13 +1,16 @@
+import { visualSystemTokens } from '@funcup/shared';
 import { StyleSheet } from 'react-native';
+
+const { colors, spacing, typography } = visualSystemTokens;
 
 export const mobileEntrySplashStyles = StyleSheet.create({
   fill: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surfaceElevated,
   },
   white: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -20,18 +23,19 @@ export const mobileEntrySplashStyles = StyleSheet.create({
     minHeight: 160,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: spacing.md,
   },
   wordmark: {
-    marginTop: 16,
+    marginTop: spacing.md,
     fontSize: 28,
     letterSpacing: 1.2,
-    color: '#1a1a1a',
-    fontWeight: '400',
+    color: colors.textPrimary,
+    fontFamily: 'SplineSans_700Bold',
+    lineHeight: typography.lineHeight.headingLG,
   },
   confettiFlash: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(26,26,26,0.12)',
+    backgroundColor: colors.borderSubtle,
   },
   particleHost: {
     ...StyleSheet.absoluteFillObject,

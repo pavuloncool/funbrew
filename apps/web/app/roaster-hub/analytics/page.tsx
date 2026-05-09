@@ -200,7 +200,7 @@ export default function RoasterAnalyticsHubPage() {
       {!sessionReady ? <p className={hubCrudStyles.muted}>Loading session…</p> : null}
 
       {sessionReady && !hasSession ? (
-        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-neutral-900">
+        <div className="rounded-vs-md border-2 border-vs-warning/40 bg-vs-warning/10 p-5 text-base text-vs-text-primary shadow-vs-sm">
           Aby wyświetlić analytics,{' '}
           <Link href="/login?next=/roaster-hub/analytics" className={hubCrudStyles.linkStrong}>
             zaloguj się
@@ -210,7 +210,7 @@ export default function RoasterAnalyticsHubPage() {
       ) : null}
 
       {sessionReady && hasSession && !roasterId ? (
-        <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-neutral-900">
+        <div className="rounded-vs-md border-2 border-vs-danger/30 bg-vs-danger/10 p-5 text-base text-vs-text-primary shadow-vs-sm">
           Brak profilu palarni. Utwórz go w{' '}
           <Link href="/roaster-hub/setup" className={hubCrudStyles.linkStrong}>
             Roaster Setup
@@ -230,8 +230,8 @@ export default function RoasterAnalyticsHubPage() {
           {loading ? <p className={hubCrudStyles.muted}>Loading canonical batches…</p> : null}
 
           {!loading && records.length === 0 ? (
-            <div className="rounded border border-neutral-300 bg-neutral-50 p-4">
-              <p className="text-sm text-neutral-800">
+            <div className="rounded-vs-md border-2 border-vs-border-strong bg-vs-surface p-5 shadow-vs-sm">
+              <p className="text-base text-vs-text-primary">
                 Nie ma jeszcze batchy do analityki. Najpierw opublikuj canonical coffee + batch + QR.
               </p>
               <p className="mt-3">
@@ -244,25 +244,30 @@ export default function RoasterAnalyticsHubPage() {
 
           {!loading && records.length > 0 ? (
             <>
-              <div className="mb-4 rounded border border-neutral-300 bg-neutral-50 p-3 text-sm text-neutral-800">
+              <div className="mb-5 rounded-vs-md border-2 border-vs-border-strong bg-vs-surface p-4 text-base text-vs-text-primary shadow-vs-sm">
                 <p>
                   <strong>{statsSummary.batches}</strong> batches · <strong>{statsSummary.totalTastings}</strong>{' '}
                   tastings
                 </p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {records.map((record) => (
-                  <article key={record.batchId} className="rounded border border-neutral-300 bg-white p-4">
-                    <p className="text-base font-semibold text-neutral-900">{record.coffeeName}</p>
-                    <p className="text-sm text-neutral-700">
+                  <article
+                    key={record.batchId}
+                    className="rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-5 shadow-vs-sm"
+                  >
+                    <p className="font-display text-3xl uppercase tracking-[-0.02em] text-vs-text-primary">
+                      {record.coffeeName}
+                    </p>
+                    <p className="mt-1 text-lg text-vs-text-secondary">
                       Lot {record.lotNumber} · Roast {record.roastDate} · {record.status}
                     </p>
-                    <p className="mt-2 text-sm text-neutral-700">
+                    <p className="mt-3 text-base text-vs-text-secondary">
                       Tastings: <strong>{record.totalCount}</strong> · Avg rating:{' '}
                       <strong>{record.avgRating.toFixed(2)}</strong>
                     </p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-sm text-vs-text-muted">
                       {record.statsUpdatedAt
                         ? `Stats updated ${new Date(record.statsUpdatedAt).toLocaleString()}`
                         : 'No aggregated stats row yet.'}
@@ -270,11 +275,14 @@ export default function RoasterAnalyticsHubPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link
                         href={`/roaster-hub/coffees/${record.coffeeId}/batches/${record.batchId}`}
-                        className={hubCrudStyles.actionLink}
+                        className="vs-button-secondary inline-block px-5 py-2 text-base font-semibold"
                       >
                         Batch details
                       </Link>
-                      <Link href={`/roaster-hub/analytics/${record.batchId}`} className={hubCrudStyles.actionLink}>
+                      <Link
+                        href={`/roaster-hub/analytics/${record.batchId}`}
+                        className="vs-button-primary inline-block px-5 py-2 text-base font-semibold"
+                      >
                         Batch analytics
                       </Link>
                     </div>

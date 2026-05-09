@@ -387,7 +387,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
       <p className={`${hubCrudStyles.muted} mb-5 max-w-[640px]`}>{intro}</p>
 
       {roasterResolved && !roasterId ? (
-        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-neutral-900">
+        <div className="rounded border border-vs-warning/40 bg-vs-warning/10 p-3 text-sm text-vs-text-primary">
           Create your roaster profile first in{' '}
           <Link href="/roaster-profile" className={hubCrudStyles.linkStrong}>
             Roaster Profile
@@ -419,7 +419,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
           <CoffeeLabelUploadField
             file={coverImageFile}
             onFileChange={setCoverImageFile}
-            className="rounded border border-neutral-200 bg-white p-2"
+            className="rounded border border-vs-border-subtle/30 bg-vs-elevated p-2"
             testId="coffee-cover-image-upload"
           />
           {mode === 'edit' && values.coverImageUrl ? (
@@ -431,7 +431,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
 
         {mode === 'create' ? (
           <>
-            <hr className="my-2 border-neutral-300" />
+            <hr className="my-2 border-vs-border-default" />
             <h2 className={hubCrudStyles.pageHeading}>Batch + public QR</h2>
             <Field
               label="Lot number"
@@ -476,7 +476,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
           placeholder="What should the consumer know about this coffee?"
         />
 
-        <hr className="my-2 border-neutral-300" />
+        <hr className="my-2 border-vs-border-default" />
 
         <Field
           label="Origin country"
@@ -530,7 +530,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
       </form>
 
       {mode === 'create' && publishPreview ? (
-        <div className="mt-6 rounded border border-neutral-300 bg-white p-4">
+        <div className="mt-6 rounded border border-vs-border-default bg-vs-elevated p-4">
           <p className={`${hubCrudStyles.bodyStrong} mb-2`}>Publish complete</p>
           <p className={hubCrudStyles.bodyText}>
             <strong className={hubCrudStyles.bodyStrong}>Hash:</strong> {publishPreview.qr.hash}

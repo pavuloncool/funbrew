@@ -1,23 +1,23 @@
 %% Cross-app tag/hash flow: /tag + /api/qr + /q/{hash} + coffee page
 flowchart LR
 
-  subgraph WEB[apps/web]
-    W1[/tag/]
-    W2[/tag/edit/{id}/]
+  subgraph WEB["apps/web"]
+    W1["/tag"]
+    W2["/tag/edit/{id}"]
     W3{{/api/qr}}
-    W4[/q/{hash}/]
+    W4["/q/{hash}"]
   end
 
-  subgraph DATA[Tag model + resolver]
+  subgraph DATA["Tag model + resolver"]
     T[(roaster_coffee_tags)]
     R[(roasters)]
     Fscan{{scan_qr}}
   end
 
-  subgraph MOBILE[apps/consumer-mobile]
-    M1[/q/{hash}]
-    M2[/coffee/{id}]
-    M3[/coffee/{id}/log]
+  subgraph MOBILE["apps/consumer-mobile"]
+    M1["/q/{hash}"]
+    M2["/coffee/{id}"]
+    M3["/coffee/{id}/log"]
   end
 
   W1 --> T

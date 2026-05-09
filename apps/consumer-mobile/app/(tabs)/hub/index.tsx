@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     padding: visualSystemTokens.spacing.xl,
     backgroundColor: visualSystemTokens.basePalette.stormyTeal,
     justifyContent: 'space-between',
-    shadowColor: '#000',
+    shadowColor: visualSystemTokens.colors.textPrimary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 20,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     paddingVertical: visualSystemTokens.spacing.xxs,
     borderRadius: visualSystemTokens.radius.pill,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: visualSystemTokens.colors.borderInverse,
     letterSpacing: 0.8,
   },
   heroKicker: {

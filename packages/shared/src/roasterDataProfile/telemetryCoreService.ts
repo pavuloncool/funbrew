@@ -82,7 +82,7 @@ export async function upsertRoasterTelemetryCore(params: {
       options: { onConflict: string }
     ) => {
       select: (columns: string) => {
-        single: () => Promise<{ data: TelemetryRow | null; error: Error | null }>;
+        maybeSingle: () => Promise<{ data: TelemetryRow | null; error: Error | null }>;
       };
     };
     select: (columns: string) => {
@@ -97,10 +97,23 @@ export async function upsertRoasterTelemetryCore(params: {
     .select(
       'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,repurchase_intent,experience_level,created_at,updated_at'
     )
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
-  return mapTelemetryRow(data as TelemetryRow);
+  if (data) return mapTelemetryRow(data as TelemetryRow);
+
+  const { data: fallbackData, error: fallbackError } = await telemetryTable
+    .select(
+      'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,repurchase_intent,experience_level,created_at,updated_at'
+    )
+    .eq('coffee_log_id', params.coffeeLogId)
+    .maybeSingle();
+
+  if (fallbackError) throw fallbackError;
+  if (!fallbackData) {
+    throw new Error('Telemetry row was not returned after save.');
+  }
+  return mapTelemetryRow(fallbackData as TelemetryRow);
 }
 
 export async function fetchRoasterTelemetryCore(

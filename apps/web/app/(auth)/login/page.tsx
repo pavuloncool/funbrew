@@ -87,7 +87,7 @@ export default function LoginPage() {
       {!error && roleGateMessage ? <p className={authPagesStyles.error}>{roleGateMessage}</p> : null}
       <p className={authPagesStyles.footer}>
         No account?{' '}
-        <Link href="/register" className="font-medium text-neutral-900 underline">
+        <Link href="/register" className="font-medium text-vs-text-primary underline">
           Create one
         </Link>
       </p>

@@ -1,4 +1,4 @@
-import { type EntrySplashPhase } from '@funcup/shared';
+import { type EntrySplashPhase, visualSystemTokens } from '@funcup/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -378,7 +378,7 @@ export function MobileEntrySplash({ onComplete, onPhaseChange }: MobileEntrySpla
                   top: p.y,
                   width: Math.max(2.5, p.size * 2.2),
                   height: Math.max(2, p.size),
-                  backgroundColor: '#0a0a0a',
+                  backgroundColor: visualSystemTokens.colors.textPrimary,
                   opacity: Math.max(0, p.life * 0.9),
                   transform: [{ rotate: `${p.rot}rad` }],
                 }}
