@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react';
 import localFont from 'next/font/local';
-import { AppOpenGate } from '../components/AppOpenGate';
-import WebAccountRoleGate from '../components/WebAccountRoleGate';
-import WebShell from '../components/WebShell';
+import RouteShell from '../components/RouteShell';
 import './globals.css';
 import Providers from './providers';
 
@@ -32,10 +30,7 @@ export default function RootLayout(props: { children: ReactNode }) {
     <html lang="en" className={`${splineSansBody.variable} ${splineSansDisplay.variable}`}>
       <body className="bg-vs-canvas font-sans text-vs-text-primary">
         <Providers>
-          <AppOpenGate>
-            <WebAccountRoleGate />
-            <WebShell>{props.children}</WebShell>
-          </AppOpenGate>
+          <RouteShell>{props.children}</RouteShell>
         </Providers>
       </body>
     </html>

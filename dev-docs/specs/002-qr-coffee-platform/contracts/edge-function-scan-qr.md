@@ -2,7 +2,7 @@
 
 **Function**: `scan_qr`
 **Runtime**: Supabase Edge Function (Deno)
-**Invoked by**: Next.js middleware (`/q/[hash]` route) + Expo mobile app (after QR scan)
+**Invoked by**: Web resolver page (`apps/web/app/q/[hash]/page.tsx`) + Expo mobile app (`useCoffeePage`)
 
 ---
 
@@ -23,7 +23,7 @@ Authorization: Bearer {anon_key}   # anon key sufficient — public data
 **Body**:
 ```typescript
 {
-  hash: string;  // UUID v4 format — the {qr_hash} from https://funcup.app/q/{qr_hash}
+  hash: string;  // UUID format — the {qr_hash} from https://<beta-host>/q/{qr_hash}
 }
 ```
 

@@ -2,7 +2,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
 
 /**
  * Deep link parity with web `/q/{hash}`: opens the same Coffee Page as `funcup://q/{hash}`.
- * Scheme: `funcup` (see app.json). Universal links / app links are configured in EAS.
+ * Scheme: `funcup` (see app config). HTTPS host links can be mapped via `EXPO_PUBLIC_ROASTER_WEB_URL`.
  */
 export default function QHashDeepLink() {
   const { hash } = useLocalSearchParams<{ hash: string }>();

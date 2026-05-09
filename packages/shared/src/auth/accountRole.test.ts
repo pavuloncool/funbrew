@@ -54,6 +54,25 @@ describe('resolveAccountRole', () => {
     await expect(resolveAccountRole(supabase, 'user-consumer')).resolves.toBe('consumer');
   });
 
+  it('ignores invalid app_role metadata and falls back to roasters lookup', async () => {
+    const supabase = {
+      from: (table: string) => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: table === 'roasters' ? { id: 'roaster-2' } : null,
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    } as never;
+
+    await expect(
+      resolveAccountRole(supabase, 'user-roaster-fallback', { app_role: 'Roaster' })
+    ).resolves.toBe('roaster');
+  });
+
   it('throws when the roaster lookup fails', async () => {
     const supabase = {
       from: () => ({

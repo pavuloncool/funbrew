@@ -222,7 +222,7 @@ export default function RoasterProfilePage() {
               className={roasterProfileStyles.editCta}
               onClick={startEdit}
             >
-              <span className={roasterProfileStyles.ctaText}>Edytuj dane</span>
+              Edytuj dane
             </button>
           </div>
         ) : (
@@ -290,7 +290,7 @@ export default function RoasterProfilePage() {
               className={roasterProfileStyles.saveCta}
               disabled={saving}
             >
-              <span className={roasterProfileStyles.ctaText}>{saving ? 'Zapisywanie…' : 'Zapisz dane'}</span>
+              {saving ? 'Zapisywanie…' : 'Zapisz dane'}
             </button>
 
             {mode === 'edit' ? (

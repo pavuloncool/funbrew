@@ -2,7 +2,8 @@
 
 **Function**: `generate_qr`
 **Runtime**: Supabase Edge Function (Deno)
-**Invoked by**: Next.js web app (roaster dashboard — "Generate QR" action)
+**Invoked by**: Supabase Edge caller (legacy/optional path).  
+Primary beta web flow currently uses Next.js API routes: `/api/batch-qr` and `/api/qr`.
 
 ---
 
@@ -37,7 +38,7 @@ Authorization: Bearer {user_jwt}   # authenticated roaster session required
 {
   created: true;
   hash: string;           // UUID v4 — the {qr_hash} used in the URL
-  qr_url: string;         // "https://funcup.app/q/{hash}" — the URL encoded in the QR
+  qr_url: string;         // "https://<beta-host>/q/{hash}" — URL encoded in the QR
   svg_storage_path: string;   // "qr/{batch_id}/qr.svg"
   png_storage_path: string;   // "qr/{batch_id}/qr.png"
   svg_signed_url: string;     // 1-hour signed download URL for SVG
@@ -104,6 +105,7 @@ Same shape as 201, with `created: false`. Returns fresh signed URLs (1-hour expi
 - `hash` is generated once via `crypto.randomUUID()` and never changed (FR-016).
 - QR resolves to the batch regardless of subsequent edits to the coffee profile (FR-016, spec US-2 AC-4).
 - Assets are stored permanently; signed URLs are ephemeral (1-hour). Roasters can re-call to get fresh signed URLs.
+- Public host must come from env (`APP_PUBLIC_URL`, fallback `NEXT_PUBLIC_APP_URL`), not fixed-domain literals.
 
 ---
 

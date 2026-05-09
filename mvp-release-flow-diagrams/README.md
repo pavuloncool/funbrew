@@ -9,6 +9,13 @@ Folder zawiera diagramy przepływów i opisy ekranów dla:
 - Dla opisu ekranów i ich roli biznesowej użyj `SCREEN_CATALOG.md`.
 - Dla mapowania parity screen/field użyj `SCREEN_FIELD_PARITY_MATRIX.md`.
 - Dla oceny gotowości MVP/Beta użyj `MVP_CANDIDATE_ASSESSMENT.md`.
+- Dla kontraktu integracji beta (web + mobile + shared Supabase) użyj `BETA_INTEGRATION_CONTRACT.md`.
+- Dla release gate użyj:
+  - `BETA_RELEASE_CHECKLIST.md`,
+  - `BETA_SMOKE_RUNBOOK.md`,
+  - `BETA_READINESS_REPORT_2026-05-07.md`.
+- Dla deploy order + env matrix użyj `BETA_DEPLOY_PLAN.md`.
+- Dla smoke sequence cross-app użyj `BETA_SMOKE_RUNBOOK.md`.
 
 ## Diagramy
 - `01_web_internal_flows.mmd`  

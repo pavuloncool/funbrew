@@ -6,9 +6,10 @@ import { useEffect } from 'react';
 
 import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
+import { isPublicRoute } from '@/src/lib/publicRoutes';
 
 function shouldEnforceRoasterOnly(pathname: string): boolean {
-  return !pathname.startsWith('/q/');
+  return !isPublicRoute(pathname);
 }
 
 export default function WebAccountRoleGate() {

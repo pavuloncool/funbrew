@@ -9,6 +9,23 @@ import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 
 import { authPagesStyles } from '../auth-pages.styles';
 
+const DEFAULT_POST_LOGIN_PATH = '/roaster-hub';
+
+function resolvePostLoginPath(nextParam: string | null): string {
+  if (!nextParam) return DEFAULT_POST_LOGIN_PATH;
+  if (!nextParam.startsWith('/') || nextParam.startsWith('//')) {
+    return DEFAULT_POST_LOGIN_PATH;
+  }
+  if (
+    nextParam.startsWith('/login') ||
+    nextParam.startsWith('/register') ||
+    nextParam.startsWith('/pending')
+  ) {
+    return DEFAULT_POST_LOGIN_PATH;
+  }
+  return nextParam;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,6 +33,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const postLoginPath = resolvePostLoginPath(searchParams.get('next'));
   const reason = searchParams.get('reason');
   const roleGateMessage =
     reason === 'consumer_mobile_only'
@@ -56,7 +74,7 @@ export default function LoginPage() {
       }
     }
 
-    router.push('/roaster-hub');
+    router.push(postLoginPath);
   }
 
   return (

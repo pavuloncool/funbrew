@@ -44,11 +44,11 @@ export const coffeeBankStyles = {
   tableTr: 'border-b-2 border-vs-border-subtle/40 last:border-0',
   tableTrSelected: 'bg-vs-surface',
   tableTd: 'px-5 py-4 align-middle text-vs-text-primary',
-  tableTdAction: 'px-5 py-4 align-middle text-right text-vs-text-primary',
+  tableTdAction: 'px-5 py-4 align-middle text-center text-vs-text-primary',
   nameLink:
     'rounded text-left font-medium text-vs-text-primary underline decoration-vs-text-primary hover:text-vs-text-secondary focus:outline-none focus:ring-2 focus:ring-vs-hero-primary focus:ring-offset-1',
   editLink:
-    'vs-button-secondary inline-block px-5 py-2 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-vs-hero-primary focus:ring-offset-1',
+    'vs-button-secondary inline-flex min-w-[132px] items-center justify-center whitespace-nowrap px-5 py-2 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-vs-hero-primary focus:ring-offset-1',
 
   loadingText: 'text-base text-vs-text-secondary',
   errorBox: 'mb-4 rounded-vs-md border-2 border-vs-danger/30 bg-vs-danger/10 p-5 shadow-vs-sm',

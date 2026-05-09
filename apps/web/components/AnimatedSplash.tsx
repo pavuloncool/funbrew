@@ -18,8 +18,6 @@ const MS_TO_DISSOLVE = 480;
  */
 const CONFETTI_BURST_PHASE_MS = 2000;
 const BEAN_PHASE_START_MS = MS_TO_DISSOLVE + 0.8 * CONFETTI_BURST_PHASE_MS;
-const FADE_BEAN_PHASE_START_MS = BEAN_PHASE_START_MS + 1900;
-const ON_FINISH_MS = FADE_BEAN_PHASE_START_MS + 1550;
 
 function useDustCanvas(
   active: boolean,
@@ -135,9 +133,8 @@ export type AnimatedSplashProps = {
 };
 
 export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
-  const [stage, setStage] = useState<
-    'idle' | 'press' | 'burst' | 'dissolve' | 'bean' | 'fadeBean'
-  >('idle');
+  const [stage, setStage] = useState<'idle' | 'press' | 'burst' | 'dissolve' | 'bean'>('idle');
+  const [finished, setFinished] = useState(false);
   const anchorRef = useRef<HTMLImageElement>(null);
 
   const dustActive = stage === 'dissolve' || stage === 'bean';
@@ -152,9 +149,13 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     window.setTimeout(() => setStage('burst'), 220);
     window.setTimeout(() => setStage('dissolve'), MS_TO_DISSOLVE);
     window.setTimeout(() => setStage('bean'), BEAN_PHASE_START_MS);
-    window.setTimeout(() => setStage('fadeBean'), FADE_BEAN_PHASE_START_MS);
-    window.setTimeout(() => onFinish(), ON_FINISH_MS);
-  }, [onFinish, stage]);
+  }, [stage]);
+
+  const handleBeanTap = useCallback(() => {
+    if (finished || stage !== 'bean') return;
+    setFinished(true);
+    onFinish();
+  }, [finished, onFinish, stage]);
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-vs-elevated">
@@ -234,21 +235,22 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
           </motion.div>
         )}
 
-        {(stage === 'bean' || stage === 'fadeBean') && (
+        {stage === 'bean' && (
           <motion.div
             key="bean"
             style={{ width: 128, height: 128 }}
+            role="button"
+            tabIndex={0}
+            onClick={handleBeanTap}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleBeanTap();
+              }
+            }}
             initial={{ opacity: 0 }}
-            animate={stage === 'bean' ? { opacity: 1 } : { opacity: 0 }}
-            transition={
-              stage === 'bean'
-                ? {
-                    opacity: { duration: 1.25, ease: [0.22, 1, 0.36, 1] },
-                  }
-                : {
-                    opacity: { duration: 1.25, ease: 'easeInOut' },
-                  }
-            }
+            animate={{ opacity: 1 }}
+            transition={{ opacity: { duration: 1.25, ease: [0.22, 1, 0.36, 1] } }}
           >
             <img src={beanSvg} alt="Coffee Bean" style={{ width: '100%', height: '100%' }} />
           </motion.div>

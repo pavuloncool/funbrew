@@ -1,79 +1,91 @@
 # Contract: QR URL
 
-**Date**: 2026-03-25
+**Date**: 2026-05-09  
+**Source of truth**: `mvp-release-flow-diagrams/BETA_INTEGRATION_CONTRACT.md` (section 5)
 
 ---
 
 ## URL Pattern
 
 ```
-https://funcup.app/q/{qr_hash}
+https://<beta-host>/q/{qr_hash}
 ```
 
 | Component | Value |
 |-----------|-------|
 | Scheme | `https` |
-| Host | `funcup.app` |
+| Host | `<beta-host>` (deployment-dependent; not hardcoded to `funcup.app`) |
 | Path prefix | `/q/` |
-| `{qr_hash}` | UUID v4, lowercase, hyphenated (e.g., `550e8400-e29b-41d4-a716-446655440000`) |
+| `{qr_hash}` | UUID v4/v7-compatible lowercase UUID (example: `550e8400-e29b-41d4-a716-446655440000`) |
+
+`<beta-host>` is expected to come from `NEXT_PUBLIC_APP_URL` in web QR generation (`/api/qr`, `/api/batch-qr`). If missing, web falls back to request host headers.
 
 ---
 
 ## Invariants
 
-1. **Permanent**: The `qr_hash` for a given batch is generated once and never changes (FR-016). Editing the coffee profile, brewing notes, or story does NOT change the QR.
-2. **Batch-bound**: The hash resolves to exactly one `roast_batches` row. It does not resolve to a coffee directly — a coffee may have multiple batches with different QR codes.
-3. **Scan-agnostic**: The URL is a plain HTTPS URL readable by any QR scanner app, camera, or browser — no funcup app required to resolve the URL.
-4. **Public**: No authentication required to visit `https://funcup.app/q/{hash}`. Coffee pages are publicly readable (FR-011).
+1. **Permanent**: Hash is generated once and must stay stable for a published record.
+2. **Public**: `/q/{hash}` must remain anonymously readable in browser.
+3. **Host-swap safe**: Beta host/domain changes must not break parsing/resolution; parser uses path contract (`/q/{hash}`), not fixed host matching.
+4. **Multi-entry payload support**: Mobile parser must accept:
+   - full `https://<any-host>/q/{hash}`
+   - `funcup://q/{hash}`
+   - bare UUID fallback
 
 ---
 
-## Resolution Flow
+## Resolution Flow (Current Implementation)
 
-### Web (Next.js)
-
-```
-GET https://funcup.app/q/{hash}
-  → Next.js middleware catches /q/* routes
-  → Calls scan_qr Edge Function: POST /functions/v1/scan_qr { hash }
-  → 200: redirect to /coffee/{coffee_id}?batch={batch_id}
-  → 404: render /q/not-found page
-  → archived: redirect to /coffee/{coffee_id}?batch={batch_id}&archived=true
-```
-
-### Mobile (Expo)
+### Web (`apps/web/app/q/[hash]/page.tsx`)
 
 ```
-Camera detects QR → extracts URL "https://funcup.app/q/{hash}"
-  → App intercepts via expo-linking deep link scheme OR
-    strips hash from URL and calls scan_qr directly
-  → Navigate to coffee/:id screen with { batchId } param
-  → Success: render Coffee Page
-  → not_found: show "coffee isn't in the system" state (US-1 AC-5)
-  → archived: show coffee page with "batch no longer active" notice (US-1 AC-3)
+GET https://<beta-host>/q/{hash}
+  → Next.js public route renders resolver page
+  → Client calls Supabase function scan_qr with { hash }
+  → 200: renders normalized coffee/tag payload
+  → 4xx/5xx: renders flow error state
+```
+
+### Mobile (`apps/consumer-mobile`)
+
+```
+QR scan payload
+  → parseFuncupQrScanPayload() extracts hash from URL/scheme/UUID
+  → router.replace('/q/[hash]')
+  → /q/[hash] redirects to /coffee/[id] (id = hash)
+  → useCoffeePage() invokes scan_qr with { hash }
 ```
 
 ---
 
-## Deep Link Configuration (Expo)
+## Deep Link Configuration Status
 
-```json
-// app.json
-{
-  "expo": {
-    "scheme": "funcup",
-    "intentFilters": [
-      {
-        "action": "VIEW",
-        "data": [{ "scheme": "https", "host": "funcup.app", "pathPrefix": "/q/" }],
-        "category": ["BROWSABLE", "DEFAULT"]
-      }
-    ]
-  }
-}
-```
+Current mobile config supports both:
 
-This enables Android App Links and iOS Universal Links — the OS routes `https://funcup.app/q/*` directly to the funcup app when installed.
+- Custom scheme: `funcup://q/{hash}` (`scheme: "funcup"`, host `q`)
+- Conditional HTTPS host mapping for `/q/*`, derived from `EXPO_PUBLIC_ROASTER_WEB_URL` when that URL is valid `https://...`
+  - Android: `intentFilters` with `autoVerify: true`
+  - iOS: `associatedDomains` (`applinks:<host>`)
+
+Result:
+
+- Browser resolver for `https://<beta-host>/q/{hash}` is always supported.
+- Native app capture of `https://<beta-host>/q/{hash}` works only when the app is built with matching `EXPO_PUBLIC_ROASTER_WEB_URL` and infrastructure files are present on that host.
+
+---
+
+## Compatibility Checklist for Beta Host Changes
+
+1. Set web `NEXT_PUBLIC_APP_URL` to the beta public host before generating new QR codes.
+2. Keep `/q/{hash}` route public and unchanged.
+3. Preserve parser acceptance tests for:
+   - `https://<host>/q/{hash}`
+   - `funcup://q/{hash}`
+   - bare UUID
+4. If OS-level HTTPS deep linking is required for beta:
+   - set `EXPO_PUBLIC_ROASTER_WEB_URL=https://<beta-host>` at build time,
+   - verify generated Android `intentFilters` and iOS `associatedDomains` include the same host,
+   - host valid `assetlinks.json` + `apple-app-site-association` on that host.
 
 ---
 
@@ -81,7 +93,7 @@ This enables Android App Links and iOS Universal Links — the OS routes `https:
 
 | Condition | HTTP | Client behaviour |
 |-----------|------|-----------------|
-| Hash not found in `qr_codes` | 404 | "This coffee isn't in funcup yet" + share option (US-1 AC-5) |
-| Batch archived | 200 (with `archived: true`) | Coffee page with "This batch is no longer active" banner (US-1 AC-3) |
-| Malformed hash (not UUID v4) | 400 | "Can't read this code" + manual search option (spec edge case 1) |
-| Network error (offline, no cache) | — | "No connection" state; retry button |
+| Hash not found | 404 | "not found" state from shared flow error copy |
+| Malformed hash | 400 | parse/invalid-hash error state |
+| Archived batch | 200 (`archived: true`) | Coffee page with archived notice |
+| Network / backend failure | 5xx / transport error | retryable scan error state |

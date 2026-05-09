@@ -17,6 +17,14 @@ interface QRResponse {
   png_signed_url: string
 }
 
+function resolvePublicOrigin(): string {
+  const raw =
+    Deno.env.get('APP_PUBLIC_URL') ??
+    Deno.env.get('NEXT_PUBLIC_APP_URL') ??
+    'https://funcup.app'
+  return raw.replace(/\/+$/, '')
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -121,7 +129,7 @@ serve(async (req) => {
     }
 
     const hash = crypto.randomUUID()
-    const qrUrl = `https://funcup.app/q/${hash}`
+    const qrUrl = `${resolvePublicOrigin()}/q/${hash}`
     const svgStoragePath = `qr/${batch_id}/qr.svg`
     const pngStoragePath = `qr/${batch_id}/qr.png`
 

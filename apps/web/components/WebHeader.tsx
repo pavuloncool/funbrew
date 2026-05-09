@@ -1,21 +1,74 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
+import { resolvePublicHubCtaTarget } from '@/src/lib/publicEntryRouting';
+import { isPublicRoute } from '@/src/lib/publicRoutes';
 
 const NAV_ITEMS = ['Individuals', 'Business', 'Support', 'About', 'News'];
 
 export default function WebHeader() {
+  const pathname = usePathname();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [hubCtaLoading, setHubCtaLoading] = useState(false);
+
+  const isPublicEntry = isPublicRoute(pathname);
+
+  useEffect(() => {
+    setLoading(false);
+    setHubCtaLoading(false);
+  }, [pathname]);
 
   async function handleLogout() {
     setLoading(true);
-    await supabaseBrowser.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    router.push('/home');
+    try {
+      await supabaseBrowser.auth.signOut();
+      router.refresh();
+    } catch {
+      // Keep the user on current screen when sign-out fails, but always unlock the button.
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePublicHubCta() {
+    setHubCtaLoading(true);
+    try {
+      const target = await resolvePublicHubCtaTarget();
+      router.push(target);
+    } finally {
+      setHubCtaLoading(false);
+    }
+  }
+
+  if (isPublicEntry) {
+    return (
+      <header className="w-full border-b-2 border-vs-border-strong bg-vs-elevated">
+        <div className="mx-auto flex h-[74px] w-full max-w-[1600px] items-center border-x-2 border-vs-border-strong px-5 sm:px-8">
+          <button
+            type="button"
+            className="font-display text-[42px] leading-none tracking-[-0.04em] text-vs-text-primary sm:text-[52px]"
+            onClick={() => router.push('/home')}
+          >
+            fun•brew
+          </button>
+          <div className="ml-auto">
+            <button
+              type="button"
+              onClick={() => void handlePublicHubCta()}
+              className="vs-button-primary text-[15px] font-semibold sm:text-[16px]"
+              disabled={hubCtaLoading}
+            >
+              {hubCtaLoading ? 'Opening…' : 'My Roaster Hub'}
+            </button>
+          </div>
+        </div>
+      </header>
+    );
   }
 
   return (
@@ -24,9 +77,9 @@ export default function WebHeader() {
         <button
           type="button"
           className="font-display text-[52px] leading-none tracking-[-0.04em] text-vs-text-primary"
-          onClick={() => router.push('/roaster-hub')}
+          onClick={() => router.push('/home')}
         >
-          funcup
+          fun•brew
         </button>
 
         <nav className="ml-16 hidden items-center gap-10 md:flex">
