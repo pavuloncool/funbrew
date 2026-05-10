@@ -20,7 +20,15 @@ type JournalRow = {
   roast_batches: {
     id: string;
     lot_number: string | null;
-    coffees: { id: string; name: string; roasters: { id: string; name: string } | null } | null;
+    coffees: {
+      id: string;
+      name: string;
+      origin: { country: string | null } | null;
+      roasters:
+        | { id: string; name: string; country: string | null; city: string | null }
+        | { id: string; name: string; country: string | null; city: string | null }[]
+        | null;
+    } | null;
   } | null;
 };
 
@@ -29,7 +37,31 @@ function formatError(err: unknown): string {
   return String(err);
 }
 
-export function RatedCoffeesSection() {
+function normalizeSearchValue(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function matchesSearch(row: JournalRow, normalizedQuery: string): boolean {
+  if (!normalizedQuery) return true;
+  const coffee = row.roast_batches?.coffees;
+  const roaster = Array.isArray(coffee?.roasters)
+    ? (coffee?.roasters[0] ?? null)
+    : (coffee?.roasters ?? null);
+  const values = [
+    coffee?.name,
+    roaster?.name,
+    roaster?.city,
+    roaster?.country,
+    coffee?.origin?.country,
+    row.roast_batches?.lot_number,
+    row.free_text_notes,
+    row.logged_at ? new Date(row.logged_at).toLocaleDateString() : null,
+  ];
+
+  return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
+}
+
+export function RatedCoffeesSection(props: { searchQuery?: string }) {
   const { userId, isLoading: authLoading } = useViewerUserId();
   const { pendingCount, failedCount } = useOfflineTastingQueueStatus();
   const journalQuery = useJournal({ supabase, userId });
@@ -88,6 +120,8 @@ export function RatedCoffeesSection() {
   }
 
   const rows = (journalQuery.data ?? []) as JournalRow[];
+  const normalizedQuery = normalizeSearchValue(props.searchQuery ?? '');
+  const filteredRows = rows.filter((row) => matchesSearch(row, normalizedQuery));
 
   if (rows.length === 0) {
     return (
@@ -131,10 +165,19 @@ export function RatedCoffeesSection() {
           ) : null}
         </AppCard>
       ) : null}
-      {rows.map((row) => {
+      {filteredRows.length === 0 ? (
+        <EmptyState
+          title="No matching rated coffees"
+          description="Try a different coffee name, country, lot, or note phrase."
+        />
+      ) : null}
+      {filteredRows.map((row) => {
         const coffee = row.roast_batches?.coffees;
+        const roasterProfile = Array.isArray(coffee?.roasters)
+          ? (coffee?.roasters[0] ?? null)
+          : (coffee?.roasters ?? null);
         const title = coffee?.name ?? 'Coffee';
-        const roaster = coffee?.roasters?.name;
+        const roaster = roasterProfile?.name;
         const ratingLabel = row.rating != null ? `${row.rating} / 5` : '—';
 
         return (

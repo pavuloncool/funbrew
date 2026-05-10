@@ -226,6 +226,8 @@ export default function CoffeePage() {
                   roastDate: fields.batch.roastDate ?? null,
                   lotNumber: fields.batch.lotNumber ?? null,
                   roasterName: publicCoffee.roaster.name,
+                  roasterCountry: publicCoffee.roaster.country,
+                  originCountry: fields.origin.country,
                 },
               });
             }}

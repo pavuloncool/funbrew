@@ -13,7 +13,7 @@ export default function AnonymizedFreeTextNotes({ notes }: Props) {
     <section className={analyticsStyles.card}>
       <h2 className={analyticsStyles.cardTitle}>Anonymized free-text tasting notes</h2>
       <p className={analyticsStyles.cardCaption}>
-        Raw tasting notes from consumers, without identity metadata.
+        Source: consumer field Free-text tasting notes (`coffee_logs.free_text_notes`), without identity metadata.
       </p>
       {notes.length === 0 ? (
         <p className={analyticsStyles.emptyState}>No free-text tasting notes for this batch yet.</p>

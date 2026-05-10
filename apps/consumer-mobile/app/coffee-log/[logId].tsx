@@ -46,6 +46,23 @@ type JournalCacheRow = {
   } | null;
 };
 
+type EmbeddedReview =
+  | { body?: string | null }
+  | Array<{ body?: string | null }>
+  | null
+  | undefined;
+
+function extractReviewBody(review: EmbeddedReview): string | null {
+  if (Array.isArray(review)) {
+    const body = review[0]?.body;
+    return typeof body === 'string' ? body : null;
+  }
+  if (review && typeof review === 'object') {
+    return typeof review.body === 'string' ? review.body : null;
+  }
+  return null;
+}
+
 function parseLogDetails(raw: unknown): LogDetails | null {
   if (!raw || typeof raw !== 'object') return null;
   const row = raw as {
@@ -62,7 +79,7 @@ function parseLogDetails(raw: unknown): LogDetails | null {
       } | null;
     } | null;
     coffee_log_tasting_notes?: Array<{ tasting_note_id: string }> | null;
-    reviews?: Array<{ body: string }> | null;
+    reviews?: EmbeddedReview;
   };
 
   return {
@@ -75,7 +92,7 @@ function parseLogDetails(raw: unknown): LogDetails | null {
     rating: row.rating,
     tastingNoteIds: (row.coffee_log_tasting_notes ?? []).map((item) => item.tasting_note_id),
     freeTextNotes: row.free_text_notes,
-    reviewBody: row.reviews?.[0]?.body ?? null,
+    reviewBody: extractReviewBody(row.reviews),
   };
 }
 
@@ -575,6 +592,9 @@ export default function CoffeeLogDetailsScreen() {
         ) : null}
 
         <AppText variant="body" weight="600">Free-text tasting notes</AppText>
+        <AppText tone="secondary">
+          Shown to roaster in Analytics as anonymized free-text tasting notes.
+        </AppText>
         <AppInput
           value={freeTextNotes}
           onChangeText={setFreeTextNotes}
@@ -585,6 +605,9 @@ export default function CoffeeLogDetailsScreen() {
         />
 
         <AppText variant="body" weight="600">Optional review</AppText>
+        <AppText tone="secondary">
+          Shown to roaster in Analytics under Anonymized reviews.
+        </AppText>
         <AppInput
           value={reviewBody}
           onChangeText={setReviewBody}

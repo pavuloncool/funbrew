@@ -20,6 +20,7 @@ type QrCodeRow = {
       name: string;
       processing_method: string | null;
       status: string;
+      origin: { country: string | null } | null;
       roasters: { id: string; name: string; country: string | null; city: string | null } | null;
     };
   };
@@ -79,6 +80,7 @@ describe('discovery hooks fetchers', () => {
               name: 'Kenya AA',
               processing_method: 'washed',
               status: 'active',
+              origin: { country: 'Kenya' },
               roasters: { id: 'roaster-1', name: 'A', country: 'PL', city: 'WAW' },
             },
           },
@@ -90,6 +92,7 @@ describe('discovery hooks fetchers', () => {
     expect(result[0]?.name).toBe('Kenya AA');
     expect(result[0]?.qrHash).toBe('qr-hash-1');
     expect(result[0]?.roaster?.name).toBe('A');
+    expect(result[0]?.originCountry).toBe('Kenya');
   });
 
   it('returns roaster follow state', async () => {

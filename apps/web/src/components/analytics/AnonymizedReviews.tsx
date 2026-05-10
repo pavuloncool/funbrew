@@ -11,9 +11,9 @@ type Props = {
 export default function AnonymizedReviews({ reviews }: Props) {
   return (
     <section className={analyticsStyles.card}>
-      <h2 className={analyticsStyles.cardTitle}>Anonymized reviews</h2>
+      <h2 className={analyticsStyles.cardTitle}>Anonymized optional reviews</h2>
       <p className={analyticsStyles.cardCaption}>
-        Optional written feedback from tastings. No consumer identity is shown here.
+        Source: consumer field Optional review (`reviews.body`). No consumer identity is shown here.
       </p>
       {reviews.length === 0 ? (
         <p className={analyticsStyles.emptyState}>No written reviews for this batch yet.</p>

@@ -222,6 +222,9 @@ export default function TastingLogScreen() {
 
       <View style={styles.fieldBlock}>
         <AppText variant="body" weight="600">Free-text tasting notes</AppText>
+        <AppText tone="secondary">
+          Shown to roaster in Analytics as anonymized free-text tasting notes.
+        </AppText>
         <AppInput
           value={freeTextNotes}
           onChangeText={setFreeTextNotes}
@@ -233,6 +236,9 @@ export default function TastingLogScreen() {
 
       <View style={styles.fieldBlock}>
         <AppText variant="body" weight="600">Optional review</AppText>
+        <AppText tone="secondary">
+          Shown to roaster in Analytics under Anonymized reviews.
+        </AppText>
         <AppInput
           value={review}
           onChangeText={setReview}

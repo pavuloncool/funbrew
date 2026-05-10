@@ -130,6 +130,18 @@ export default function HubIndexScreen() {
         </Pressable>
 
         <Pressable
+          onPress={() => router.push('/(tabs)/roasters')}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
+        >
+          <AppText variant="caption" weight="700" tone="secondary">ROASTERS</AppText>
+          <AppText variant="h3" weight="700">Discover roasters</AppText>
+          <AppText tone="secondary">
+            Browse verified profiles and follow roasters you want to keep close.
+          </AppText>
+        </Pressable>
+
+        <Pressable
           onPress={() => router.push('/(tabs)/profile')}
           accessibilityRole="button"
           style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}

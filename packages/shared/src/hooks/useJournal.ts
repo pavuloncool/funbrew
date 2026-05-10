@@ -24,7 +24,8 @@ export function useJournal(params: { supabase: TypedSupabaseClient; userId: stri
             coffees (
               id,
               name,
-              roasters ( id, name )
+              origin:origins ( country ),
+              roasters ( id, name, country, city )
             )
           )
         `
@@ -38,4 +39,3 @@ export function useJournal(params: { supabase: TypedSupabaseClient; userId: stri
     },
   });
 }
-

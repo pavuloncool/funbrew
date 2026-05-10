@@ -13,6 +13,8 @@ export type FavoriteScannedEntry = {
   roastDate: string | null;
   lotNumber: string | null;
   roasterName: string | null;
+  roasterCountry: string | null;
+  originCountry: string | null;
 };
 
 type FavoriteRow = {
@@ -27,7 +29,11 @@ type CoffeeLookupRow = {
   id: string;
   name: string;
   processing_method: string | null;
-  roasters: { name: string } | { name: string }[] | null;
+  origin: { country: string | null } | null;
+  roasters:
+    | { name: string; country: string | null }
+    | { name: string; country: string | null }[]
+    | null;
 };
 
 type BatchLookupRow = {
@@ -36,10 +42,17 @@ type BatchLookupRow = {
   lot_number: string;
 };
 
-function resolveRoasterName(roasters: CoffeeLookupRow['roasters']): string | null {
-  if (!roasters) return null;
-  if (Array.isArray(roasters)) return roasters[0]?.name ?? null;
-  return roasters.name ?? null;
+function resolveRoaster(roasters: CoffeeLookupRow['roasters']): {
+  name: string | null;
+  country: string | null;
+} {
+  if (!roasters) return { name: null, country: null };
+  const roaster = Array.isArray(roasters) ? (roasters[0] ?? null) : roasters;
+  if (!roaster) return { name: null, country: null };
+  return {
+    name: roaster.name ?? null,
+    country: roaster.country ?? null,
+  };
 }
 
 export async function fetchFavoriteScannedEntries(
@@ -64,7 +77,7 @@ export async function fetchFavoriteScannedEntries(
   const [coffeeResult, batchResult] = await Promise.all([
     supabase
       .from('coffees')
-      .select('id,name,processing_method,roasters(name)')
+      .select('id,name,processing_method,origin:origins(country),roasters(name,country)')
       .in('id', coffeeIds)
       .returns<CoffeeLookupRow[]>(),
     supabase
@@ -83,6 +96,7 @@ export async function fetchFavoriteScannedEntries(
   return favoriteRows.map((row) => {
     const coffee = coffeeMap.get(row.coffee_id);
     const batch = batchMap.get(row.batch_id);
+    const roaster = resolveRoaster(coffee?.roasters ?? null);
 
     return {
       id: row.id,
@@ -94,7 +108,9 @@ export async function fetchFavoriteScannedEntries(
       processingMethod: coffee?.processing_method ?? null,
       roastDate: batch?.roast_date ?? null,
       lotNumber: batch?.lot_number ?? null,
-      roasterName: resolveRoasterName(coffee?.roasters ?? null),
+      roasterName: roaster.name,
+      roasterCountry: roaster.country,
+      originCountry: coffee?.origin?.country ?? null,
     };
   });
 }

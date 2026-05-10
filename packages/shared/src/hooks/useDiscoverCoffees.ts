@@ -9,6 +9,7 @@ export type DiscoverCoffeeItem = {
   qrHash: string;
   name: string;
   processingMethod: string | null;
+  originCountry: string | null;
   roaster: {
     id: string;
     name: string;
@@ -40,6 +41,9 @@ type QrDiscoverRow = {
       name: string;
       processing_method: string | null;
       status: string;
+      origin: {
+        country: string | null;
+      } | null;
       roasters: RoasterRel;
     };
   } | null;
@@ -71,6 +75,9 @@ export async function fetchDiscoverCoffees(
           id,
           name,
           processing_method,
+          origin:origins (
+            country
+          ),
           status,
           roasters (
             id,
@@ -101,6 +108,7 @@ export async function fetchDiscoverCoffees(
       qrHash: row.hash,
       name: coffee.name,
       processingMethod: coffee.processing_method,
+      originCountry: coffee.origin?.country ?? null,
       roaster: normalizeRoaster(coffee.roasters),
     });
     if (out.length >= limit) break;
