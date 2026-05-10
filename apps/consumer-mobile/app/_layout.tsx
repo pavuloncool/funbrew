@@ -30,7 +30,8 @@ function AppShellStack() {
     (topSegment === '(tabs)' && ['hub', 'roasters', 'brew-your-skills'].includes(secondSegment ?? '')) ||
     topSegment === 'coffee' ||
     topSegment === 'roaster' ||
-    topSegment === 'learn'
+    topSegment === 'learn' ||
+    topSegment === 'atlas'
   ) {
     activeTab = thirdSegment === 'log' ? 'journal' : 'home';
   }

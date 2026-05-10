@@ -2,6 +2,10 @@
 
 import { format, parse, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import {
+  type NormalizedCoffeePageData,
+  toCanonicalPublicationFields,
+} from '@funcup/shared';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,7 +26,11 @@ type CoffeeRow = {
   id: string;
   name: string;
   status: string;
+  variety: string | null;
+  processing_method: string | null;
+  producer_notes: string | null;
   cover_image_url: string | null;
+  origin_id: string | null;
 };
 
 type BatchRow = {
@@ -31,7 +39,19 @@ type BatchRow = {
   lot_number: string;
   roast_date: string;
   status: string;
+  brewing_notes: string | null;
+  roaster_story: string | null;
   created_at: string;
+};
+
+type OriginRow = {
+  id: string;
+  country: string | null;
+  region: string | null;
+  farm: string | null;
+  producer: string | null;
+  altitude_min: number | null;
+  altitude_max: number | null;
 };
 
 type QrCodeRow = {
@@ -44,11 +64,22 @@ type CanonicalBatchRecord = {
   coffeeId: string;
   coffeeName: string;
   coffeeStatus: string;
+  coffeeVariety: string | null;
+  coffeeProcessingMethod: string | null;
+  coffeeProducerNotes: string | null;
   coverImageUrl: string | null;
+  originCountry: string | null;
+  originRegion: string | null;
+  originFarm: string | null;
+  originProducer: string | null;
+  originAltitudeMin: number | null;
+  originAltitudeMax: number | null;
   batchId: string;
   lotNumber: string;
   roastDate: string;
   batchStatus: string;
+  brewingNotes: string | null;
+  roasterStory: string | null;
   batchCreatedAt: string;
   qrHash: string | null;
   qrUrl: string | null;
@@ -72,6 +103,70 @@ function formatRoastDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function formatAltitudeLabel(min: number | null, max: number | null): string | null {
+  if (typeof min === 'number' && typeof max === 'number') return `${min}-${max} m`;
+  if (typeof min === 'number') return `${min} m`;
+  if (typeof max === 'number') return `${max} m`;
+  return null;
+}
+
+function mapRecordToPublicationFields(record: CanonicalBatchRecord) {
+  const normalized: NormalizedCoffeePageData = {
+    source: 'canonical',
+    hash: record.qrHash ?? record.batchId,
+    archived: record.batchStatus === 'archived',
+    roaster: {
+      name: null,
+      city: null,
+      country: null,
+      logoUrl: null,
+      shortName: null,
+    },
+    product: {
+      id: record.coffeeId,
+      name: record.coffeeName,
+      variety: record.coffeeVariety,
+      processingMethod: record.coffeeProcessingMethod,
+      producerNotes: record.coffeeProducerNotes,
+      imageUrl: record.coverImageUrl,
+      status: record.coffeeStatus,
+    },
+    origin: {
+      country: record.originCountry,
+      region: record.originRegion,
+      farm: record.originFarm,
+      producer: record.originProducer,
+      altitudeMin: record.originAltitudeMin,
+      altitudeMax: record.originAltitudeMax,
+      altitudeLabel: formatAltitudeLabel(record.originAltitudeMin, record.originAltitudeMax),
+    },
+    roast: {
+      id: record.batchId,
+      date: record.roastDate,
+      lotNumber: record.lotNumber,
+      status: record.batchStatus,
+      level: null,
+    },
+    brewing: {
+      recommendedMethod: null,
+      notes: record.brewingNotes,
+    },
+    story: {
+      roasterStory: record.roasterStory,
+    },
+    stats: {
+      totalTastings: 0,
+      avgRating: 0,
+    },
+    tastingNotes: [],
+    logBatchId: record.batchId,
+  };
+
+  const fields = toCanonicalPublicationFields(normalized);
+  fields.qr.url = record.qrUrl;
+  return fields;
 }
 
 function CoffeeBankContent() {
@@ -135,7 +230,9 @@ function CoffeeBankContent() {
       try {
         const coffeesRes = await supabaseBrowser
           .from('coffees')
-          .select('id,name,status,cover_image_url')
+          .select(
+            'id,name,status,variety,processing_method,producer_notes,cover_image_url,origin_id'
+          )
           .eq('roaster_id', roasterId)
           .order('created_at', { ascending: false });
         if (coffeesRes.error) {
@@ -150,9 +247,12 @@ function CoffeeBankContent() {
         }
 
         const coffeeIds = coffees.map((coffee) => coffee.id);
+        const originIds = coffees
+          .map((coffee) => coffee.origin_id)
+          .filter((originId): originId is string => Boolean(originId));
         const batchesRes = await supabaseBrowser
           .from('roast_batches')
-          .select('id,coffee_id,lot_number,roast_date,status,created_at')
+          .select('id,coffee_id,lot_number,roast_date,status,brewing_notes,roaster_story,created_at')
           .in('coffee_id', coffeeIds)
           .order('roast_date', { ascending: false });
         if (batchesRes.error) {
@@ -183,20 +283,46 @@ function CoffeeBankContent() {
           }
         }
 
+        const originById = new Map<string, OriginRow>();
+        if (originIds.length > 0) {
+          const originsRes = await supabaseBrowser
+            .from('origins')
+            .select('id,country,region,farm,producer,altitude_min,altitude_max')
+            .in('id', originIds);
+          if (originsRes.error) {
+            throw new Error(originsRes.error.message);
+          }
+          for (const origin of (originsRes.data ?? []) as OriginRow[]) {
+            originById.set(origin.id, origin);
+          }
+        }
+
         const nextRecords: CanonicalBatchRecord[] = [];
         for (const batch of batches) {
           const coffee = coffeeById.get(batch.coffee_id);
           if (!coffee) continue;
           const qr = qrByBatch.get(batch.id) ?? null;
+          const origin = coffee.origin_id ? originById.get(coffee.origin_id) ?? null : null;
           nextRecords.push({
             coffeeId: coffee.id,
             coffeeName: coffee.name,
             coffeeStatus: coffee.status,
+            coffeeVariety: coffee.variety,
+            coffeeProcessingMethod: coffee.processing_method,
+            coffeeProducerNotes: coffee.producer_notes,
             coverImageUrl: coffee.cover_image_url,
+            originCountry: origin?.country ?? null,
+            originRegion: origin?.region ?? null,
+            originFarm: origin?.farm ?? null,
+            originProducer: origin?.producer ?? null,
+            originAltitudeMin: origin?.altitude_min ?? null,
+            originAltitudeMax: origin?.altitude_max ?? null,
             batchId: batch.id,
             lotNumber: batch.lot_number,
             roastDate: batch.roast_date,
             batchStatus: batch.status,
+            brewingNotes: batch.brewing_notes,
+            roasterStory: batch.roaster_story,
             batchCreatedAt: batch.created_at,
             qrHash: qr?.hash ?? null,
             qrUrl: qr?.qr_url ?? null,
@@ -233,6 +359,10 @@ function CoffeeBankContent() {
   const selectedRecord = useMemo(
     () => (selectedBatchId ? records.find((record) => record.batchId === selectedBatchId) ?? null : null),
     [selectedBatchId, records]
+  );
+  const selectedFields = useMemo(
+    () => (selectedRecord ? mapRecordToPublicationFields(selectedRecord) : null),
+    [selectedRecord]
   );
 
   const sortedRecords = useMemo(() => {
@@ -423,7 +553,7 @@ function CoffeeBankContent() {
                           </button>
                         </th>
                         <th className={coffeeBankStyles.tableTh} scope="col">
-                          Batch / wypał
+                          Batch ID
                         </th>
                         <th className={coffeeBankStyles.tableTh} scope="col">
                           <button
@@ -438,7 +568,7 @@ function CoffeeBankContent() {
                             }
                             onClick={() => toggleSort('roastDate')}
                           >
-                            Data wypału
+                            Roast date
                             <span className={coffeeBankStyles.sortIcon} aria-hidden>
                               {sortKey === 'roastDate' ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
                             </span>
@@ -473,7 +603,7 @@ function CoffeeBankContent() {
                             <td className={coffeeBankStyles.tableTd}>{formatRoastDate(record.roastDate)}</td>
                             <td className={coffeeBankStyles.tableTdAction}>
                               <Link
-                                href={`/roaster-hub/coffees/${record.coffeeId}`}
+                                href={`/roaster-hub/coffees/${record.coffeeId}?batch=${record.batchId}`}
                                 className={coffeeBankStyles.editLink}
                               >
                                 Edit coffee
@@ -510,6 +640,18 @@ function CoffeeBankContent() {
                     <span className={coffeeBankStyles.productStrong}>Coffee status:</span> {selectedRecord.coffeeStatus}
                   </p>
                   <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Variety:</span>{' '}
+                    {selectedFields?.coffee.variety ?? '—'}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Processing:</span>{' '}
+                    {selectedFields?.coffee.processingMethod ?? '—'}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Producer notes:</span>{' '}
+                    {selectedFields?.coffee.producerNotes ?? '—'}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
                     <span className={coffeeBankStyles.productStrong}>Batch lot:</span> {selectedRecord.lotNumber}
                   </p>
                   <p className={coffeeBankStyles.productSection}>
@@ -518,6 +660,32 @@ function CoffeeBankContent() {
                   </p>
                   <p className={coffeeBankStyles.productSection}>
                     <span className={coffeeBankStyles.productStrong}>Batch status:</span> {selectedRecord.batchStatus}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Brewing notes:</span>{' '}
+                    {selectedFields?.batch.brewingNotes ?? '—'}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Roaster story:</span>{' '}
+                    {selectedFields?.batch.roasterStory ?? '—'}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Origin:</span>{' '}
+                    {[
+                      selectedFields?.origin.country,
+                      selectedFields?.origin.region,
+                      selectedFields?.origin.farm,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || '—'}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Origin producer:</span>{' '}
+                    {selectedFields?.origin.producer ?? '—'}
+                  </p>
+                  <p className={coffeeBankStyles.productSection}>
+                    <span className={coffeeBankStyles.productStrong}>Altitude:</span>{' '}
+                    {selectedFields?.origin.altitudeLabel ?? '—'}
                   </p>
                   <p className={coffeeBankStyles.productSection}>
                     <span className={coffeeBankStyles.productStrong}>Created:</span>{' '}

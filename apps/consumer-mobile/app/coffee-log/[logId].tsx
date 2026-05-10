@@ -4,6 +4,7 @@ import {
   normalizeFlowError,
   type RepurchaseIntent,
   upsertRoasterTelemetryCore,
+  useUnlockedTastingNotes,
   updateCoffeeStats,
   visualSystemTokens,
 } from '@funcup/shared';
@@ -147,6 +148,7 @@ export default function CoffeeLogDetailsScreen() {
   const { userId, isLoading: userLoading } = useViewerUserId();
   const insets = useSafeAreaInsets();
   const contentBottomPadding = insets.bottom + 124;
+  const unlocksQuery = useUnlockedTastingNotes({ supabase, userId });
 
   const detailsQuery = useQuery({
     queryKey: ['coffeeLogDetails', logId, userId ?? null],
@@ -208,6 +210,7 @@ export default function CoffeeLogDetailsScreen() {
   const [sensorySweetness, setSensorySweetness] = useState(3);
   const [sensoryBody, setSensoryBody] = useState(3);
   const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
+  const lockedNoteIds = new Set((unlocksQuery.data?.lockedOptions ?? []).map((option) => option.id));
 
   useEffect(() => {
     const details = detailsQuery.data;
@@ -240,6 +243,9 @@ export default function CoffeeLogDetailsScreen() {
     }
     if (tastingNoteIds.length === 0) {
       return 'Select at least one tasting note';
+    }
+    if (tastingNoteIds.some((id) => lockedNoteIds.has(id))) {
+      return 'Some tasting notes are still locked for your current sensory level.';
     }
     return null;
   };
@@ -556,7 +562,17 @@ export default function CoffeeLogDetailsScreen() {
             if (!isEditing) return;
             setTastingNoteIds(nextIds);
           }}
+          options={unlocksQuery.data?.options}
+          disabledIds={unlocksQuery.data?.lockedOptions.map((option) => option.id)}
+          disabledHint={unlocksQuery.data?.unlockHint ?? null}
+          getDisabledReason={(option) => `Unlocks at ${option.requiredLevel} level.`}
         />
+        {unlocksQuery.data ? (
+          <AppText tone="secondary">
+            Current level: {unlocksQuery.data.levelLabel}
+            {unlocksQuery.data.nextLevelLabel ? ` · next unlock at ${unlocksQuery.data.nextLevelLabel}` : ''}
+          </AppText>
+        ) : null}
 
         <AppText variant="body" weight="600">Free-text tasting notes</AppText>
         <AppInput

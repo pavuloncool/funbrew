@@ -104,7 +104,7 @@ export default function WebHeader() {
             className="vs-button-secondary text-[16px] font-semibold"
             disabled={loading}
           >
-            {loading ? 'Wylogowywanie…' : 'Wyloguj'}
+            {loading ? 'Logging out…' : 'Log out'}
           </button>
         </div>
       </div>

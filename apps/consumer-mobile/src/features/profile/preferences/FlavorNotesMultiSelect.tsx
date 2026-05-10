@@ -11,14 +11,18 @@ import { AppText } from '../../../components/ui/primitives';
 import type { TastingNoteOption } from './tastingNotes';
 
 export function FlavorNotesMultiSelect(props: {
-  options: TastingNoteOption[];
+  options: Array<TastingNoteOption & { requiredLevel?: string }>;
   selectedIds: string[];
   onChange: (nextIds: string[]) => void;
   maxSelected?: number;
   label?: string;
+  disabledIds?: string[];
+  disabledHint?: string | null;
+  getDisabledReason?: (option: TastingNoteOption & { requiredLevel?: string }) => string | null;
 }) {
   const [open, setOpen] = useState(false);
   const maxSelected = props.maxSelected ?? 3;
+  const disabledSet = useMemo(() => new Set(props.disabledIds ?? []), [props.disabledIds]);
 
   const selectedLabel = useMemo(() => {
     if (props.selectedIds.length === 0) {
@@ -84,25 +88,41 @@ export function FlavorNotesMultiSelect(props: {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => {
                   const selected = props.selectedIds.includes(item.id);
-                  const blocked = !selected && props.selectedIds.length >= maxSelected;
+                  const blockedByLimit = !selected && props.selectedIds.length >= maxSelected;
+                  const blockedByGate = !selected && disabledSet.has(item.id);
+                  const blocked = blockedByLimit || blockedByGate;
+                  const disabledReason = blockedByGate ? props.getDisabledReason?.(item) ?? null : null;
 
                   return (
-                    <Pressable
-                      onPress={() => toggle(item.id)}
-                      style={[styles.optionRow, blocked && styles.optionRowBlocked]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected, disabled: blocked }}
-                      accessibilityLabel={`Tasting note ${item.label}`}
-                      disabled={blocked}
-                    >
-                      <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-                        {selected ? <AppText tone="onPrimary" weight="700">✓</AppText> : null}
-                      </View>
-                      <AppText style={styles.optionLabel}>{item.label}</AppText>
-                    </Pressable>
+                    <View style={[styles.optionRow, blocked && styles.optionRowBlocked]}>
+                      <Pressable
+                        onPress={() => toggle(item.id)}
+                        style={styles.optionPressable}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected, disabled: blocked }}
+                        accessibilityLabel={`Tasting note ${item.label}`}
+                        disabled={blocked}
+                      >
+                        <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                          {selected ? <AppText tone="onPrimary" weight="700">✓</AppText> : null}
+                        </View>
+                        <AppText style={styles.optionLabel}>{item.label}</AppText>
+                      </Pressable>
+                      {disabledReason ? (
+                        <AppText variant="caption" tone="secondary" style={styles.disabledReason}>
+                          {disabledReason}
+                        </AppText>
+                      ) : null}
+                    </View>
                   );
                 }}
               />
+
+              {props.disabledHint ? (
+                <AppText variant="caption" tone="secondary" style={styles.footerHint}>
+                  {props.disabledHint}
+                </AppText>
+              ) : null}
 
               <Pressable
                 onPress={() => setOpen(false)}
@@ -167,16 +187,19 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#cccccc',
+    gap: 6,
   },
   optionRowBlocked: {
     opacity: 0.45,
+  },
+  optionPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   checkbox: {
     width: 20,
@@ -194,6 +217,13 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     flex: 1,
+  },
+  disabledReason: {
+    marginLeft: 30,
+  },
+  footerHint: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
   },
   doneButton: {
     borderTopWidth: StyleSheet.hairlineWidth,

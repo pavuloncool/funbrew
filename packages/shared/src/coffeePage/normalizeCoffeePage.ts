@@ -1,5 +1,37 @@
 import type { ScanQrResult } from '../hooks/useCoffeePage';
 
+export type CanonicalPublicationFields = {
+  coffee: {
+    name: string;
+    variety: string | null;
+    processingMethod: string | null;
+    producerNotes: string | null;
+    imageUrl: string | null;
+    status: string | null;
+  };
+  origin: {
+    country: string | null;
+    region: string | null;
+    farm: string | null;
+    producer: string | null;
+    altitudeMin: number | null;
+    altitudeMax: number | null;
+    altitudeLabel: string | null;
+  };
+  batch: {
+    id: string | null;
+    lotNumber: string | null;
+    roastDate: string | null;
+    status: string | null;
+    brewingNotes: string | null;
+    roasterStory: string | null;
+  };
+  qr: {
+    hash: string;
+    url: string | null;
+  };
+};
+
 export type NormalizedCoffeePageData = {
   source: 'canonical';
   hash: string;
@@ -18,17 +50,22 @@ export type NormalizedCoffeePageData = {
     processingMethod: string | null;
     producerNotes: string | null;
     imageUrl: string | null;
+    status: string | null;
   };
   origin: {
     country: string | null;
     region: string | null;
     farm: string | null;
     producer: string | null;
+    altitudeMin: number | null;
+    altitudeMax: number | null;
     altitudeLabel: string | null;
   };
   roast: {
+    id: string | null;
     date: string | null;
     lotNumber: string | null;
+    status: string | null;
     level: string | null;
   };
   brewing: {
@@ -105,20 +142,25 @@ export function normalizeCoffeePageData(
       processingMethod: input.coffee.processing_method,
       producerNotes: input.coffee.producer_notes,
       imageUrl: input.coffee.cover_image_url,
+      status: input.coffee.status ?? null,
     },
     origin: {
       country: origin.country ?? null,
       region: origin.region ?? null,
       farm: origin.farm ?? null,
       producer: origin.producer ?? null,
+      altitudeMin: origin.altitude_min ?? null,
+      altitudeMax: origin.altitude_max ?? null,
       altitudeLabel: normalizeAltitudeLabel({
         min: origin.altitude_min,
         max: origin.altitude_max,
       }),
     },
     roast: {
+      id: input.batch.id,
       date: input.batch.roast_date,
       lotNumber: input.batch.lot_number,
+      status: input.batch.status ?? null,
       level: null,
     },
     brewing: {
@@ -134,5 +176,41 @@ export function normalizeCoffeePageData(
     },
     tastingNotes: [],
     logBatchId: input.batch.id,
+  };
+}
+
+export function toCanonicalPublicationFields(
+  input: NormalizedCoffeePageData
+): CanonicalPublicationFields {
+  return {
+    coffee: {
+      name: input.product.name,
+      variety: input.product.variety,
+      processingMethod: input.product.processingMethod,
+      producerNotes: input.product.producerNotes,
+      imageUrl: input.product.imageUrl,
+      status: input.product.status,
+    },
+    origin: {
+      country: input.origin.country,
+      region: input.origin.region,
+      farm: input.origin.farm,
+      producer: input.origin.producer,
+      altitudeMin: input.origin.altitudeMin,
+      altitudeMax: input.origin.altitudeMax,
+      altitudeLabel: input.origin.altitudeLabel,
+    },
+    batch: {
+      id: input.roast.id ?? input.logBatchId,
+      lotNumber: input.roast.lotNumber,
+      roastDate: input.roast.date,
+      status: input.roast.status,
+      brewingNotes: input.brewing.notes,
+      roasterStory: input.story.roasterStory,
+    },
+    qr: {
+      hash: input.hash,
+      url: null,
+    },
   };
 }

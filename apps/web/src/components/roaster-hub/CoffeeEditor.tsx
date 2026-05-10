@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState, type HTMLAttributes } from 'react';
 
 import { CoffeeLabelUploadField } from '@/src/components/ui/coffee-label-upload-field';
@@ -77,6 +77,7 @@ function validateCoffeeForm(values: CanonicalCoffeeFormValues): FormErrors {
 export function CoffeeEditor(props: CoffeeEditorProps) {
   const { mode, coffeeId } = props;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [values, setValues] = useState<CanonicalCoffeeFormValues>(
     emptyCanonicalCoffeeFormValues()
   );
@@ -97,6 +98,13 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
     batchId: string;
     qr: QrPreview;
   } | null>(null);
+  const returnBatchId = useMemo(() => {
+    const batch = searchParams.get('batch');
+    if (!batch) return null;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(batch)
+      ? batch
+      : null;
+  }, [searchParams]);
 
   async function createBatchForCoffee(input: {
     coffeeId: string;
@@ -178,11 +186,13 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
       }
 
       if (!user) {
+        const editPath = `/roaster-hub/coffees/${coffeeId ?? ''}`;
+        const editPathWithBatch = returnBatchId ? `${editPath}?batch=${encodeURIComponent(returnBatchId)}` : editPath;
         router.replace(
           `/login?next=${encodeURIComponent(
             mode === 'create'
               ? '/roaster-hub/coffees/new'
-              : `/roaster-hub/coffees/${coffeeId ?? ''}`
+              : editPathWithBatch
           )}`
         );
         return;
@@ -248,7 +258,7 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
     return () => {
       cancelled = true;
     };
-  }, [coffeeId, mode, router]);
+  }, [coffeeId, mode, returnBatchId, router]);
 
   const intro = useMemo(() => {
     if (mode === 'create') {
@@ -355,6 +365,11 @@ export function CoffeeEditor(props: CoffeeEditorProps) {
           batchId: createdBatch.id,
           qr: qrPreview,
         });
+        return;
+      }
+
+      if (returnBatchId) {
+        router.push(`/coffee-bank?batch=${encodeURIComponent(returnBatchId)}`);
         return;
       }
 

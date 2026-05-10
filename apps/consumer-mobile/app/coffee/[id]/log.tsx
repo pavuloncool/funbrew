@@ -7,6 +7,7 @@ import {
   normalizeTastingSyncError,
   type RepurchaseIntent,
   upsertRoasterTelemetryCore,
+  useUnlockedTastingNotes,
   updateCoffeeStats,
   visualSystemTokens,
 } from '@funcup/shared';
@@ -20,6 +21,7 @@ import { BrewMethodPicker } from '../../../src/coffee/tasting/BrewMethodPicker';
 import { FlavorNoteSelector } from '../../../src/coffee/tasting/FlavorNoteSelector';
 import { RatingInput } from '../../../src/coffee/tasting/RatingInput';
 import { useOfflineTastingSync } from '../../../src/hooks/useOfflineTastingSync';
+import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { offlineQueueStorage } from '../../../src/services/offlineQueueStorage';
 import { supabase } from '../../../src/services/supabaseClient';
 import { AppButton, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
@@ -27,10 +29,12 @@ import { pageStyles } from '../../../src/theme/pageStyles';
 
 export default function TastingLogScreen() {
   const insets = useSafeAreaInsets();
+  const { userId } = useViewerUserId();
   const params = useLocalSearchParams<{ id?: string; batchId?: string }>();
   const batchId =
     typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : params.id;
   const { isOnline, pendingCount, failedCount, refreshPendingCount } = useOfflineTastingSync();
+  const unlocksQuery = useUnlockedTastingNotes({ supabase, userId });
   const [rating, setRating] = useState<number | null>(null);
   const [brewMethodId, setBrewMethodId] = useState<string | null>(null);
   const [tastingNoteIds, setTastingNoteIds] = useState<string[]>([]);
@@ -43,6 +47,7 @@ export default function TastingLogScreen() {
   const [sensorySweetness, setSensorySweetness] = useState(3);
   const [sensoryBody, setSensoryBody] = useState(3);
   const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
+  const lockedNoteIds = new Set((unlocksQuery.data?.lockedOptions ?? []).map((option) => option.id));
 
   const validate = (): string | null => {
     if (!batchId) return 'Missing batch id';
@@ -54,6 +59,9 @@ export default function TastingLogScreen() {
     }
     if (tastingNoteIds.length === 0) {
       return 'Select at least one tasting note';
+    }
+    if (tastingNoteIds.some((id) => lockedNoteIds.has(id))) {
+      return 'Some tasting notes are still locked for your current sensory level.';
     }
     return null;
   };
@@ -170,7 +178,20 @@ export default function TastingLogScreen() {
 
       <RatingInput value={rating} onChange={setRating} />
       <BrewMethodPicker value={brewMethodId} onChange={setBrewMethodId} />
-      <FlavorNoteSelector selectedIds={tastingNoteIds} onChange={setTastingNoteIds} />
+      <FlavorNoteSelector
+        selectedIds={tastingNoteIds}
+        onChange={setTastingNoteIds}
+        options={unlocksQuery.data?.options}
+        disabledIds={unlocksQuery.data?.lockedOptions.map((option) => option.id)}
+        disabledHint={unlocksQuery.data?.unlockHint ?? null}
+        getDisabledReason={(option) => `Unlocks at ${option.requiredLevel} level.`}
+      />
+      {unlocksQuery.data ? (
+        <AppText tone="secondary">
+          Current level: {unlocksQuery.data.levelLabel}
+          {unlocksQuery.data.nextLevelLabel ? ` · next unlock at ${unlocksQuery.data.nextLevelLabel}` : ''}
+        </AppText>
+      ) : null}
       <View style={styles.fieldBlock}>
         <AppText variant="body" weight="600">Roaster telemetry profile (MVP core)</AppText>
         <ScorePicker label="Acidity" value={sensoryAcidity} onChange={setSensoryAcidity} />

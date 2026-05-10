@@ -214,9 +214,14 @@ export default function BatchDetailsPage() {
             {batch.roaster_story ?? '—'}
           </p>
 
-          <div className="mt-5 rounded border border-vs-border-default bg-vs-elevated p-4">
-            <p className={`${hubCrudStyles.bodyStrong} mb-2`}>Public QR</p>
-            <p className={`${hubCrudStyles.muted} mb-3`}>
+          <article className="mt-5 rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-5 shadow-vs-sm">
+            <p className="font-display text-3xl uppercase tracking-[-0.02em] text-vs-text-primary">
+              Public QR
+            </p>
+            <p className="mt-1 text-lg text-vs-text-secondary">
+              Lot {batch.lot_number} · Roast {batch.roast_date} · {batch.status}
+            </p>
+            <p className="mt-3 text-base text-vs-text-secondary">
               Canonical batch flow generates public `/q/{'{hash}'}` links directly from batch data.
             </p>
             <button
@@ -255,18 +260,28 @@ export default function BatchDetailsPage() {
             ) : null}
 
             {qrError ? <p className={hubCrudStyles.error}>{qrError}</p> : null}
-          </div>
+          </article>
 
-          <p className="mt-5">
-            <Link href={`/roaster-hub/analytics/${params.batchId}`} className={hubCrudStyles.actionLink}>
+          <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap sm:items-center md:flex-nowrap">
+            <Link
+              href="/roaster-hub/analytics"
+              className={`${hubCrudStyles.submitBtn} inline-flex w-full justify-center whitespace-nowrap sm:w-auto`}
+            >
+              Back to Analytics
+            </Link>
+            <Link
+              href={`/roaster-hub/analytics/${params.batchId}`}
+              className={`${hubCrudStyles.actionLink} inline-flex w-full justify-center whitespace-nowrap sm:w-auto`}
+            >
               Batch analytics
             </Link>
-          </p>
-          <p>
-            <Link href={`/roaster-hub/coffees/${params.id}`} className={hubCrudStyles.actionLink}>
-              Back to coffee
+            <Link
+              href={`/coffee-bank?batch=${encodeURIComponent(params.batchId)}`}
+              className={`${hubCrudStyles.actionLink} inline-flex w-full justify-center whitespace-nowrap sm:w-auto`}
+            >
+              Back to Coffee Bank
             </Link>
-          </p>
+          </div>
         </>
       ) : null}
     </main>

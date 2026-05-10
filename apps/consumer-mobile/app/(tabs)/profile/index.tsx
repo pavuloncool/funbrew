@@ -1,4 +1,4 @@
-import { getReputationLevel, getReputationLevelLabel, visualSystemTokens } from '@funcup/shared';
+import { getReputationLevel, getReputationLevelLabel, useCommunityReputationSummary, visualSystemTokens } from '@funcup/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -63,6 +63,7 @@ export default function ProfileScreen() {
 
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const communitySummaryQuery = useCommunityReputationSummary({ supabase, userId: userId || null });
   const reputationLevel = useMemo(() => getReputationLevel(sensoryScore), [sensoryScore]);
 
   const selectedAvatar = useMemo(() => resolveAvatarOption(avatarValue), [avatarValue]);
@@ -345,6 +346,9 @@ export default function ProfileScreen() {
           ) : null}
           <AppText tone="secondary">Fav brew method: {favoriteBrewMethodLabel}</AppText>
           <AppText tone="secondary">Fav tasting notes: {favoriteTastingNotesLabel}</AppText>
+          <AppText tone="secondary">
+            Community helpful: {communitySummaryQuery.data?.helpfulReceived ?? 0} across {communitySummaryQuery.data?.reviewCount ?? 0} public reviews
+          </AppText>
         </AppCard>
 
         <AppCard>

@@ -5,6 +5,7 @@ import {
   logFlowError,
   normalizeCoffeePageData,
   normalizeFlowError,
+  toCanonicalPublicationFields,
 } from '@funcup/shared';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -68,9 +69,7 @@ export default function ResolveHashPage() {
       try {
         const raw = body as Record<string, unknown>;
         let data: ScanQrResult;
-        if (raw.kind === 'tag' && raw.tag && typeof raw.tag === 'object') {
-          data = raw as ScanQrResult;
-        } else if (raw.kind === 'batch' && raw.batch && raw.coffee) {
+        if (raw.kind === 'batch' && raw.batch && raw.coffee) {
           data = raw as ScanQrResult;
         } else if (raw.batch && raw.coffee) {
           data = { ...(raw as object), kind: 'batch' } as ScanQrResult;
@@ -127,52 +126,7 @@ export default function ResolveHashPage() {
 
   const { data } = state;
   const publicCoffee = normalizeCoffeePageData(data, { hash: params.hash });
-
-  if (publicCoffee.source === 'tag') {
-    return (
-      <main className={resolveHashStyles.main}>
-        <h1 className={resolveHashStyles.heading}>Coffee tag</h1>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Roaster:</strong> {publicCoffee.roaster.shortName ?? '—'}
-        </p>
-        <p>
-          <img
-            src={publicCoffee.product.imageUrl ?? ''}
-            alt="Coffee label"
-            className={resolveHashStyles.labelImage}
-          />
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Coffee:</strong> {publicCoffee.product.name}
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Trade name:</strong> {publicCoffee.product.producerNotes ?? '—'}
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Origin:</strong>{' '}
-          {[publicCoffee.origin.country, publicCoffee.origin.region, publicCoffee.origin.farm]
-            .filter(Boolean)
-            .join(' · ') || '—'}
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Bean:</strong> {publicCoffee.product.variety ?? '—'}
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Processing:</strong> {publicCoffee.product.processingMethod ?? '—'}
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Roast:</strong> {publicCoffee.roast.date ?? '—'}
-          {publicCoffee.roast.level ? ` (${publicCoffee.roast.level})` : ''}
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Brew:</strong> {publicCoffee.brewing.recommendedMethod ?? '—'}
-        </p>
-        <p className={resolveHashStyles.bodyText}>
-          <strong>Elevation:</strong> {publicCoffee.origin.altitudeLabel ?? '—'}
-        </p>
-      </main>
-    );
-  }
+  const fields = toCanonicalPublicationFields(publicCoffee);
 
   return (
     <main className={resolveHashStyles.main}>
@@ -184,10 +138,10 @@ export default function ResolveHashPage() {
         <strong>Roaster:</strong> {publicCoffee.roaster.name ?? 'n/a'}
       </p>
       <p className={resolveHashStyles.bodyText}>
-        <strong>Coffee:</strong> {publicCoffee.product.name}
+        <strong>Coffee:</strong> {fields.coffee.name}
       </p>
       <p className={resolveHashStyles.bodyText}>
-        <strong>Batch:</strong> {publicCoffee.roast.lotNumber ?? publicCoffee.logBatchId ?? 'n/a'}
+        <strong>Batch:</strong> {fields.batch.lotNumber ?? fields.batch.id ?? 'n/a'}
       </p>
     </main>
   );

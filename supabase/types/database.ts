@@ -168,6 +168,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_favorite_qr_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          qr_hash: string;
+          batch_id: string;
+          coffee_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          qr_hash: string;
+          batch_id: string;
+          coffee_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          qr_hash?: string;
+          batch_id?: string;
+          coffee_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       coffee_logs: {
         Row: {
           id: string;
@@ -399,6 +426,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+    };
+    Functions: {
+      get_batch_community_reviews: {
+        Args: {
+          p_batch_id: string;
+        };
+        Returns: {
+          review_id: string;
+          body: string;
+          coffee_log_id: string;
+          logged_at: string;
+          helpful_count: number;
+          viewer_marked_helpful: boolean;
+          author_name: string | null;
+          author_sensory_level: 'beginner' | 'advanced' | 'expert' | null;
+        }[];
+      };
+      get_user_community_summary: {
+        Args: {
+          p_user_id: string;
+        };
+        Returns: {
+          review_count: number;
+          helpful_received: number;
+        }[];
       };
     };
   };

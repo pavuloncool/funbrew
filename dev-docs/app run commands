@@ -1,0 +1,17 @@
+# app run commands
+
+## Supabase (local)
+pnpm exec supabase start
+bash scripts/mobile-functions-smoke-check.sh
+
+## tunnel (Cloudflare -> local Supabase API)
+bash scripts/start-supabase-https-tunnel.sh
+
+## metro (Expo for consumer-mobile)
+pnpm -C apps/consumer-mobile run start:expogo:tunnel
+
+## localhost (web app on local host)
+pnpm -C apps/web dev
+
+## optional: one-command orchestrator
+pnpm run dev:mobile-stack -- --restart

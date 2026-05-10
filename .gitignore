@@ -62,3 +62,6 @@ storybook-static
 Spline_Sans.zip
 gt-walsheim-font-family/
 supabase/.temp/
+
+# Local env backups
+*.env.local.bak

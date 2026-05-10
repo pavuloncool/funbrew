@@ -59,7 +59,7 @@ export default function HomeLanding() {
             Public Beta
           </p>
           <h1 className="mt-6 max-w-[840px] font-display text-[44px] uppercase leading-[0.95] tracking-[-0.04em] text-vs-text-primary sm:text-[62px] lg:text-[80px]">
-            Better coffee data from roast to sip
+            Bridging data gaps between roasters and buyers
           </h1>
           <p className="mt-5 max-w-[620px] text-lg leading-relaxed text-vs-text-secondary sm:text-xl">
             fun•brew connects roaster operations on web with consumer tasting flow on mobile, in

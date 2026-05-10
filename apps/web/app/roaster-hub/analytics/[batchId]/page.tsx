@@ -23,6 +23,8 @@ export default function BatchAnalyticsPage() {
   const params = useParams();
   const batchId = typeof params.batchId === 'string' ? params.batchId : null;
   const [coffeeId, setCoffeeId] = useState<string | null>(null);
+  const [coffeeName, setCoffeeName] = useState<string | null>(null);
+  const [lotNumber, setLotNumber] = useState<string | null>(null);
 
   useEffect(() => {
     async function ensureAuth() {
@@ -44,12 +46,20 @@ export default function BatchAnalyticsPage() {
     void (async () => {
       const { data, error } = await supabaseBrowser
         .from('roast_batches')
-        .select('coffee_id')
+        .select('coffee_id, lot_number, coffees(name)')
         .eq('id', batchId)
         .maybeSingle();
-      const row = data as { coffee_id: string } | null;
+      const row = data as
+        | {
+            coffee_id: string;
+            lot_number: string | null;
+            coffees?: { name?: string | null } | null;
+          }
+        | null;
       if (!cancelled && !error && row?.coffee_id) {
         setCoffeeId(row.coffee_id);
+        setLotNumber(row.lot_number ?? null);
+        setCoffeeName(row.coffees?.name ?? null);
       }
     })();
     return () => {
@@ -84,6 +94,7 @@ export default function BatchAnalyticsPage() {
       : coffeeId
         ? `/roaster-hub/coffees/${coffeeId}`
         : '/coffee-bank';
+  const batchLabel = coffeeName && lotNumber ? `${coffeeName} / ${lotNumber}` : 'Batch';
 
   return (
     <main className="mx-auto w-full max-w-[1240px] px-6 py-10 font-sans text-vs-text-primary">
@@ -93,16 +104,24 @@ export default function BatchAnalyticsPage() {
         </Link>
         <span className="text-vs-text-muted">/</span>
         <Link href={backHref} className="font-semibold text-vs-text-secondary underline underline-offset-4 hover:text-vs-text-primary">
-          Batch
+          {batchLabel}
         </Link>
         <span className="text-vs-text-muted">/</span>
         <span className="font-semibold text-vs-text-primary">Analytics</span>
       </nav>
 
       <h1 className="font-display text-5xl uppercase tracking-[-0.03em] text-vs-text-primary">Batch analytics</h1>
-      <p className="mt-2 inline-flex rounded-vs-sm border border-vs-border-subtle/40 bg-vs-surface px-3 py-1 font-mono text-sm text-vs-text-muted">
-        {batchId ?? '—'}
-      </p>
+      <div className="mt-3 space-y-2 rounded-vs-md border border-vs-border-subtle/40 bg-vs-surface px-4 py-3">
+        <p className="text-base text-vs-text-primary">
+          <span className="font-semibold">Coffee:</span> {coffeeName ?? '—'}
+        </p>
+        <p className="text-base text-vs-text-primary">
+          <span className="font-semibold">Batch/Lot:</span> {lotNumber || '—'}
+        </p>
+        <p className="font-mono text-xs text-vs-text-muted">
+          Batch ID: {batchId ?? '—'}
+        </p>
+      </div>
       <p className="mt-3 text-base text-vs-text-muted">Auto-refresh every 30s to keep stats close to live logs.</p>
 
       {isLoading ? <p className="mt-8 text-lg text-vs-text-secondary">Loading analytics…</p> : null}

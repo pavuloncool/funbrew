@@ -142,7 +142,7 @@ export function MobileEntrySplash({ onComplete, onPhaseChange }: MobileEntrySpla
     AccessibilityInfo.isScreenReaderEnabled()
       .then((sr) => {
         if (sr) {
-          AccessibilityInfo.announceForAccessibility('funcup');
+          AccessibilityInfo.announceForAccessibility('fun•brew');
         }
       })
       .catch(() => {});
@@ -348,7 +348,7 @@ export function MobileEntrySplash({ onComplete, onPhaseChange }: MobileEntrySpla
             onPress={onFingerprintTap}
             disabled={stage !== 'tap'}
             accessibilityRole="button"
-            accessibilityLabel="funcup"
+            accessibilityLabel="fun•brew"
             accessibilityHint="Double tap to continue the intro"
             style={mobileEntrySplashStyles.hit}
           >
@@ -356,7 +356,7 @@ export function MobileEntrySplash({ onComplete, onPhaseChange }: MobileEntrySpla
               <SvgXml xml={HOME_PRINT_XML} width={PRINT_SIZE} height={PRINT_SIZE} />
             </View>
             <Text style={mobileEntrySplashStyles.wordmark} accessible={false}>
-              funcup
+              fun•brew
             </Text>
           </Pressable>
         </Animated.View>

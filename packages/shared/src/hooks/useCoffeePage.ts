@@ -42,6 +42,16 @@ export type ScanQrBatchResponse = {
 
 export type ScanQrResult = ScanQrBatchResponse;
 
+function resolveSupabaseHost(client: TypedSupabaseClient): string | null {
+  const candidate = (client as unknown as { supabaseUrl?: unknown }).supabaseUrl;
+  if (typeof candidate !== 'string' || candidate.trim().length === 0) return null;
+  try {
+    return new URL(candidate).host;
+  } catch {
+    return candidate;
+  }
+}
+
 function parseScanQrResult(raw: unknown): ScanQrResult {
   if (!raw || typeof raw !== 'object') {
     throw normalizeFlowError({
@@ -81,6 +91,7 @@ export function useCoffeePage(params: {
   supabase: TypedSupabaseClient;
   hash: string | null;
 }) {
+  const supabaseHost = resolveSupabaseHost(params.supabase);
   return useQuery({
     queryKey: ['coffeePage', params.hash],
     enabled: Boolean(params.hash),
@@ -116,7 +127,16 @@ export function useCoffeePage(params: {
           error,
           domain: 'scan',
         });
-        logFlowError(normalized, 'useCoffeePage.queryFn');
+        logFlowError(normalized, 'useCoffeePage.queryFn', {
+          hash: params.hash,
+          supabaseHost,
+          errorType:
+            error instanceof Error
+              ? error.name
+              : typeof error === 'object' && error !== null
+                ? 'object'
+                : typeof error,
+        });
         throw normalized;
       }
     },

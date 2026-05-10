@@ -35,7 +35,7 @@ export const coffeeBankStyles = {
   tableScroll: 'overflow-x-auto rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated shadow-vs-sm',
   table: 'w-full min-w-[320px] border-collapse text-left text-lg',
   tableHeadRow: 'border-b-2 border-vs-border-strong bg-vs-surface',
-  tableTh: 'px-5 py-3.5 font-display text-3xl uppercase tracking-[-0.02em] text-vs-text-primary',
+  tableTh: 'px-5 py-3.5 font-display text-3xl tracking-[-0.02em] text-vs-text-primary',
   tableThBtn:
     'inline-flex w-full items-center gap-1 rounded text-left font-semibold text-vs-text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-vs-hero-primary focus:ring-offset-1',
   tableThBtnActive: 'text-vs-text-primary',

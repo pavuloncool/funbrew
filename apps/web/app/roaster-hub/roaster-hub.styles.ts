@@ -25,9 +25,20 @@ export const roasterHubStyles = {
   rightCard: 'absolute left-8 top-8 z-10 w-[min(520px,calc(100%-64px))] rounded-vs-md border-2 border-vs-border-strong bg-vs-accent-secondary p-5 shadow-vs-md',
   rightCardTitle: 'font-display text-3xl uppercase leading-none text-vs-text-primary',
   rightCardBody: 'mt-3 text-base leading-relaxed text-vs-text-primary',
-  rightDecoA: 'absolute -right-20 top-24 h-72 w-72 rounded-full border-2 border-vs-border-strong bg-vs-hero-secondary/80',
-  rightDecoB: 'absolute bottom-10 right-10 h-56 w-56 rounded-full border-2 border-vs-border-strong bg-vs-accent-secondary/75',
-  rightDecoC: 'absolute bottom-20 left-10 h-44 w-44 rounded-full border-2 border-vs-border-strong bg-vs-elevated/70',
+  rightDecoA:
+    'absolute -right-20 top-24 h-72 w-72 rounded-full border-2 border-vs-border-strong bg-vs-hero-secondary/80',
+  rightDecoB:
+    'absolute bottom-10 right-10 h-56 w-56 rounded-full border-2 border-vs-border-strong bg-vs-accent-secondary/75',
+  rightDecoC:
+    'absolute bottom-20 left-10 h-44 w-44 rounded-full border-2 border-vs-border-strong bg-vs-elevated/70',
+  rightDevice:
+    'pointer-events-none absolute z-0 text-vs-text-primary [stroke-linecap:round] [stroke-linejoin:round]',
+  rightDeviceMoka:
+    'right-[-2.75rem] top-28 h-[20rem] w-[20rem] -rotate-[12deg] text-vs-hero-secondary/95 lg:right-[-3.5rem] lg:top-24 lg:h-[25rem] lg:w-[25rem]',
+  rightDeviceV60:
+    'bottom-12 left-8 h-[9.5rem] w-[9.5rem] -rotate-[16deg] text-vs-elevated/90 lg:bottom-16 lg:left-8 lg:h-[12rem] lg:w-[12rem]',
+  rightDeviceAeropress:
+    'bottom-8 right-6 h-[11rem] w-[11rem] rotate-[18deg] text-vs-accent-secondary/95 lg:bottom-10 lg:right-10 lg:h-[14.5rem] lg:w-[14.5rem]',
 
   tileSection: 'mt-8 border-2 border-vs-border-strong bg-vs-elevated p-6 lg:p-8',
   tileSectionTitle: 'font-display text-4xl uppercase tracking-[-0.03em] text-vs-text-primary lg:text-5xl',

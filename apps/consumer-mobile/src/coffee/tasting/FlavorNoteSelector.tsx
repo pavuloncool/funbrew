@@ -8,11 +8,20 @@ import { supabase } from '../../services/supabaseClient';
 export function FlavorNoteSelector(props: {
   selectedIds: string[];
   onChange: (nextIds: string[]) => void;
+  options?: Array<TastingNoteOption & { requiredLevel?: string }>;
+  disabledIds?: string[];
+  disabledHint?: string | null;
+  getDisabledReason?: (option: TastingNoteOption & { requiredLevel?: string }) => string | null;
 }) {
-  const [visibleNotes, setVisibleNotes] = useState<TastingNoteOption[]>([]);
+  const [visibleNotes, setVisibleNotes] = useState<Array<TastingNoteOption & { requiredLevel?: string }>>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (props.options) {
+      setVisibleNotes(props.options);
+      setLoadError(null);
+      return;
+    }
     let mounted = true;
     void (async () => {
       try {
@@ -29,7 +38,7 @@ export function FlavorNoteSelector(props: {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [props.options]);
 
   return (
     <AppPanel style={styles.section}>
@@ -40,6 +49,9 @@ export function FlavorNoteSelector(props: {
           onChange={props.onChange}
           maxSelected={5}
           label="Tasting notes *"
+          disabledIds={props.disabledIds}
+          disabledHint={props.disabledHint}
+          getDisabledReason={props.getDisabledReason}
         />
       ) : (
         <View style={styles.message}>

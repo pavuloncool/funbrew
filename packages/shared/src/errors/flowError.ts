@@ -306,7 +306,11 @@ export function flowErrorUiCopy(error: FlowError): FlowUiCopy {
   };
 }
 
-export function logFlowError(error: FlowError, origin: string): void {
+export function logFlowError(
+  error: FlowError,
+  origin: string,
+  context?: Record<string, unknown>
+): void {
   // Standardized cross-app telemetry shape for scan/log/analytics failures.
   console.error('[flow-error]', {
     origin,
@@ -316,5 +320,6 @@ export function logFlowError(error: FlowError, origin: string): void {
     code: error.code,
     retryable: error.retryable,
     message: error.message,
+    ...(context ? { context } : {}),
   });
 }

@@ -227,10 +227,10 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
                 lineHeight: 1.55,
                 color: '#1a1a1a',
                 fontFamily: "'Cal Sans', system-ui, sans-serif",
-                fontWeight: 400,
+                fontWeight: 600,
               }}
             >
-              funcup
+              fun•brew
             </p>
           </motion.div>
         )}

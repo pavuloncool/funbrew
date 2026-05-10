@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
+    "scan:preflight": "bash ../../scripts/mobile-functions-smoke-check.sh",
     "test:e2e": "env -u FORCE_COLOR -u NO_COLOR playwright test",
+    "test:e2e:scan": "pnpm run scan:preflight && env -u FORCE_COLOR -u NO_COLOR playwright test tests/us2-happy-path.e2e.spec.ts",
     "test:generate-qr": "echo \"Removed with legacy QR flow decommission\""
   },
   "dependencies": {
