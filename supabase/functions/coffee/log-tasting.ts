@@ -123,7 +123,15 @@ serve(async (req) => {
         })
 
       if (reviewError) {
-        console.error('Failed to insert review:', reviewError.message)
+        // Fail hard for Optional review durability: do not report success if review cannot persist.
+        await serviceSupabase
+          .from('coffee_logs')
+          .delete()
+          .eq('id', coffeeLog.id)
+        return new Response(
+          JSON.stringify({ error: 'review_insert_failed', message: reviewError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
     }
 

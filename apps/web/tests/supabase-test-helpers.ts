@@ -10,6 +10,13 @@ export type TestActor = {
   roasterName: string;
 };
 
+export type ConsumerTestActor = {
+  email: string;
+  password: string;
+  userId: string;
+  accessToken: string;
+};
+
 function mustGetEnv(...names: string[]): string {
   for (const name of names) {
     const value = process.env[name];
@@ -116,6 +123,21 @@ export async function provisionVerifiedRoaster(
   const roasterId = await createRoaster(request, userId, roasterName, serviceRoleKey, url);
 
   return { email, password, userId, accessToken, roasterId, roasterName };
+}
+
+export async function provisionConsumer(
+  request: APIRequestContext,
+  label: string
+): Promise<ConsumerTestActor> {
+  const { url, anonKey, serviceRoleKey } = supabaseEnv();
+  const seed = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const email = `phase4-consumer-${seed}-${Date.now()}@example.com`;
+  const password = `Phase4!${randomUUID().slice(0, 8)}`;
+
+  const userId = await createUser(request, email, password, serviceRoleKey, url);
+  const accessToken = await signIn(request, email, password, anonKey, url);
+
+  return { email, password, userId, accessToken };
 }
 
 /** Inserts a `qr_codes` row for E2E / smoke (replaces removed `generate_qr` Edge flow). */

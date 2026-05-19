@@ -4,6 +4,16 @@
 - Keep canonical-only scan flow (`scan_qr` + `batch`) working on Expo Go with a physical iPhone.
 - Keep DB/functions local (`127.0.0.1:54321`) and expose them as HTTPS for Expo Go via Cloudflare tunnel.
 
+## Toolchain baseline
+- Supabase CLI: `>= 2.98.2` (older versions may fail with unhealthy `analytics/vector` during local start).
+- Docker Desktop/Engine must be running and healthy before `supabase start`.
+- Verify before work:
+
+```bash
+supabase --version
+docker version
+```
+
 ## 1) Preflight local backend (required)
 From repo root:
 
@@ -86,3 +96,15 @@ If app shows 503 or `Scan temporarily unavailable`:
 4. Retry scan.
 
 Most local 503 cases are availability/transport issues, not UI regressions.
+
+## 7) Known local failure modes and fixes
+1. Symptom: `supabase start` fails with `container ... is not ready: unhealthy` for `analytics` or `vector`.
+   - Fix: update CLI (`brew upgrade supabase`), then run:
+   - `supabase stop`
+   - `supabase start --debug`
+2. Symptom: `supabase start` fails with `container name "/supabase_db_funcup" is already in use`.
+   - Fix: cleanup and retry:
+   - `supabase stop --debug`
+   - `supabase start --debug`
+3. Symptom: smoke-check returns connection failure (`000`) but `docker ps` shows healthy Supabase containers.
+   - Fix: run smoke-check from your normal shell environment (not a restricted sandbox/session), then retry mobile start.

@@ -6,7 +6,8 @@ import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { recipes, spacing, radius, colors, motion } = visualSystemTokens;
-const TAB_BAR_HEIGHT = 56;
+export const TAB_BAR_HEIGHT = 56;
+export const TAB_BAR_FAB_OVERLAP = 54;
 
 export function TabDotIcon(props: { active: boolean; label: string }) {
   return (
@@ -16,17 +17,17 @@ export function TabDotIcon(props: { active: boolean; label: string }) {
         height: 32,
         borderRadius: radius.pill,
         borderWidth: 1.5,
-        borderColor: props.active ? recipes.tabbar.activeIcon : recipes.tabbar.inactiveIcon,
+        borderColor: recipes.tabbar.fabBackground,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: props.active ? colors.surface : 'transparent',
+        backgroundColor: props.active ? visualSystemTokens.recipes.screen.background : 'transparent',
       }}
     >
       <Text
         style={{
           fontSize: visualSystemTokens.typography.bodyMD,
           fontFamily: 'SplineSans_700Bold',
-          color: props.active ? recipes.tabbar.activeIcon : recipes.tabbar.inactiveIcon,
+          color: props.active ? colors.textPrimary : recipes.tabbar.inactiveIcon,
         }}
       >
         {props.label}
@@ -42,7 +43,7 @@ export function TabCentralScanFab() {
         width: 86,
         height: 86,
         borderRadius: radius.pill,
-        marginTop: -54,
+        marginTop: -TAB_BAR_FAB_OVERLAP,
         backgroundColor: recipes.tabbar.fabBackground,
         alignItems: 'center',
         justifyContent: 'center',
@@ -60,7 +61,7 @@ export function TabCentralScanFab() {
   );
 }
 
-type StandaloneTabBarTab = 'home' | 'journal' | 'settings' | null;
+type StandaloneTabBarTab = 'home' | 'profile' | null;
 
 export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
   const active = props.active ?? null;
@@ -76,37 +77,27 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
           style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
         >
           <TabDotIcon active={active === 'home'} label="H" />
-          <Text style={standaloneStyles.label}>Home</Text>
+          <Text style={[standaloneStyles.label, active === 'home' ? standaloneStyles.labelActive : null]}>Home</Text>
         </Pressable>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Go to QR Scan"
+          accessibilityLabel="Go to Scan Coffee"
           onPress={() => router.replace(appShellRules.centralActionRoute)}
           style={({ pressed }) => [standaloneStyles.centerItem, pressed && { opacity: motion.press.opacity }]}
         >
           <TabCentralScanFab />
-          <Text style={standaloneStyles.label}>QR Scan</Text>
+          <Text style={standaloneStyles.label}>{appShellRules.centralActionLabel}</Text>
         </Pressable>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Go to Journal"
-          onPress={() => router.replace('/(tabs)/coffee')}
-          style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
-        >
-          <TabDotIcon active={active === 'journal'} label="J" />
-          <Text style={standaloneStyles.label}>Journal</Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go to Settings"
+          accessibilityLabel="Go to Profile"
           onPress={() => router.replace('/(tabs)/profile')}
           style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
         >
-          <TabDotIcon active={active === 'settings'} label="S" />
-          <Text style={standaloneStyles.label}>Settings</Text>
+          <TabDotIcon active={active === 'profile'} label="P" />
+          <Text style={[standaloneStyles.label, active === 'profile' ? standaloneStyles.labelActive : null]}>Profile</Text>
         </Pressable>
       </View>
     </View>
@@ -141,7 +132,7 @@ const standaloneStyles = {
     height: TAB_BAR_HEIGHT,
     paddingTop: spacing.xs,
     flexDirection: 'row' as const,
-    justifyContent: 'space-around' as const,
+    justifyContent: 'space-evenly' as const,
     alignItems: 'center' as const,
   },
   item: {
@@ -160,5 +151,8 @@ const standaloneStyles = {
     fontSize: visualSystemTokens.typography.caption,
     fontFamily: 'SplineSans_500Medium',
     color: recipes.tabbar.inactiveIcon,
+  },
+  labelActive: {
+    color: colors.textPrimary,
   },
 } as const;

@@ -444,6 +444,26 @@ export type Database = {
           author_sensory_level: 'beginner' | 'advanced' | 'expert' | null;
         }[];
       };
+      get_roaster_batch_telemetry_summary: {
+        Args: {
+          p_batch_id: string;
+        };
+        Returns: {
+          row_scope: string;
+          brew_method_id: string | null;
+          total_logs: number;
+          logs_with_telemetry: number;
+          avg_sensory_acidity: number | null;
+          avg_sensory_sweetness: number | null;
+          avg_sensory_body: number | null;
+          repurchase_yes_count: number;
+          repurchase_no_count: number;
+          repurchase_unsure_count: number;
+          experience_beginner_count: number;
+          experience_advanced_count: number;
+          experience_expert_count: number;
+        }[];
+      };
       get_user_community_summary: {
         Args: {
           p_user_id: string;

@@ -43,7 +43,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="brew-your-skills/index"
+        name="community/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="learn/index"
         options={{
           href: null,
         }}
@@ -55,15 +61,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="journal/index"
-        options={{
-          title: 'Journal',
-        }}
-      />
-      <Tabs.Screen
         name="profile/index"
         options={{
-          title: 'Settings',
+          title: 'Profile',
         }}
       />
     </Tabs>

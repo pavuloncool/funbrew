@@ -4,11 +4,17 @@ import { parseFuncupQrScanPayload } from './parseFuncupQrScanPayload';
 
 const SAMPLE =
   '6f464b58-825a-4d95-9865-321a42873b81';
+const SEEDED_SAMPLE =
+  '90000001-0000-0000-0000-000000000001';
 
 describe('parseFuncupQrScanPayload', () => {
   it('accepts bare public_hash (case-insensitive)', () => {
     expect(parseFuncupQrScanPayload(SAMPLE)).toBe(SAMPLE);
     expect(parseFuncupQrScanPayload(SAMPLE.toUpperCase())).toBe(SAMPLE);
+  });
+
+  it('accepts UUID shape used by seeded local hashes', () => {
+    expect(parseFuncupQrScanPayload(SEEDED_SAMPLE)).toBe(SEEDED_SAMPLE);
   });
 
   it('parses http(s) URL with /q/{hash} including localhost and port', () => {

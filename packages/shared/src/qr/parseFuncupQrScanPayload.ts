@@ -2,8 +2,9 @@
  * Extracts `public_hash` from QR payload text. Does not call Supabase — Edge `scan_qr` resolves the hash.
  * Supports: bare UUID, https?://host/.../q/{hash}, funcup://q/{hash} (see consumer app.config scheme).
  */
+// Accept all UUIDs stored in DB (including seeded values with 0000 version/variant groups).
 const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function normalizeHash(candidate: string): string | null {
   const t = candidate.trim();

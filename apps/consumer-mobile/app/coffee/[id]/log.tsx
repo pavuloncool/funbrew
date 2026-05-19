@@ -11,7 +11,7 @@ import {
   updateCoffeeStats,
   visualSystemTokens,
 } from '@funcup/shared';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -29,8 +29,10 @@ import { pageStyles } from '../../../src/theme/pageStyles';
 
 export default function TastingLogScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { userId } = useViewerUserId();
   const params = useLocalSearchParams<{ id?: string; batchId?: string }>();
+  const coffeeId = typeof params.id === 'string' && params.id.length > 0 ? params.id : null;
   const batchId =
     typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : params.id;
   const { isOnline, pendingCount, failedCount, refreshPendingCount } = useOfflineTastingSync();
@@ -41,8 +43,10 @@ export default function TastingLogScreen() {
   const [freeTextNotes, setFreeTextNotes] = useState('');
   const [review, setReview] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'form' | 'saved'>('form');
   const [sensoryAcidity, setSensoryAcidity] = useState(3);
   const [sensorySweetness, setSensorySweetness] = useState(3);
   const [sensoryBody, setSensoryBody] = useState(3);
@@ -75,6 +79,7 @@ export default function TastingLogScreen() {
 
     setSubmitError(null);
     setStatus(null);
+    setSavedMessage(null);
     setIsSubmitting(true);
     const netState = await NetInfo.fetch();
     const online = Boolean(netState.isConnected && netState.isInternetReachable !== false);
@@ -91,7 +96,8 @@ export default function TastingLogScreen() {
       if (!online) {
         await enqueuePendingTasting(offlineQueueStorage, payload);
         await refreshPendingCount();
-        setStatus('Queued offline. It will sync after reconnect.');
+        setSavedMessage('Queued offline. It will sync after reconnect.');
+        setViewMode('saved');
         return;
       }
 
@@ -138,17 +144,15 @@ export default function TastingLogScreen() {
         }
       }
       if (statsRefreshFailed && telemetrySaveFailed) {
-        setStatus('Tasting saved. Stats + telemetry refresh are temporarily unavailable.');
+        setSavedMessage('Rating saved.');
       } else if (statsRefreshFailed) {
-        setStatus('Tasting saved. Stats refresh is temporarily unavailable.');
+        setSavedMessage('Rating saved.');
       } else if (telemetrySaveFailed) {
-        setStatus('Tasting saved. Roaster telemetry profile was not saved this time.');
+        setSavedMessage('Rating saved.');
       } else {
-        setStatus('Synced immediately.');
+        setSavedMessage('Rating saved.');
       }
-      setFreeTextNotes('');
-      setReview('');
-      setTastingNoteIds([]);
+      setViewMode('saved');
     } catch (error) {
       const syncError = normalizeTastingSyncError(error);
       logFlowError(syncError, 'mobile.tasting-log.submit');
@@ -176,91 +180,115 @@ export default function TastingLogScreen() {
         {failedCount > 0 ? ` | Failed sync: ${failedCount}` : ''}
       </AppText>
 
-      <RatingInput value={rating} onChange={setRating} />
-      <BrewMethodPicker value={brewMethodId} onChange={setBrewMethodId} />
-      <FlavorNoteSelector
-        selectedIds={tastingNoteIds}
-        onChange={setTastingNoteIds}
-        options={unlocksQuery.data?.options}
-        disabledIds={unlocksQuery.data?.lockedOptions.map((option) => option.id)}
-        disabledHint={unlocksQuery.data?.unlockHint ?? null}
-        getDisabledReason={(option) => `Unlocks at ${option.requiredLevel} level.`}
-      />
-      {unlocksQuery.data ? (
-        <AppText tone="secondary">
-          Current level: {unlocksQuery.data.levelLabel}
-          {unlocksQuery.data.nextLevelLabel ? ` · next unlock at ${unlocksQuery.data.nextLevelLabel}` : ''}
-        </AppText>
-      ) : null}
-      <View style={styles.fieldBlock}>
-        <AppText variant="body" weight="600">Roaster telemetry profile (MVP core)</AppText>
-        <ScorePicker label="Acidity" value={sensoryAcidity} onChange={setSensoryAcidity} />
-        <ScorePicker label="Sweetness" value={sensorySweetness} onChange={setSensorySweetness} />
-        <ScorePicker label="Body" value={sensoryBody} onChange={setSensoryBody} />
-        <View style={styles.intentGroup}>
-          <AppText tone="secondary">Would you buy this lot again?</AppText>
-          <View style={styles.intentRow}>
-            {INTENT_OPTIONS.map((option) => {
-              const active = repurchaseIntent === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setRepurchaseIntent(option.value)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  style={[styles.intentChip, active ? styles.intentChipActive : null]}
-                >
-                  <AppText tone={active ? 'onPrimary' : 'secondary'} weight="700">
-                    {option.label}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
+      {viewMode === 'saved' ? (
+        <View style={styles.submit}>
+          <AppText variant="body" weight="600">{savedMessage ?? 'Rating saved.'}</AppText>
+          <AppButton
+            label="Edit rating"
+            variant="secondary"
+            onPress={() => {
+              setSubmitError(null);
+              setViewMode('form');
+            }}
+          />
+          <AppButton
+            label="Back to coffee"
+            onPress={() => {
+              if (!coffeeId) return;
+              router.replace({ pathname: '/coffee/[id]', params: { id: coffeeId } });
+            }}
+            disabled={!coffeeId}
+          />
         </View>
-      </View>
+      ) : (
+        <>
+          <RatingInput value={rating} onChange={setRating} />
+          <BrewMethodPicker value={brewMethodId} onChange={setBrewMethodId} />
+          <FlavorNoteSelector
+            selectedIds={tastingNoteIds}
+            onChange={setTastingNoteIds}
+            options={unlocksQuery.data?.options}
+            disabledIds={unlocksQuery.data?.lockedOptions.map((option) => option.id)}
+            disabledHint={unlocksQuery.data?.unlockHint ?? null}
+            getDisabledReason={(option) => `Unlocks at ${option.requiredLevel} level.`}
+          />
+          {unlocksQuery.data ? (
+            <AppText tone="secondary">
+              Current level: {unlocksQuery.data.levelLabel}
+              {unlocksQuery.data.nextLevelLabel ? ` · next unlock at ${unlocksQuery.data.nextLevelLabel}` : ''}
+            </AppText>
+          ) : null}
+          <View style={styles.fieldBlock}>
+            <AppText variant="body" weight="600">Roaster telemetry profile (MVP core)</AppText>
+            <ScorePicker label="Acidity" value={sensoryAcidity} onChange={setSensoryAcidity} />
+            <ScorePicker label="Sweetness" value={sensorySweetness} onChange={setSensorySweetness} />
+            <ScorePicker label="Body" value={sensoryBody} onChange={setSensoryBody} />
+            <View style={styles.intentGroup}>
+              <AppText tone="secondary">Would you buy this lot again?</AppText>
+              <View style={styles.intentRow}>
+                {INTENT_OPTIONS.map((option) => {
+                  const active = repurchaseIntent === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => setRepurchaseIntent(option.value)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      style={[styles.intentChip, active ? styles.intentChipActive : null]}
+                    >
+                      <AppText tone={active ? 'onPrimary' : 'secondary'} weight="700">
+                        {option.label}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
 
-      <View style={styles.fieldBlock}>
-        <AppText variant="body" weight="600">Free-text tasting notes</AppText>
-        <AppText tone="secondary">
-          Shown to roaster in Analytics as anonymized free-text tasting notes.
-        </AppText>
-        <AppInput
-          value={freeTextNotes}
-          onChangeText={setFreeTextNotes}
-          placeholder="Acidity, sweetness, balance, aftertaste..."
-          multiline
-          style={styles.multilineInput}
-        />
-      </View>
+          <View style={styles.fieldBlock}>
+            <AppText variant="body" weight="600">Free-text tasting notes</AppText>
+            <AppText tone="secondary">
+              Shown to roaster in Analytics as anonymized free-text tasting notes.
+            </AppText>
+            <AppInput
+              value={freeTextNotes}
+              onChangeText={setFreeTextNotes}
+              placeholder="Acidity, sweetness, balance, aftertaste..."
+              multiline
+              style={styles.multilineInput}
+            />
+          </View>
 
-      <View style={styles.fieldBlock}>
-        <AppText variant="body" weight="600">Optional review</AppText>
-        <AppText tone="secondary">
-          Shown to roaster in Analytics under Anonymized reviews.
-        </AppText>
-        <AppInput
-          value={review}
-          onChangeText={setReview}
-          placeholder="Share a short review for roaster analytics."
-          multiline
-          style={styles.multilineInput}
-        />
-      </View>
+          <View style={styles.fieldBlock}>
+            <AppText variant="body" weight="600">Optional review</AppText>
+            <AppText tone="secondary">
+              Shown to roaster in Analytics under Anonymized reviews.
+            </AppText>
+            <AppInput
+              value={review}
+              onChangeText={setReview}
+              placeholder="Share a short review for roaster analytics."
+              multiline
+              style={styles.multilineInput}
+            />
+          </View>
 
-      <View style={styles.submit}>
-        <AppText variant="body" weight="600">Submit tasting</AppText>
-        <AppText tone="secondary">
-          Required: rating, brew method, at least one tasting note.
-        </AppText>
-        {submitError ? <AppText tone="danger">{submitError}</AppText> : null}
-        <AppButton
-          onPress={() => { void onSubmit(); }}
-          label={isSubmitting ? 'Saving...' : 'Save tasting'}
-          disabled={isSubmitting || !batchId}
-        />
-        {status ? <AppText tone="secondary">{status}</AppText> : null}
-      </View>
+          <View style={styles.submit}>
+            <AppText variant="body" weight="600">Submit tasting</AppText>
+            <AppText tone="secondary">
+              Required: rating, brew method, at least one tasting note.
+            </AppText>
+            {submitError ? <AppText tone="danger">{submitError}</AppText> : null}
+            <AppButton
+              onPress={() => { void onSubmit(); }}
+              label={isSubmitting ? 'Saving...' : 'Save tasting'}
+              disabled={isSubmitting || !batchId}
+            />
+            {status ? <AppText tone="secondary">{status}</AppText> : null}
+          </View>
+        </>
+      )}
     </AppScrollScreen>
   );
 }

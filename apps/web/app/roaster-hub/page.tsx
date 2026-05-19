@@ -151,7 +151,7 @@ export default function RoasterHubPage() {
           <div className={roasterHubStyles.leftPanel}>
             <div>
               <span className={roasterHubStyles.heroEyebrow}>Roaster workspace</span>
-              <h1 className={roasterHubStyles.hubTitle}>{shortName} uses data from fun•brew.</h1>
+              <h1 className={roasterHubStyles.hubTitle}>{shortName} roasts data delivered by fun•brew.</h1>
               <p className={roasterHubStyles.hubSubtitle}>
                 Publish batches, keep your coffee bank synced and monitor consumer signals in one place.
                 Everything below is optimized for the core beta-demo loop.

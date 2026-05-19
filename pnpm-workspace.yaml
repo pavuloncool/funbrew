@@ -2,7 +2,13 @@ packages:
   - "apps/*"
   - "packages/*"
 
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+confirmModulesPurge: false
+
 # Hoisted node_modules avoids Metro / native tooling missing deps under pnpm’s isolated
 # layout (see https://docs.expo.dev/guides/monorepos/#package-managers-with-isolated-dependencies).
 nodeLinker: hoisted
-

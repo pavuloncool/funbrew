@@ -16,9 +16,6 @@ import { getResolvedSupabasePublicOrigin } from '@/src/lib/supabasePublicOrigin'
 
 import { coffeeBankStyles } from './coffee-bank.styles';
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 type SortKey = 'coffeeName' | 'roastDate';
 type SortDir = 'asc' | 'desc';
 
@@ -351,7 +348,7 @@ function CoffeeBankContent() {
 
   const batchParam = searchParams.get('batch');
   const selectedBatchId = useMemo(() => {
-    if (!batchParam || !UUID_RE.test(batchParam)) return null;
+    if (!batchParam) return null;
     if (!records.some((record) => record.batchId === batchParam)) return null;
     return batchParam;
   }, [batchParam, records]);
@@ -377,6 +374,13 @@ function CoffeeBankContent() {
     });
     return copy;
   }, [records, sortKey, sortDir]);
+
+  useEffect(() => {
+    if (!sessionReady || !hasSession || !roasterId) return;
+    if (recordsLoading || sortedRecords.length === 0) return;
+    if (selectedBatchId) return;
+    router.replace(`/coffee-bank?batch=${encodeURIComponent(sortedRecords[0].batchId)}`);
+  }, [hasSession, recordsLoading, roasterId, router, selectedBatchId, sessionReady, sortedRecords]);
 
   useEffect(() => {
     setQrPreview(null);

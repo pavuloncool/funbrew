@@ -1,254 +1,224 @@
-import {
-  useCoffeeGeographySummary,
-  useCommunityReputationSummary,
-  useFavoriteScannedEntries,
-  useUnlockedTastingNotes,
-  visualSystemTokens,
-} from '@funcup/shared';
+import { visualSystemTokens } from '@funcup/shared';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EmptyState } from '../../../src/components/EmptyState';
-import { AppButton, AppCard, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
-import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
-import { supabase } from '../../../src/services/supabaseClient';
-import { pageStyles } from '../../../src/theme/pageStyles';
+import { AppScreen, AppText } from '../../../src/components/ui/primitives';
+import { TAB_BAR_FAB_OVERLAP, TAB_BAR_HEIGHT } from '../../../src/components/ui/AppTabBar';
 
-function formatProcessingName(value: string): string {
-  return value
-    .split('-')
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
-}
+const { spacing, radius, colors, basePalette, typography } = visualSystemTokens;
+const HUB_HORIZONTAL_PADDING = Math.round(spacing.xl * 0.7);
+const GRID_GAP = spacing.xs;
+const HEADER_TO_GRID_GAP = GRID_GAP * 2;
+const TILE_PADDING = spacing.md;
+const GRID_BOTTOM_MARGIN = spacing.sm;
+const FALLBACK_HEADER_HEIGHT = typography.headingSM;
+const COMPACT_SCREEN_HEIGHT = 667;
+const COMPACT_SCREEN_WIDTH = 375;
 
 export default function HubIndexScreen() {
   const router = useRouter();
-  const { userId, isLoading } = useViewerUserId();
-  const unlocksQuery = useUnlockedTastingNotes({ supabase, userId });
-  const geographyQuery = useCoffeeGeographySummary({ supabase, userId });
-  const communityQuery = useCommunityReputationSummary({ supabase, userId });
-  const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const [headerHeight, setHeaderHeight] = useState<number>(FALLBACK_HEADER_HEIGHT);
+  const isCompactScreen = height <= COMPACT_SCREEN_HEIGHT || width <= COMPACT_SCREEN_WIDTH;
 
-  const favoriteCount = favoritesQuery.data?.length ?? 0;
-  const geography = geographyQuery.data;
-  const unlocks = unlocksQuery.data;
-  const community = communityQuery.data;
+  const availableWidth = Math.max(width - HUB_HORIZONTAL_PADDING * 2, 0);
+  const tileWidth = Math.max(Math.floor((availableWidth - GRID_GAP) / 2), 0);
+
+  const availableGridHeight = Math.max(
+    height
+      - insets.top
+      - insets.bottom
+      - TAB_BAR_HEIGHT
+      - TAB_BAR_FAB_OVERLAP
+      - headerHeight
+      - HEADER_TO_GRID_GAP
+      - GRID_BOTTOM_MARGIN,
+    0
+  );
+  const tileHeight = Math.max(Math.floor((availableGridHeight - GRID_GAP) / 2), 0);
 
   return (
-    <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content]}>
-      <View style={styles.header}>
-        <AppText variant="caption" weight="700" tone="secondary" style={styles.eyebrow}>
-          FUN•BREW HUB
-        </AppText>
-        <AppText variant="h1" weight="700">Scan & Learn</AppText>
-        <AppText tone="secondary">
-          Gamification stays editorial here: your next scan, your sensory progression and the coffee places you have already explored.
-        </AppText>
-      </View>
+    <AppScreen edges={['top', 'left', 'right']} style={styles.screen}>
+      <View style={styles.content}>
+        <View style={styles.dashboard}>
+          <View
+            style={styles.header}
+            onLayout={(event) => {
+              const nextHeight = Math.ceil(event.nativeEvent.layout.height);
+              if (nextHeight > 0 && nextHeight !== headerHeight) {
+                setHeaderHeight(nextHeight);
+              }
+            }}
+          >
+            <AppText variant="h3" weight="700" style={styles.title}>fun•brew: passion for coffee</AppText>
+          </View>
 
-      <Pressable
-        onPress={() => router.push('/(tabs)/scan/scan')}
-        accessibilityRole="button"
-        accessibilityLabel="Scan Coffee"
-        style={({ pressed }) => [styles.scanHero, pressed ? styles.scanHeroPressed : null]}
-      >
-        <AppText variant="caption" weight="700" tone="onPrimary">PRIMARY LOOP</AppText>
-        <AppText variant="hero" weight="700" tone="onPrimary" style={styles.scanHeroTitle}>
-          Scan Coffee
-        </AppText>
-        <AppText tone="onPrimary">
-          Open the next bag, scan the QR and keep your tasting memory tied to a real coffee experience.
-        </AppText>
-        <View style={styles.scanHeroFooter}>
-          <AppText weight="700" tone="primary" style={styles.scanHeroPill}>Open scanner</AppText>
-        </View>
-      </Pressable>
-
-      <AppCard>
-        <AppText variant="h3" weight="700">Sensory progression</AppText>
-        {isLoading || unlocksQuery.isLoading ? (
-          <AppText tone="secondary">Loading progression…</AppText>
-        ) : !userId ? (
-          <EmptyState
-            title="Sign in to track progression"
-            description="Your tasting logs unlock more precise descriptors over time."
-          />
-        ) : unlocks ? (
-          <>
-            <AppText variant="h2" weight="700">{unlocks.levelLabel}</AppText>
-            <AppText tone="secondary">Sensory score: {unlocks.score}</AppText>
-            <AppText tone="secondary">
-              Unlocked descriptors: {unlocks.unlockedOptions.slice(0, 4).map((option) => option.label).join(', ')}
-              {unlocks.unlockedOptions.length > 4 ? '…' : ''}
-            </AppText>
-            {unlocks.unlockHint ? <AppText tone="secondary">{unlocks.unlockHint}</AppText> : null}
-          </>
-        ) : null}
-      </AppCard>
-
-      <Pressable
-        onPress={() => router.push('/atlas')}
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
-      >
-        <AppText variant="caption" weight="700" tone="secondary">COFFEE GEOGRAPHY</AppText>
-        <AppText variant="h3" weight="700">Atlas preview</AppText>
-        {geographyQuery.isLoading ? (
-          <AppText tone="secondary">Building map summary…</AppText>
-        ) : geography && geography.uniqueCountries > 0 ? (
-          <>
-            <AppText tone="secondary">
-              {geography.uniqueCountries} countries across {geography.totalLogs} tasting logs.
-            </AppText>
-            <View style={styles.chipRow}>
-              {geography.topCountries.slice(0, 3).map((country) => (
-                <View key={country.country} style={styles.countryChip}>
-                  <AppText variant="bodySm" weight="700">{country.country}</AppText>
-                  <AppText variant="caption" tone="secondary">{country.count} logs</AppText>
-                </View>
-              ))}
+          <View style={[styles.grid, { width: availableWidth, height: availableGridHeight }]}>
+            <View style={styles.row}>
+              <HubTile
+                title="Coffee"
+                caption="LOG & DISCOVER"
+                description="Log your coffee experiences, discover new blends and manage your saved entries."
+                onPress={() => router.push('/(tabs)/coffee')}
+                tileWidth={tileWidth}
+                tileHeight={tileHeight}
+                isCompactScreen={isCompactScreen}
+              />
+              <HubTile
+                title="Roasters"
+                caption="FOLLOW & EXPLORE"
+                description="Visit your favourite roasters and discover new ones for more coffee to try."
+                onPress={() => router.push('/(tabs)/roasters')}
+                tileWidth={tileWidth}
+                tileHeight={tileHeight}
+                isCompactScreen={isCompactScreen}
+              />
             </View>
-          </>
-        ) : (
-          <AppText tone="secondary">Your atlas will start after the first logged coffee with origin data.</AppText>
-        )}
-      </Pressable>
 
-      <View style={styles.grid}>
-        <Pressable
-          onPress={() => router.push('/(tabs)/coffee')}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
-        >
-          <AppText variant="caption" weight="700" tone="secondary">FAVORITES</AppText>
-          <AppText variant="h3" weight="700">Favorite scans</AppText>
-          <AppText tone="secondary">
-            {favoriteCount > 0
-              ? `${favoriteCount} saved entries ready to reopen.`
-              : 'Save scanned coffees you want to revisit later.'}
-          </AppText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push('/(tabs)/roasters')}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
-        >
-          <AppText variant="caption" weight="700" tone="secondary">ROASTERS</AppText>
-          <AppText variant="h3" weight="700">Discover roasters</AppText>
-          <AppText tone="secondary">
-            Browse verified profiles and follow roasters you want to keep close.
-          </AppText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push('/(tabs)/profile')}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
-        >
-          <AppText variant="caption" weight="700" tone="secondary">COMMUNITY</AppText>
-          <AppText variant="h3" weight="700">Helpful reputation</AppText>
-          {communityQuery.isLoading ? (
-            <AppText tone="secondary">Loading community summary…</AppText>
-          ) : (
-            <AppText tone="secondary">
-              {community?.helpfulReceived ?? 0} helpful votes across {community?.reviewCount ?? 0} public reviews.
-            </AppText>
-          )}
-        </Pressable>
+            <View style={styles.row}>
+              <HubTile
+                title="Network"
+                caption="MEET & SHARE"
+                description="Enter the future home for public reviews, helpful votes and activity."
+                onPress={() => router.push('/(tabs)/community')}
+                tileWidth={tileWidth}
+                tileHeight={tileHeight}
+                isCompactScreen={isCompactScreen}
+              />
+              <HubTile
+                title="Learn"
+                caption="ARTICLES & BASICS"
+                description="Read coffee primers and practical guides curated for fun•brew."
+                onPress={() => router.push('/(tabs)/learn')}
+                tileWidth={tileWidth}
+                tileHeight={tileHeight}
+                isCompactScreen={isCompactScreen}
+              />
+            </View>
+          </View>
+        </View>
       </View>
+    </AppScreen>
+  );
+}
 
-      {geography?.processingCounts?.length ? (
-        <AppCard>
-          <AppText variant="h3" weight="700">What you keep brewing</AppText>
-          <AppText tone="secondary">
-            {geography.processingCounts
-              .slice(0, 2)
-              .map((item) => `${formatProcessingName(item.processingMethod)} (${item.count})`)
-              .join(' · ')}
-          </AppText>
-        </AppCard>
-      ) : null}
-
-      <AppCard style={styles.placeholderCard}>
-        <AppText variant="h3" weight="700">Contextual missions</AppText>
-        <AppText tone="secondary">
-          Placeholder for beta demos: future suggestions like comparing washed vs natural or trying three coffees from one region.
+function HubTile(props: {
+  title: string;
+  caption: string;
+  description: string;
+  onPress: () => void;
+  tileWidth: number;
+  tileHeight: number;
+  isCompactScreen: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={props.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={props.title}
+      style={({ pressed }) => [
+        styles.tile,
+        { width: props.tileWidth, height: props.tileHeight },
+        pressed ? styles.tilePressed : null,
+      ]}
+    >
+      <AppText variant="caption" weight="700" tone="secondary" style={styles.tileCaption}>
+        {props.caption}
+      </AppText>
+      <View style={styles.tileBody}>
+        <AppText
+          weight="700"
+          style={[styles.tileTitle, props.isCompactScreen ? styles.tileTitleCompact : styles.tileTitleRegular]}
+        >
+          {props.title}
         </AppText>
-      </AppCard>
-
-      <AppButton label="Open Learn Coffee" variant="secondary" onPress={() => router.push('/(tabs)/brew-your-skills')} />
-    </AppScrollScreen>
+        <AppText
+          tone="secondary"
+          style={[
+            styles.tileDescription,
+            props.isCompactScreen ? styles.tileDescriptionCompact : styles.tileDescriptionRegular,
+          ]}
+        >
+          {props.description}
+        </AppText>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: visualSystemTokens.recipes.screen.background,
+  },
   content: {
-    paddingBottom: visualSystemTokens.spacing.xl * 2,
-    gap: visualSystemTokens.spacing.md,
+    flex: 1,
+    paddingHorizontal: HUB_HORIZONTAL_PADDING,
+    paddingBottom: GRID_BOTTOM_MARGIN,
+  },
+  dashboard: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
-    gap: visualSystemTokens.spacing.xs,
+    alignItems: 'center',
+    marginBottom: HEADER_TO_GRID_GAP,
   },
-  eyebrow: {
-    letterSpacing: 1.2,
+  title: {
+    maxWidth: 320,
+    textAlign: 'center',
   },
-  scanHero: {
-    minHeight: 260,
-    borderRadius: visualSystemTokens.radius.lg,
-    padding: visualSystemTokens.spacing.xl,
-    backgroundColor: visualSystemTokens.basePalette.stormyTeal,
+  grid: {
     justifyContent: 'space-between',
-    gap: visualSystemTokens.spacing.sm,
   },
-  scanHeroPressed: {
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: GRID_GAP,
+  },
+  tile: {
+    borderRadius: radius.lg,
+    padding: TILE_PADDING,
+    backgroundColor: basePalette.champagneMist,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    gap: spacing.sm,
+  },
+  tilePressed: {
     opacity: 0.94,
     transform: [{ scale: 0.99 }],
   },
-  scanHeroTitle: {
-    maxWidth: 240,
+  tileCaption: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeight.caption,
   },
-  scanHeroFooter: {
-    alignItems: 'flex-start',
+  tileBody: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    gap: spacing.sm,
   },
-  scanHeroPill: {
-    paddingHorizontal: visualSystemTokens.spacing.md,
-    paddingVertical: visualSystemTokens.spacing.xs,
-    borderRadius: visualSystemTokens.radius.pill,
-    overflow: 'hidden',
-    backgroundColor: visualSystemTokens.basePalette.champagneMist,
+  tileTitle: {
+    maxWidth: '100%',
   },
-  grid: {
-    gap: visualSystemTokens.spacing.sm,
+  tileTitleCompact: {
+    fontSize: typography.bodyMD,
+    lineHeight: typography.lineHeight.bodyMD,
   },
-  tile: {
-    minHeight: 132,
-    borderRadius: visualSystemTokens.radius.lg,
-    borderWidth: 1,
-    borderColor: visualSystemTokens.colors.borderSubtle,
-    backgroundColor: visualSystemTokens.colors.surfaceElevated,
-    paddingHorizontal: visualSystemTokens.spacing.md,
-    paddingVertical: visualSystemTokens.spacing.md,
-    gap: visualSystemTokens.spacing.xs,
+  tileTitleRegular: {
+    fontSize: typography.headingSM,
+    lineHeight: typography.lineHeight.headingSM,
   },
-  tilePressed: {
-    opacity: 0.88,
+  tileDescription: {
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: visualSystemTokens.spacing.xs,
+  tileDescriptionCompact: {
+    fontSize: typography.bodySM,
+    lineHeight: typography.lineHeight.bodySM,
   },
-  countryChip: {
-    minWidth: 88,
-    borderWidth: 1,
-    borderColor: visualSystemTokens.colors.borderSubtle,
-    borderRadius: visualSystemTokens.radius.md,
-    paddingHorizontal: visualSystemTokens.spacing.sm,
-    paddingVertical: visualSystemTokens.spacing.xs,
-    backgroundColor: visualSystemTokens.colors.surface,
-  },
-  placeholderCard: {
-    backgroundColor: visualSystemTokens.colors.surfaceMuted,
+  tileDescriptionRegular: {
+    fontSize: typography.bodyMD,
+    lineHeight: typography.lineHeight.bodyMD,
   },
 });

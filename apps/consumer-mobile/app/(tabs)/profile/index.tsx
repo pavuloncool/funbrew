@@ -318,7 +318,7 @@ export default function ProfileScreen() {
 
   return (
     <AppScrollScreen contentContainerStyle={[local.content, { paddingBottom: 96 + insets.bottom }]}>
-        <AppText variant="h1" weight="700">Settings</AppText>
+        <AppText variant="h2" weight="700">Profile</AppText>
 
         <AppCard>
           <View style={local.headerRow}>
@@ -330,7 +330,7 @@ export default function ProfileScreen() {
           </View>
 
           <AppButton
-            label="FunCup Hub"
+            label="fun•brew home"
             onPress={onGoToMyCoffeeHouse}
           />
         </AppCard>
@@ -471,7 +471,7 @@ export default function ProfileScreen() {
         {info ? <AppText tone="success">{info}</AppText> : null}
         <AppCard>
           <AppButton
-            label={editMode ? 'Zamknij edycję' : 'Edit profile settings'}
+            label={editMode ? 'Zamknij edycję' : 'Edit profile'}
             variant="secondary"
             onPress={() => setEditMode((prev) => !prev)}
           />

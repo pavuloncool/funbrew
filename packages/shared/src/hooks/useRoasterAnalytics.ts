@@ -31,20 +31,30 @@ type LogRow = {
   brew_method_id: string | null;
   free_text_notes: string | null;
   brew_methods: { id: string; name: string } | null;
-  reviews: { body: string; created_at: string }[] | null;
+  reviews:
+    | { body: string; created_at: string }
+    | { body: string; created_at: string }[]
+    | null;
   coffee_log_tasting_notes: Array<{
     tasting_note_id: string;
     tasting_notes: { id: string; name: string; label: string; category: string } | null;
   }> | null;
 };
 
-type TelemetryRow = {
-  coffee_log_id: string;
-  sensory_acidity: number;
-  sensory_sweetness: number;
-  sensory_body: number;
-  repurchase_intent: 'yes' | 'no' | 'unsure';
-  experience_level: 'beginner' | 'advanced' | 'expert';
+export type TelemetryAggregateRow = {
+  row_scope: 'global' | 'brew_method';
+  brew_method_id: string | null;
+  total_logs: number;
+  logs_with_telemetry: number;
+  avg_sensory_acidity: number | null;
+  avg_sensory_sweetness: number | null;
+  avg_sensory_body: number | null;
+  repurchase_yes_count: number;
+  repurchase_no_count: number;
+  repurchase_unsure_count: number;
+  experience_beginner_count: number;
+  experience_advanced_count: number;
+  experience_expert_count: number;
 };
 
 type RepurchaseIntentDistribution = {
@@ -82,48 +92,134 @@ function round2(value: number): number {
   return Number(value.toFixed(2));
 }
 
-function summarizeTelemetry(logs: RoasterTastingLog[]): TelemetrySummary {
-  const telemetryLogs = logs.filter((log) => log.telemetry !== null);
-  const repurchaseIntentDistribution: RepurchaseIntentDistribution = {
-    yes: 0,
-    no: 0,
-    unsure: 0,
-  };
-  const experienceLevelDistribution: ExperienceLevelDistribution = {
-    beginner: 0,
-    advanced: 0,
-    expert: 0,
-  };
+function coerceCount(value: number | null | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.round(value));
+}
 
-  let aciditySum = 0;
-  let sweetnessSum = 0;
-  let bodySum = 0;
-  for (const log of telemetryLogs) {
-    const telemetry = log.telemetry;
-    if (!telemetry) continue;
-    aciditySum += telemetry.sensoryAcidity;
-    sweetnessSum += telemetry.sensorySweetness;
-    bodySum += telemetry.sensoryBody;
-    repurchaseIntentDistribution[telemetry.repurchaseIntent] += 1;
-    experienceLevelDistribution[telemetry.experienceLevel] += 1;
-  }
+function coerceAverage(value: number | null | undefined): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return round2(value);
+}
 
-  const logsWithTelemetry = telemetryLogs.length;
+function emptyTelemetrySummary(totalLogs: number): TelemetrySummary {
+  return {
+    totalLogs,
+    logsWithTelemetry: 0,
+    coveragePercent: 0,
+    avgSensoryAcidity: null,
+    avgSensorySweetness: null,
+    avgSensoryBody: null,
+    repurchaseIntentDistribution: {
+      yes: 0,
+      no: 0,
+      unsure: 0,
+    },
+    experienceLevelDistribution: {
+      beginner: 0,
+      advanced: 0,
+      expert: 0,
+    },
+  };
+}
+
+function mapAggregateRowToTelemetrySummary(
+  row: TelemetryAggregateRow,
+  fallbackTotalLogs: number
+): TelemetrySummary {
+  const totalLogs = coerceCount(row.total_logs) || fallbackTotalLogs;
+  const logsWithTelemetry = Math.min(
+    totalLogs,
+    coerceCount(row.logs_with_telemetry)
+  );
   const coveragePercent =
-    logs.length > 0 ? round2((logsWithTelemetry / logs.length) * 100) : 0;
+    totalLogs > 0 ? round2((logsWithTelemetry / totalLogs) * 100) : 0;
 
   return {
-    totalLogs: logs.length,
+    totalLogs,
     logsWithTelemetry,
     coveragePercent,
-    avgSensoryAcidity:
-      logsWithTelemetry > 0 ? round2(aciditySum / logsWithTelemetry) : null,
-    avgSensorySweetness:
-      logsWithTelemetry > 0 ? round2(sweetnessSum / logsWithTelemetry) : null,
-    avgSensoryBody: logsWithTelemetry > 0 ? round2(bodySum / logsWithTelemetry) : null,
-    repurchaseIntentDistribution,
-    experienceLevelDistribution,
+    avgSensoryAcidity: coerceAverage(row.avg_sensory_acidity),
+    avgSensorySweetness: coerceAverage(row.avg_sensory_sweetness),
+    avgSensoryBody: coerceAverage(row.avg_sensory_body),
+    repurchaseIntentDistribution: {
+      yes: coerceCount(row.repurchase_yes_count),
+      no: coerceCount(row.repurchase_no_count),
+      unsure: coerceCount(row.repurchase_unsure_count),
+    },
+    experienceLevelDistribution: {
+      beginner: coerceCount(row.experience_beginner_count),
+      advanced: coerceCount(row.experience_advanced_count),
+      expert: coerceCount(row.experience_expert_count),
+    },
   };
+}
+
+export function deriveTelemetrySummariesFromRpc(
+  rows: TelemetryAggregateRow[],
+  fallbackTotalLogs: number
+): {
+  global: TelemetrySummary;
+  byBrewMethodId: Record<string, TelemetrySummary>;
+} {
+  const byBrewMethodId: Record<string, TelemetrySummary> = {};
+  const globalRow =
+    rows.find((row) => row.row_scope === 'global' && row.brew_method_id == null) ??
+    null;
+
+  for (const row of rows) {
+    if (row.row_scope !== 'brew_method' || !row.brew_method_id) continue;
+    byBrewMethodId[row.brew_method_id] = mapAggregateRowToTelemetrySummary(
+      row,
+      fallbackTotalLogs
+    );
+  }
+
+  return {
+    global: globalRow
+      ? mapAggregateRowToTelemetrySummary(globalRow, fallbackTotalLogs)
+      : emptyTelemetrySummary(fallbackTotalLogs),
+    byBrewMethodId,
+  };
+}
+
+type EmbeddedReview =
+  | { body?: string | null; created_at?: string | null }
+  | Array<{ body?: string | null; created_at?: string | null }>
+  | null
+  | undefined;
+
+export function extractEmbeddedReview(
+  review: EmbeddedReview
+): { body: string; createdAt: string } | null {
+  if (Array.isArray(review)) {
+    const first = review[0];
+    if (
+      first &&
+      typeof first.body === 'string' &&
+      typeof first.created_at === 'string'
+    ) {
+      return {
+        body: first.body,
+        createdAt: first.created_at,
+      };
+    }
+    return null;
+  }
+
+  if (
+    review &&
+    typeof review === 'object' &&
+    typeof review.body === 'string' &&
+    typeof review.created_at === 'string'
+  ) {
+    return {
+      body: review.body,
+      createdAt: review.created_at,
+    };
+  }
+
+  return null;
 }
 
 function mapLogRow(row: LogRow): RoasterTastingLog {
@@ -146,13 +242,7 @@ function mapLogRow(row: LogRow): RoasterTastingLog {
     brewMethodId: row.brew_method_id,
     brewMethodName: row.brew_methods?.name ?? null,
     freeTextNotes: row.free_text_notes,
-    review:
-      Array.isArray(row.reviews) && row.reviews[0]?.body
-        ? {
-            body: row.reviews[0].body,
-            createdAt: row.reviews[0].created_at,
-          }
-        : null,
+    review: extractEmbeddedReview(row.reviews),
     telemetry: null,
     flavorNotes,
   };
@@ -173,6 +263,7 @@ export type RoasterAnalyticsFetched = {
   anonymizedReviews: AnonymizedReview[];
   anonymizedFreeTextNotes: AnonymizedTextEntry[];
   globalTelemetrySummary: TelemetrySummary;
+  telemetryByBrewMethodId: Record<string, TelemetrySummary>;
 };
 
 export type RoasterAnalyticsData = RoasterAnalyticsFetched & {
@@ -251,39 +342,28 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
         const rawLogs = (logsRes.data ?? []) as LogRow[];
         const baseLogs = rawLogs.map(mapLogRow);
 
-        const logIds = baseLogs.map((log) => log.id);
-        const telemetryByLogId = new Map<string, RoasterTastingLog['telemetry']>();
-
-        if (logIds.length > 0) {
-          const telemetryRes = await params.supabase
-            .from('coffee_log_telemetry_core')
-            .select(
-              'coffee_log_id,sensory_acidity,sensory_sweetness,sensory_body,repurchase_intent,experience_level'
-            )
-            .in('coffee_log_id', logIds);
-
-          if (telemetryRes.error) {
-            throw normalizeFlowError({
-              error: telemetryRes.error,
-              domain: 'analytics',
-            });
+        const telemetryRpc = await (params.supabase.rpc as unknown as (
+          fn: 'get_roaster_batch_telemetry_summary',
+          args: { p_batch_id: string }
+        ) => Promise<{ data: TelemetryAggregateRow[] | null; error: Error | null }>)(
+          'get_roaster_batch_telemetry_summary',
+          {
+            p_batch_id: params.batchId,
           }
-
-          for (const row of (telemetryRes.data ?? []) as TelemetryRow[]) {
-            telemetryByLogId.set(row.coffee_log_id, {
-              sensoryAcidity: row.sensory_acidity,
-              sensorySweetness: row.sensory_sweetness,
-              sensoryBody: row.sensory_body,
-              repurchaseIntent: row.repurchase_intent,
-              experienceLevel: row.experience_level,
-            });
-          }
+        );
+        if (telemetryRpc.error) {
+          throw normalizeFlowError({
+            error: telemetryRpc.error,
+            domain: 'analytics',
+          });
         }
 
-        const logs = baseLogs.map((log) => ({
-          ...log,
-          telemetry: telemetryByLogId.get(log.id) ?? null,
-        }));
+        // Telemetry is exposed to roasters only via aggregate RPC, not per-log rows.
+        const logs = baseLogs;
+        const telemetrySummaries = deriveTelemetrySummariesFromRpc(
+          (telemetryRpc.data ?? []) as TelemetryAggregateRow[],
+          logs.length
+        );
         const derivedSummary = aggregateRatingSummary(logs);
         const statsAreFresh =
           stats == null
@@ -334,7 +414,8 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
               brewMethodName: log.brewMethodName,
             }))
             .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-          globalTelemetrySummary: summarizeTelemetry(logs),
+          globalTelemetrySummary: telemetrySummaries.global,
+          telemetryByBrewMethodId: telemetrySummaries.byBrewMethodId,
         };
       } catch (error) {
         const normalized = normalizeFlowError({
@@ -359,9 +440,14 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
       anonymizedFreeTextNotes,
       anonymizedReviews,
       globalTelemetrySummary,
+      telemetryByBrewMethodId,
     } =
       query.data;
     const filteredLogs = filterLogsByBrewMethod(logs, selectedBrewMethodId);
+    const selectedTelemetrySummary =
+      selectedBrewMethodId && telemetryByBrewMethodId[selectedBrewMethodId]
+        ? telemetryByBrewMethodId[selectedBrewMethodId]
+        : emptyTelemetrySummary(filteredLogs.length);
     return {
       globalFromStats,
       statsUpdatedAt,
@@ -372,11 +458,12 @@ export function useRoasterAnalytics(params: UseRoasterAnalyticsParams) {
       anonymizedFreeTextNotes,
       anonymizedReviews,
       globalTelemetrySummary,
+      telemetryByBrewMethodId,
       selectedBrewMethodId,
       setSelectedBrewMethodId,
       filteredSummary: aggregateRatingSummary(filteredLogs),
       filteredTopFlavorNotes: topFlavorNotesFromLogs(filteredLogs, 10),
-      filteredTelemetrySummary: summarizeTelemetry(filteredLogs),
+      filteredTelemetrySummary: selectedTelemetrySummary,
     };
   }, [query.data, selectedBrewMethodId]);
 

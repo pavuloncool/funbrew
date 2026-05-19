@@ -19,24 +19,23 @@ function AppShellStack() {
   const segments = useSegments() as string[];
   const topSegment = segments[0] ?? null;
   const secondSegment = segments[1] ?? null;
-  const thirdSegment = segments[2] ?? null;
 
   const isSplash = segments.length === 0 || topSegment === 'index';
-  const isProfileScreen = topSegment === '(tabs)' && secondSegment === 'profile';
-  const showTabBar = !(isSplash || isProfileScreen);
+  const isAuthScreen = topSegment === '(auth)';
+  const showTabBar = !(isSplash || isAuthScreen);
 
-  let activeTab: 'home' | 'journal' | 'settings' | null = null;
+  let activeTab: 'home' | 'profile' | null = null;
   if (
-    (topSegment === '(tabs)' && ['hub', 'roasters', 'brew-your-skills'].includes(secondSegment ?? '')) ||
+    (topSegment === '(tabs)' &&
+      ['hub', 'coffee', 'roasters', 'community', 'learn'].includes(secondSegment ?? '')) ||
     topSegment === 'coffee' ||
     topSegment === 'roaster' ||
     topSegment === 'learn' ||
     topSegment === 'atlas'
   ) {
-    activeTab = thirdSegment === 'log' ? 'journal' : 'home';
+    activeTab = 'home';
   }
-  if (topSegment === '(tabs)' && ['journal', 'coffee'].includes(secondSegment ?? '')) activeTab = 'journal';
-  if (topSegment === '(tabs)' && secondSegment === 'profile') activeTab = 'settings';
+  if (topSegment === '(tabs)' && secondSegment === 'profile') activeTab = 'profile';
 
   return (
     <View style={{ flex: 1 }}>
@@ -44,6 +43,7 @@ function AppShellStack() {
         <Stack screenOptions={{ headerShown: true }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
       </View>
       {showTabBar ? <AppChromeTabBar active={activeTab} /> : null}

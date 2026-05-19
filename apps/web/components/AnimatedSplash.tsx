@@ -220,7 +220,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
             />
             <p
               style={{
-                margin: '16px 0 0',
+                margin: '16px -16px 0',
                 textAlign: 'center',
                 fontSize: '2.5rem',
                 letterSpacing: '0.04em',

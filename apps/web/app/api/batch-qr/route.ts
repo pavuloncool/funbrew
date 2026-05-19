@@ -6,8 +6,9 @@ import type { Database } from '../../../../../supabase/types/database';
 
 export const runtime = 'nodejs';
 
+// Accept any Postgres UUID shape used in local/seed data, not only RFC4122 variants.
 const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function resolveOrigin(request: Request): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
