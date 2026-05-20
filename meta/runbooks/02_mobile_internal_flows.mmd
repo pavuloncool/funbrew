@@ -1,0 +1,114 @@
+%% Mobile internal flows (navigation + data), for non-technical stakeholders
+flowchart TD
+
+  %% Legend
+  L1[Screen]:::screen
+  L2[(Data Source)]:::data
+  L3{{Service/Function}}:::api
+
+  subgraph MOB["product/apps/consumer-mobile"]
+    M0["/index entry"]
+    M1["/(auth)/login"]
+    M2["/(auth)/login-form"]
+    M3["/(auth)/register"]
+    M4["/(auth)/forgot-password"]
+    M5["/(auth)/reset-password"]
+    M6["/(auth)/complete-profile"]
+
+    M7["/(tabs)/hub"]
+    M8["/(tabs)/scan/scan"]
+    M9["/q/{hash}"]
+    M10["/coffee/{id}"]
+    M11["/coffee/{id}/log"]
+    M12["/(tabs)/coffee"]
+    M12A["/coffee-log/{logId}"]
+    M13["/(tabs)/journal -> redirect"]
+    M14["/(tabs)/roasters"]
+    M15["/roaster/{id}"]
+    M16["/(tabs)/brew-your-skills"]
+    M17["/learn/{slug}"]
+    M18["/(tabs)/profile"]
+  end
+
+  subgraph DATA["Supabase / Device"]
+    D1[(Auth Session)]
+    D2[(users)]
+    D3[(roasters)]
+    D4[(coffee_logs)]
+    D4A[(coffee_log_telemetry_core)]
+    D5[(user_favorite_flavor_notes)]
+    D6[(brew_methods/tasting_notes)]
+    Q1[(Offline queue storage)]
+    F1{{scan_qr}}
+    F2{{log_tasting}}
+    F3{{update_coffee_stats}}
+  end
+
+  %% Navigation
+  M0 -->|niezalogowany| M1
+  M0 -->|zalogowany| M7
+
+  M1 -->|lock gate| M2
+  M2 --> M1
+  M2 --> M3
+  M2 --> M4
+  M3 --> M6
+  M4 --> M5
+  M5 --> M2
+  M6 --> M18
+
+  M7 --> M8
+  M7 --> M12
+  M7 --> M14
+  M7 --> M16
+
+  M8 --> M9
+  M9 --> M10
+  M10 --> M11
+
+  M12 --> M10
+  M12 --> M12A
+  M12A --> M12
+  M13 --> M12
+
+  M14 --> M15
+  M16 --> M17
+
+  M18 --> M7
+  M18 --> M1
+
+  %% Data dependencies
+  M0 --- D1
+  M1 --- D1
+  M2 --- D1
+  M3 --- D1
+  M4 --- D1
+  M5 --- D1
+
+  M6 --- D2
+  M14 --- D3
+  M15 --- D3
+
+  M12 --- D4
+  M11 --- D4
+  M11 --- D4A
+  M12A --- D4
+  M12A --- D4A
+  M18 --- D2
+  M18 --- D5
+  M18 --- D6
+
+  M9 --> F1
+  M10 --> F1
+
+  M11 --> F2
+  M11 --> F3
+  M11 --- Q1
+
+  classDef screen fill:#EAF6FF,stroke:#2563EB,color:#0B3B8C;
+  classDef data fill:#ECFDF5,stroke:#059669,color:#065F46;
+  classDef api fill:#FFF7ED,stroke:#EA580C,color:#9A3412;
+
+  class M0,M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M12A,M13,M14,M15,M16,M17,M18 screen;
+  class D1,D2,D3,D4,D4A,D5,D6,Q1 data;
+  class F1,F2,F3 api;

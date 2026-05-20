@@ -1,25 +1,29 @@
 # funcup
 
-Monorepo produktu funcup po cleanupie pre-go-live.
+Repo jest podzielone na dwie jawne strefy:
 
-## Active Product Areas
+- `product/` — aktywny runtime i development workflow fun•brew
+- `meta/` — dokumentacja, runbooki, archiwum i materiały pomocnicze
 
-- `apps/web` — aktywna aplikacja web (roaster + public web flow)
-- `apps/consumer-mobile` — aktywna aplikacja mobile consumer (Expo)
-- `packages/shared` i `packages/ui` — współdzielona logika i UI
-- `supabase` — migracje, funkcje i integracja backendowa
+## Product
 
-## Active Source-of-Truth Docs
+- `product/apps/web` — aktywna aplikacja web
+- `product/apps/consumer-mobile` — aktywna aplikacja mobile consumer
+- `product/packages/*` — współdzielone pakiety produktu
+- `product/supabase` — migracje, funkcje i typy backendowe
+- `product/scripts` — aktywne skrypty developerskie i release tooling
 
-- `dev-docs/specs/002-qr-coffee-platform` — ADR-y, kontrakty, checklisty
-- `dev-docs/funcup-src-docs` — product/spec/architecture/tasks (bieżący zestaw)
-- `mvp-release-flow-diagrams` — operacyjne diagramy i runbooki beta/release
-- `dev-docs/repo-hygiene/CONSERVATIVE_CLEANUP_2026-05-08.md` — polityka higieny repo
+## Meta
 
-## Archive
+- `meta/docs` — bieżące source-of-truth docs
+- `meta/runbooks` — operacyjne diagramy i runbooki beta/release
+- `meta/archive` — historia, legacy materiały i wcześniejsze handoffy
 
-- `archive/` — jawne archiwum legacy code, handoffów, evidence i promptów
-- zasady archiwizacji: `archive/README.md`
+## Root Rules
+
+- root zostaje tylko dla workspace/tooling entrypointów
+- nowy aktywny runtime trafia wyłącznie do `product/`
+- nowe docs, runbooki i materiały pomocnicze trafiają wyłącznie do `meta/`
 
 ## Development
 
@@ -27,7 +31,3 @@ Monorepo produktu funcup po cleanupie pre-go-live.
 - uruchomienie workspace: `pnpm dev`
 - testy: `pnpm test`
 - lint: `pnpm lint`
-
-## Handoff Rule
-
-Nowy developer powinien zaczynać od tego README i poruszać się wyłącznie po strefach Active + Source-of-Truth. Materiały historyczne są dostępne tylko przez `archive/`.
