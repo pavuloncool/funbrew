@@ -25,6 +25,11 @@ Ustal raz na release:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | `BETA_SUPABASE_ANON_KEY` | Browser auth/data access |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | `BETA_SUPABASE_SERVICE_ROLE_KEY` | Server-only (`/api/*`) |
 | `NEXT_PUBLIC_APP_URL` | Yes | `BETA_PUBLIC_WEB_ORIGIN` | Canonical host for QR URLs |
+| `QR_PUBLIC_HOST` | Yes for store/deep-link readiness | host from `BETA_PUBLIC_WEB_ORIGIN` | Must match `NEXT_PUBLIC_APP_URL` hostname exactly |
+| `APP_STORE_URL` | Yes for install fallback readiness | App Store listing URL | Used by readiness validation for fallback/open-in-app flows |
+| `PLAY_STORE_URL` | Yes for install fallback readiness | Play Store listing URL | Used by readiness validation for fallback/open-in-app flows |
+| `ANDROID_SHA256_CERT_FINGERPRINTS` | Yes for Android app links | release signing SHA-256 fingerprint(s) | Powers `/.well-known/assetlinks.json` generation |
+| `APPLE_TEAM_ID` | Yes for iOS universal links | Apple Team ID | Powers `apple-app-site-association` generation |
 
 ### 2b) Supabase Edge Functions (beta project secrets)
 
@@ -67,6 +72,7 @@ Ustal raz na release:
 - Project root: `apps/web`.
 - Build command: `pnpm -C apps/web build`.
 - Set env vars from section `2a` for Beta/Preview and Production (if this beta host is promoted).
+- Run `pnpm qr:check` before deploy; it must pass with the final host + store URLs + signing metadata.
 - Deploy and bind `BETA_PUBLIC_WEB_ORIGIN`.
 
 4. Mobile beta config third (cannot be skipped):
@@ -87,7 +93,7 @@ Ustal raz na release:
 
 ## 4) Required mobile beta infra for HTTPS universal links
 - Host `https://<beta-host>/.well-known/assetlinks.json` (Android).
-- Host `https://<beta-host>/.well-known/apple-app-site-association` (iOS).
+- Host `https://<beta-host>/apple-app-site-association` and/or `https://<beta-host>/.well-known/apple-app-site-association` (iOS).
 - Files must match actual app ids/signing identities for the beta build.
 - If these files are missing or invalid, fallback remains `funcup://q/{hash}` but OS-level `https://<beta-host>/q/{hash}` open-in-app is not guaranteed.
 

@@ -31,10 +31,9 @@ export default function TastingLogScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useViewerUserId();
-  const params = useLocalSearchParams<{ id?: string; batchId?: string }>();
-  const coffeeId = typeof params.id === 'string' && params.id.length > 0 ? params.id : null;
-  const batchId =
-    typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : params.id;
+  const params = useLocalSearchParams<{ hash?: string; batchId?: string }>();
+  const hash = typeof params.hash === 'string' && params.hash.length > 0 ? params.hash : null;
+  const batchId = typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : null;
   const { isOnline, pendingCount, failedCount, refreshPendingCount } = useOfflineTastingSync();
   const unlocksQuery = useUnlockedTastingNotes({ supabase, userId });
   const [rating, setRating] = useState<number | null>(null);
@@ -114,7 +113,6 @@ export default function TastingLogScreen() {
             userId: user.id,
           });
         } catch {
-          // Tasting is already persisted at this point; don't requeue to avoid duplicates.
           statsRefreshFailed = true;
         }
 
@@ -194,10 +192,10 @@ export default function TastingLogScreen() {
           <AppButton
             label="Back to coffee"
             onPress={() => {
-              if (!coffeeId) return;
-              router.replace({ pathname: '/coffee/[id]', params: { id: coffeeId } });
+              if (!hash) return;
+              router.replace({ pathname: '/coffee/[hash]', params: { hash } });
             }}
-            disabled={!coffeeId}
+            disabled={!hash}
           />
         </View>
       ) : (
@@ -327,27 +325,26 @@ const styles = StyleSheet.create({
   },
   intentRow: {
     flexDirection: 'row',
-    gap: visualSystemTokens.spacing.xs,
     flexWrap: 'wrap',
+    gap: visualSystemTokens.spacing.xs,
   },
   intentChip: {
+    borderRadius: visualSystemTokens.radius.pill,
     borderWidth: 1,
     borderColor: visualSystemTokens.colors.borderSubtle,
-    borderRadius: visualSystemTokens.radius.pill,
-    paddingHorizontal: visualSystemTokens.spacing.sm,
-    paddingVertical: visualSystemTokens.spacing.xxs,
+    paddingHorizontal: visualSystemTokens.spacing.md,
+    paddingVertical: visualSystemTokens.spacing.xs,
   },
   intentChipActive: {
-    borderColor: visualSystemTokens.colors.accentPrimary,
     backgroundColor: visualSystemTokens.colors.accentPrimary,
+    borderColor: visualSystemTokens.colors.accentPrimary,
   },
 });
 
-const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
 const INTENT_OPTIONS: Array<{ value: RepurchaseIntent; label: string }> = [
   { value: 'yes', label: 'Yes' },
   { value: 'no', label: 'No' },
-  { value: 'unsure', label: 'Not sure' },
+  { value: 'unsure', label: 'Unsure' },
 ];
 
 function ScorePicker(props: {
@@ -357,20 +354,21 @@ function ScorePicker(props: {
 }) {
   return (
     <View style={styles.scoreRow}>
-      <AppText tone="secondary">{props.label}: {props.value}</AppText>
+      <AppText tone="secondary">{props.label}</AppText>
       <View style={styles.scoreButtons}>
-        {SCORE_OPTIONS.map((option) => {
-          const active = props.value === option;
+        {[1, 2, 3, 4, 5].map((score) => {
+          const active = score === props.value;
           return (
             <Pressable
-              key={option}
-              onPress={() => props.onChange(option)}
+              key={`${props.label}-${score}`}
+              onPress={() => props.onChange(score)}
               accessibilityRole="button"
-              accessibilityLabel={`${props.label} ${option}`}
               accessibilityState={{ selected: active }}
               style={[styles.scoreButton, active ? styles.scoreButtonActive : null]}
             >
-              <AppText tone={active ? 'onPrimary' : 'secondary'} weight="700">{option}</AppText>
+              <AppText tone={active ? 'onPrimary' : 'secondary'} weight="700">
+                {score}
+              </AppText>
             </Pressable>
           );
         })}

@@ -81,10 +81,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           ]
         : []),
     ],
-    package: 'com.anonymous.funcup',
+    package: process.env.ANDROID_APPLICATION_ID?.trim() || 'com.anonymous.funcup',
   },
   ios: {
-    bundleIdentifier: 'com.anonymous.funcup',
+    bundleIdentifier: process.env.IOS_BUNDLE_ID?.trim() || 'com.anonymous.funcup',
     // Allows plain HTTP to LAN/local Docker when using a dev build (`expo run:ios`).
     // Expo Go ignores this plist — use hosted HTTPS Supabase or a dev client for local scan_qr.
     infoPlist: {

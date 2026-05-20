@@ -1,6 +1,3 @@
-import { Link, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
 import {
   getReputationLevelLabel,
   useBatchCommunityReviews,
@@ -14,20 +11,23 @@ import {
   useCoffeePage,
   visualSystemTokens,
 } from '@funcup/shared';
+import { Link, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
-import { ScreenError } from '../../../src/components/ScreenError';
-import { CoffeePageSkeleton } from '../../../src/components/ui/Skeleton';
-import { getResolvedSupabasePublicUrl, supabase } from '../../../src/services/supabaseClient';
-import { CoffeePageBrewing } from '../../../src/coffee/CoffeePageBrewing';
-import { CoffeePageCommunity } from '../../../src/coffee/CoffeePageCommunity';
-import { CoffeePageProduct } from '../../../src/coffee/CoffeePageProduct';
-import { CoffeePageStory } from '../../../src/coffee/CoffeePageStory';
-import { AppButton, AppCard, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
-import { EmptyState } from '../../../src/components/EmptyState';
-import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
+import { CoffeePageBrewing } from '../../coffee/CoffeePageBrewing';
+import { CoffeePageCommunity } from '../../coffee/CoffeePageCommunity';
+import { CoffeePageProduct } from '../../coffee/CoffeePageProduct';
+import { CoffeePageStory } from '../../coffee/CoffeePageStory';
+import { EmptyState } from '../../components/EmptyState';
+import { ScreenError } from '../../components/ScreenError';
+import { AppButton, AppCard, AppScrollScreen, AppText } from '../../components/ui/primitives';
+import { CoffeePageSkeleton } from '../../components/ui/Skeleton';
+import { useViewerUserId } from '../../hooks/useViewerUserId';
+import { getResolvedSupabasePublicUrl, supabase } from '../../services/supabaseClient';
 
 const NO_BOTTOM_SAFE_AREA = { edges: ['right', 'left'] as const };
-const { colors, spacing, radius, typography } = visualSystemTokens;
+const { colors, spacing, radius } = visualSystemTokens;
 
 function formatRoastDate(iso: string): string {
   const raw = iso.trim();
@@ -69,9 +69,9 @@ function resolveImageUri(rawUri: string): string {
   }
 }
 
-export default function CoffeePage() {
-  const params = useLocalSearchParams<{ id?: string }>();
-  const hash = params.id ?? null;
+export default function CoffeePageScreen() {
+  const params = useLocalSearchParams<{ hash?: string }>();
+  const hash = params.hash ?? null;
   const { userId } = useViewerUserId();
   const coffeeQuery = useCoffeePage({ supabase, hash });
   const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
@@ -123,7 +123,7 @@ export default function CoffeePage() {
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
         <ScreenError
           title={copy.title}
-          message={copy.message}
+          message="Data not fetched. Try again or contact fun•brew."
           onRetry={() => void coffeeQuery.refetch()}
           retryLabel={copy.retryLabel ?? 'Retry'}
         />
@@ -145,10 +145,10 @@ export default function CoffeePage() {
   const isFavorite = Boolean(favoritesQuery.data?.some((entry) => entry.qrHash === hash));
 
   const logHref = {
-    pathname: '/coffee/[id]/log' as const,
+    pathname: '/coffee/[hash]/log' as const,
     params: {
-      id: hash,
-      batchId: publicCoffee.logBatchId ?? hash,
+      hash,
+      batchId: publicCoffee.logBatchId ?? data.batch.id,
     },
   };
 
@@ -319,72 +319,73 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   paddedContent: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: 0,
+    padding: spacing.xl,
   },
-  page: { backgroundColor: colors.canvas },
-  pageContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: 0,
+  archived: {
+    borderColor: colors.warning,
+    backgroundColor: colors.surfaceElevated,
   },
-  card: {
+  archivedInfo: {
+    marginTop: spacing.xs,
+  },
+  imageWrap: {
+    marginTop: spacing.sm,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     padding: spacing.md,
+    minHeight: 240,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    marginBottom: spacing.sm,
-    lineHeight: 36,
-  },
-  imageWrap: { marginBottom: spacing.md },
   image: {
     width: '100%',
-    height: 420,
-    borderRadius: radius.xs,
-    backgroundColor: colors.canvas,
+    height: 240,
   },
   imageFallback: {
     width: '100%',
-    height: 420,
-    borderRadius: radius.xs,
-    backgroundColor: colors.canvas,
+    height: 240,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  row: { marginBottom: spacing.sm, lineHeight: typography.headingSM + spacing.xs },
-  archived: { backgroundColor: colors.surfaceMuted },
-  archivedInfo: { marginTop: spacing.xxs },
-  logAction: { paddingVertical: spacing.sm },
-  logCta: {
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentPrimary,
-    paddingHorizontal: spacing.md,
+  card: {
+    gap: spacing.xs,
+  },
+  row: {
+    color: colors.textPrimary,
   },
   reviewCard: {
+    marginTop: spacing.md,
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
+    paddingTop: spacing.md,
   },
   helpfulButton: {
     alignSelf: 'flex-start',
-    minHeight: 36,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   helpfulButtonActive: {
     backgroundColor: colors.accentPrimary,
     borderColor: colors.accentPrimary,
   },
   helpfulButtonPressed: {
-    opacity: 0.9,
+    opacity: 0.85,
+  },
+  logAction: {
+    paddingBottom: spacing.xl,
+  },
+  logCta: {
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -69,6 +69,8 @@ Integration source of truth: `mvp-release-flow-diagrams/BETA_INTEGRATION_CONTRAC
 
 ## Final deploy checklist (010-038 final gate)
 - [ ] Web deploy target env is correct: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`.
+- [ ] QR/open-in-app env is correct: `QR_PUBLIC_HOST`, `APP_STORE_URL`, `PLAY_STORE_URL`, `ANDROID_SHA256_CERT_FINGERPRINTS`, `APPLE_TEAM_ID`.
+- [ ] `pnpm qr:check` => PASS for the final beta host before web deploy.
 - [ ] Mobile build env is correct: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (no fallback to `127.0.0.1:54321`).
 - [ ] Supabase beta has matching migrations + functions (`scan_qr`, `log_tasting`, `update_coffee_stats`, `submit_contact_lead`).
 - [ ] Public `/q/{hash}` works without session and survives host change.

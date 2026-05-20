@@ -22,6 +22,8 @@
     "consumer:web:clear": "pnpm -C apps/consumer-mobile run web -- -c",
     "consumer:prebuild": "pnpm -C apps/consumer-mobile run prebuild",
     "consumer:prebuild:clean": "pnpm -C apps/consumer-mobile run prebuild:clean",
+    "qr:check": "pnpm -C apps/web run qr:check",
+    "qr:prepare": "pnpm -C apps/web run qr:prepare",
     "postinstall": "node scripts/patch-metro-cache-exports.js",
     "prepare": "husky"
   },

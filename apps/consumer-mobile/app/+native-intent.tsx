@@ -3,41 +3,61 @@
  * strips a lone leading slash — which does not match the index route and shows Unmatched.
  * @see https://docs.expo.dev/router/advanced/native-intent/
  */
+function normalizeQDeepLink(path: string, initial: boolean): string | null {
+  const trimmed = path.trim();
+  if (!trimmed) return null;
+
+  const absoluteUrlPattern = /^[a-z][a-z0-9+.-]*:\/\//i;
+  if (absoluteUrlPattern.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      const pathname = url.pathname || '/';
+      if (url.protocol === 'funcup:' && url.hostname === 'q') {
+        const hash = pathname.replace(/^\/+/, '').split('/')[0];
+        if (hash) {
+          return `/q/${hash}${url.search}${url.hash}`;
+        }
+      }
+      if (pathname.startsWith('/q/')) {
+        return `${pathname}${url.search}${url.hash}`;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  if (trimmed.startsWith('/q/')) {
+    return trimmed;
+  }
+
+  const withoutLeadingSlash = trimmed.replace(/^\/+/, '');
+  if (withoutLeadingSlash.startsWith('q/')) {
+    return `/${withoutLeadingSlash}`;
+  }
+
+  if (!initial) {
+    return null;
+  }
+
+  const bareHashMatch = withoutLeadingSlash.match(/^([^/?#]+)([?#].*)?$/);
+  if (!bareHashMatch) {
+    return null;
+  }
+
+  const [, hash, suffix = ''] = bareHashMatch;
+  return `/q/${hash}${suffix}`;
+}
+
 export function redirectSystemPath(event: { path: string; initial: boolean }): string {
   const { path, initial } = event;
-  // #region agent log
-  fetch('http://127.0.0.1:7312/ingest/93cbb72a-43f4-44b0-9ffe-9b704b108d1b', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd329d9' },
-    body: JSON.stringify({
-      sessionId: 'd329d9',
-      location: '+native-intent.tsx:redirectSystemPath',
-      message: 'native path before rewrite',
-      data: { initial, empty: !path?.trim(), len: path?.length ?? 0 },
-      timestamp: Date.now(),
-      hypothesisId: 'H1-empty-from-custom-scheme',
-    }),
-  }).catch(() => {});
-  // #endregion
-
   try {
     const trimmed = typeof path === 'string' ? path.trim() : '';
     if (trimmed === '' || trimmed === '/') {
-      // #region agent log
-      fetch('http://127.0.0.1:7312/ingest/93cbb72a-43f4-44b0-9ffe-9b704b108d1b', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd329d9' },
-        body: JSON.stringify({
-          sessionId: 'd329d9',
-          location: '+native-intent.tsx:redirectSystemPath',
-          message: 'rewrote empty path to /',
-          data: { initial },
-          timestamp: Date.now(),
-          hypothesisId: 'H1-empty-from-custom-scheme',
-        }),
-      }).catch(() => {});
-      // #endregion
       return '/';
+    }
+    const normalizedQDeepLink = normalizeQDeepLink(trimmed, initial);
+    if (normalizedQDeepLink) {
+      return normalizedQDeepLink;
     }
     return path;
   } catch {
