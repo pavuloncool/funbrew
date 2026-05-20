@@ -14,11 +14,11 @@ coverage
 build
 dist
 
-# Next.js (apps/web)
-apps/web/.next/
+# Next.js (product/apps/web)
+product/apps/web/.next/
 
 # Playwright
-apps/web/test-results/
+product/apps/web/test-results/
 
 # TypeScript incremental
 *.tsbuildinfo
@@ -39,10 +39,11 @@ yarn-error.log*
 # turbo
 .turbo
 node_modules/.cache
+.pnpm-store/
 
 # Expo (local dev / device history)
 .expo/
-apps/consumer-mobile/.expo/
+product/apps/consumer-mobile/.expo/
 
 # vercel
 .vercel
@@ -61,7 +62,7 @@ storybook-static
 # Repo hygiene: local/source artifacts not needed in VCS
 Spline_Sans.zip
 gt-walsheim-font-family/
-supabase/.temp/
+product/supabase/.temp/
 
 # Local env backups
 *.env.local.bak

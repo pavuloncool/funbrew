@@ -1,6 +1,6 @@
 {
   "extends": [
-    "../../.eslintrc.json",
+    "../../../.eslintrc.json",
     "next/core-web-vitals",
     "next/typescript"
   ]

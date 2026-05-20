@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 
 import WebAccountRoleGate from './WebAccountRoleGate';
@@ -14,8 +15,10 @@ export default function RouteShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <WebAccountRoleGate>
-      <WebShell>{children}</WebShell>
-    </WebAccountRoleGate>
+    <Suspense fallback={null}>
+      <WebAccountRoleGate>
+        <WebShell>{children}</WebShell>
+      </WebAccountRoleGate>
+    </Suspense>
   );
 }
