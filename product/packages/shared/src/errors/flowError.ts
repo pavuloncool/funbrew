@@ -27,8 +27,9 @@ export type FlowUiCopy = {
 };
 
 function appendLocalDiagnostic(baseMessage: string, error: FlowError): string {
-  if (typeof window === 'undefined') return baseMessage;
-  if (!/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) return baseMessage;
+  const location = asRecord((globalThis as { location?: unknown }).location);
+  const hostname = location ? readString(location.hostname) : null;
+  if (!hostname || !/^(localhost|127\.0\.0\.1)$/.test(hostname)) return baseMessage;
 
   const detail = error.message.trim();
   if (!detail || detail === baseMessage) return baseMessage;
