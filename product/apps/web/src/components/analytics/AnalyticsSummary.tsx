@@ -45,7 +45,7 @@ export default function AnalyticsSummary({ title, caption, summary }: Props) {
               <li key={star} className={analyticsStyles.distRow}>
                 <span className={analyticsStyles.distStar}>{star}★</span>
                 <div className={analyticsStyles.distTrack}>
-                  <div className={analyticsStyles.distBar} style={{ width }} />
+                  <div className={`${analyticsStyles.distBar} bg-vs-accent-secondary`} style={{ width }} />
                 </div>
                 <span className={analyticsStyles.distCount}>{count}</span>
               </li>

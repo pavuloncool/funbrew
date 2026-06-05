@@ -100,6 +100,10 @@ async function createRoaster(
     data: {
       user_id: userId,
       name: roasterName,
+      company_name: roasterName,
+      roaster_short_name: roasterName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 24) || 'phase4-roaster',
+      city: 'Warsaw',
+      country: 'Poland',
       verification_status: 'verified',
     },
   });
@@ -140,6 +144,110 @@ export async function provisionConsumer(
   return { email, password, userId, accessToken };
 }
 
+export async function getBrewMethodId(
+  request: APIRequestContext,
+  name: string
+): Promise<string> {
+  const { url, serviceRoleKey } = supabaseEnv();
+  const response = await request.get(
+    `${url}/rest/v1/brew_methods?select=id&name=eq.${encodeURIComponent(name)}&limit=1`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+    }
+  );
+  expect(response.ok()).toBeTruthy();
+  const body = (await response.json()) as Array<{ id: string }>;
+  expect(body[0]?.id).toBeTruthy();
+  return body[0].id;
+}
+
+export async function logConsumerTasting(params: {
+  request: APIRequestContext;
+  consumer: ConsumerTestActor;
+  batchId: string;
+  rating: number;
+  brewMethodId: string;
+  freeTextNotes?: string;
+  review?: string;
+  tastingNoteIds?: string[];
+}) {
+  const { url, anonKey } = supabaseEnv();
+  const response = await params.request.post(`${url}/functions/v1/log_tasting`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${params.consumer.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    data: {
+      batch_id: params.batchId,
+      rating: params.rating,
+      brew_method_id: params.brewMethodId,
+      free_text_notes: params.freeTextNotes,
+      review: params.review,
+      tasting_note_ids: params.tastingNoteIds,
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  const body = (await response.json()) as { coffee_log_id?: string };
+  expect(body.coffee_log_id).toBeTruthy();
+  return { coffeeLogId: body.coffee_log_id as string };
+}
+
+export async function refreshCoffeeStats(params: {
+  request: APIRequestContext;
+  batchId: string;
+  consumer: ConsumerTestActor;
+}) {
+  const { url, anonKey } = supabaseEnv();
+  const response = await params.request.post(`${url}/functions/v1/update_coffee_stats`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${params.consumer.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    data: {
+      batch_id: params.batchId,
+      user_id: params.consumer.userId,
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+}
+
+export async function insertTelemetryForLog(params: {
+  request: APIRequestContext;
+  coffeeLogId: string;
+  brewMethodId: string;
+}) {
+  const { url, serviceRoleKey } = supabaseEnv();
+  const telemetryResponse = await params.request.post(
+    `${url}/rest/v1/coffee_log_telemetry_core`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      data: {
+        coffee_log_id: params.coffeeLogId,
+        brew_method_id: params.brewMethodId,
+        overall_rating: 4,
+        sensory_acidity: 4,
+        sensory_sweetness: 5,
+        sensory_body: 3,
+        sensory_bitter: 2,
+        sensory_aftertaste: 4,
+        repurchase_intent: 'yes',
+        experience_level: 'advanced',
+      },
+    }
+  );
+  expect(telemetryResponse.ok()).toBeTruthy();
+}
+
 /** Inserts a `qr_codes` row for E2E / smoke (replaces removed `generate_qr` Edge flow). */
 export async function insertQrCodeForBatch(
   request: APIRequestContext,
@@ -171,6 +279,16 @@ export async function createCoffeeAndBatch(
   actor: TestActor,
   label: string
 ) {
+  const coffee = await createCoffeeOnly(request, actor, label);
+  const batch = await createBatchForCoffee(request, coffee.id, label);
+  return { coffee, batch };
+}
+
+export async function createCoffeeOnly(
+  request: APIRequestContext,
+  actor: TestActor,
+  label: string
+) {
   const { url, serviceRoleKey } = supabaseEnv();
 
   const coffeeResponse = await request.post(`${url}/rest/v1/coffees?select=id,name`, {
@@ -188,8 +306,15 @@ export async function createCoffeeAndBatch(
   });
   expect(coffeeResponse.ok()).toBeTruthy();
   const coffees = (await coffeeResponse.json()) as Array<{ id: string; name: string }>;
-  const coffee = coffees[0];
+  return coffees[0];
+}
 
+export async function createBatchForCoffee(
+  request: APIRequestContext,
+  coffeeId: string,
+  label: string
+) {
+  const { url, serviceRoleKey } = supabaseEnv();
   const batchResponse = await request.post(
     `${url}/rest/v1/roast_batches?select=id,lot_number`,
     {
@@ -200,7 +325,7 @@ export async function createCoffeeAndBatch(
         Prefer: 'return=representation',
       },
       data: {
-        coffee_id: coffee.id,
+        coffee_id: coffeeId,
         lot_number: `LOT-${Date.now()}`,
         roast_date: '2026-04-08',
         status: 'active',
@@ -209,7 +334,41 @@ export async function createCoffeeAndBatch(
   );
   expect(batchResponse.ok()).toBeTruthy();
   const batches = (await batchResponse.json()) as Array<{ id: string; lot_number: string }>;
-  const batch = batches[0];
+  return batches[0];
+}
 
-  return { coffee, batch };
+export async function updateBatchDeclaredTelemetry(params: {
+  request: APIRequestContext;
+  batchId: string;
+  declaredSensoryAcidity?: number | null;
+  declaredSensorySweetness?: number | null;
+  declaredSensoryBody?: number | null;
+  declaredSensoryBitter?: number | null;
+  declaredSensoryAftertaste?: number | null;
+}) {
+  const { url, serviceRoleKey } = supabaseEnv();
+  const response = await params.request.patch(
+    `${url}/rest/v1/roast_batches?id=eq.${params.batchId}`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      data: {
+        declared_sensory_acidity:
+          params.declaredSensoryAcidity === undefined ? undefined : params.declaredSensoryAcidity,
+        declared_sensory_sweetness:
+          params.declaredSensorySweetness === undefined ? undefined : params.declaredSensorySweetness,
+        declared_sensory_body:
+          params.declaredSensoryBody === undefined ? undefined : params.declaredSensoryBody,
+        declared_sensory_bitter:
+          params.declaredSensoryBitter === undefined ? undefined : params.declaredSensoryBitter,
+        declared_sensory_aftertaste:
+          params.declaredSensoryAftertaste === undefined ? undefined : params.declaredSensoryAftertaste,
+      },
+    }
+  );
+  expect(response.ok()).toBeTruthy();
 }

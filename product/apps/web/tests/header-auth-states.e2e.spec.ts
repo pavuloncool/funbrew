@@ -43,16 +43,16 @@ test.describe('header auth states across public routes and roaster workspace', (
     await page.waitForURL('**/login', { timeout: 15_000 });
 
     await loginViaForm(page, actor);
-    await expect(page.getByRole('button', { name: 'Wyloguj' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 
     await page.goto('/home');
     await expect(page.getByRole('button', { name: 'My Roaster Hub' })).toBeVisible();
 
     await page.getByRole('button', { name: 'My Roaster Hub' }).click();
     await page.waitForURL('**/roaster-hub', { timeout: 15_000 });
-    await expect(page.getByRole('button', { name: 'Wyloguj' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Wyloguj' }).click();
+    await page.getByRole('button', { name: 'Log out' }).click();
     await expect(page).toHaveURL(/\/home$/);
     await expect(page.getByRole('button', { name: 'My Roaster Hub' })).toBeVisible();
 
@@ -60,7 +60,7 @@ test.describe('header auth states across public routes and roaster workspace', (
     await page.waitForURL('**/login', { timeout: 15_000 });
     await loginViaForm(page, actor);
 
-    await expect(page.getByRole('button', { name: 'Wyloguj' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Wylogowywanie…' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Logging out…' })).toHaveCount(0);
   });
 });

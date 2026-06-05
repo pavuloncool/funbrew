@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { RoasterBatchCollection } from '@/src/components/roaster-hub/RoasterBatchCollection';
 
-export default function LegacyAnalyticsHubRedirectPage() {
-  redirect('/roaster-hub/batches');
+export default function BatchAnalyticsPage() {
+  return <RoasterBatchCollection variant="analytics" />;
 }

@@ -1,6 +1,12 @@
 'use client';
 
-import { resolveAccountRole } from '@funcup/shared';
+import {
+  canAccessSurface,
+  getDeniedAccessReason,
+  getWebLoginReasonMessage,
+  resolveAccountRole,
+  resolveWebAuthenticatedPath,
+} from '@funcup/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
@@ -9,27 +15,10 @@ import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 
 import { authPagesStyles } from '../auth-pages.styles';
 
-const DEFAULT_POST_LOGIN_PATH = '/roaster-hub';
-
 type LoginPageClientProps = {
   nextParam: string | null;
   reason: string | null;
 };
-
-function resolvePostLoginPath(nextParam: string | null): string {
-  if (!nextParam) return DEFAULT_POST_LOGIN_PATH;
-  if (!nextParam.startsWith('/') || nextParam.startsWith('//')) {
-    return DEFAULT_POST_LOGIN_PATH;
-  }
-  if (
-    nextParam.startsWith('/login') ||
-    nextParam.startsWith('/register') ||
-    nextParam.startsWith('/pending')
-  ) {
-    return DEFAULT_POST_LOGIN_PATH;
-  }
-  return nextParam;
-}
 
 export default function LoginPageClient({ nextParam, reason }: LoginPageClientProps) {
   const router = useRouter();
@@ -37,13 +26,7 @@ export default function LoginPageClient({ nextParam, reason }: LoginPageClientPr
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const postLoginPath = resolvePostLoginPath(nextParam);
-  const authRequiredMessage =
-    reason === 'roaster_auth_required' ? 'Zaloguj się, by skorzystać z fun•brew' : null;
-  const roleGateMessage =
-    reason === 'consumer_mobile_only'
-      ? 'This consumer account is available in the mobile app only.'
-      : null;
+  const reasonMessage = getWebLoginReasonMessage(reason);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,24 +51,29 @@ export default function LoginPageClient({ nextParam, reason }: LoginPageClientPr
           data.user.id,
           data.user.user_metadata
         );
-        if (role !== 'roaster') {
+        if (!canAccessSurface(role, 'web_roaster')) {
           await supabaseBrowser.auth.signOut({ scope: 'local' });
-          setError('This consumer account is available in the mobile app only.');
+          setError(getWebLoginReasonMessage(getDeniedAccessReason('web_roaster')));
           return;
         }
+
+        router.push(resolveWebAuthenticatedPath(nextParam, data.user.user_metadata));
+        return;
       } catch (roleError) {
         setError(roleError instanceof Error ? roleError.message : 'Could not verify account role.');
         return;
       }
     }
 
-    router.push(postLoginPath);
+    router.push(resolveWebAuthenticatedPath(nextParam, data.user?.user_metadata));
   }
 
   return (
     <main className={authPagesStyles.main420}>
       <h1 className={authPagesStyles.title}>Log in</h1>
-      {authRequiredMessage ? <p className={authPagesStyles.notice}>{authRequiredMessage}</p> : null}
+      {reason === 'roaster_auth_required' && reasonMessage ? (
+        <p className={authPagesStyles.notice}>{reasonMessage}</p>
+      ) : null}
       <form onSubmit={handleSubmit} className={authPagesStyles.form}>
         <input
           className={authPagesStyles.input}
@@ -108,11 +96,13 @@ export default function LoginPageClient({ nextParam, reason }: LoginPageClientPr
         </button>
       </form>
       {error ? <p className={authPagesStyles.error}>{error}</p> : null}
-      {!error && roleGateMessage ? <p className={authPagesStyles.error}>{roleGateMessage}</p> : null}
+      {!error && reason === 'consumer_mobile_only' && reasonMessage ? (
+        <p className={authPagesStyles.error}>{reasonMessage}</p>
+      ) : null}
       <p className={authPagesStyles.footer}>
         No account?{' '}
         <Link href="/register" className="font-medium text-vs-text-primary underline">
-          Create one
+          Contact fun•brew
         </Link>
       </p>
     </main>

@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +12,35 @@ function isValidUUID(str: string): boolean {
   return uuidRegex.test(str);
 }
 
-serve(async req => {
+async function loadCoffeeVarieties(
+  supabase: ReturnType<typeof createClient>,
+  coffeeId: string
+) {
+  const { data, error } = await supabase
+    .from('coffee_variety_assignments')
+    .select('coffee_varieties!inner(id, name, sort_order)')
+    .eq('coffee_id', coffeeId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return ((data ?? []) as Array<{
+    coffee_varieties:
+      | { id: string; name: string; sort_order: number }
+      | Array<{ id: string; name: string; sort_order: number }>;
+  }>)
+    .map((row) =>
+      Array.isArray(row.coffee_varieties)
+        ? row.coffee_varieties[0] ?? null
+        : row.coffee_varieties
+    )
+    .filter((entry): entry is { id: string; name: string; sort_order: number } => Boolean(entry))
+    .sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
+    .map(({ id, name }) => ({ id, name }));
+}
+
+Deno.serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -75,6 +102,7 @@ serve(async req => {
             roasters!inner (
               id,
               name,
+              roaster_short_name,
               city,
               country,
               logo_url
@@ -90,6 +118,7 @@ serve(async req => {
       const batch = qrData.roast_batches;
       const coffee = batch.coffees;
       const roaster = coffee.roasters;
+      const varieties = await loadCoffeeVarieties(supabase, coffee.id);
 
       let origin = null;
       if (coffee.origin_id) {
@@ -116,23 +145,26 @@ serve(async req => {
             id: batch.id,
             roast_date: batch.roast_date,
             lot_number: batch.lot_number,
-            status: batch.status,
             brewing_notes: batch.brewing_notes,
             roaster_story: batch.roaster_story,
           },
           coffee: {
             id: coffee.id,
             name: coffee.name,
-            variety: coffee.variety,
+            variety:
+              varieties.length > 0
+                ? varieties.map((entry) => entry.name).join(', ')
+                : coffee.variety,
+            varieties,
             processing_method: coffee.processing_method,
             producer_notes: coffee.producer_notes,
             cover_image_url: coffee.cover_image_url,
-            status: coffee.status,
           },
           origin,
           roaster: {
             id: roaster.id,
             name: roaster.name,
+            roaster_short_name: roaster.roaster_short_name,
             city: roaster.city,
             country: roaster.country,
             logo_url: roaster.logo_url,

@@ -10,39 +10,58 @@ type Props = {
   summary: TelemetrySummaryData;
 };
 
-const INTENT_LABELS: Array<{ key: 'yes' | 'no' | 'unsure'; label: string }> = [
-  { key: 'yes', label: 'Would buy again' },
-  { key: 'no', label: 'Would not buy again' },
-  { key: 'unsure', label: 'Not sure' },
+type DistributionRow = {
+  label: string;
+  count: number;
+  colorClassName: string;
+};
+
+const INTENT_LABELS: Array<{ key: 'yes' | 'no' | 'unsure'; label: string; colorClassName: string }> = [
+  { key: 'yes', label: 'Would buy again', colorClassName: 'bg-vs-accent-secondary' },
+  { key: 'no', label: 'Would not buy again', colorClassName: 'bg-vs-hero-primary' },
+  { key: 'unsure', label: 'Not sure', colorClassName: 'bg-vs-warning' },
 ];
 
 const EXPERIENCE_LABELS: Array<{
   key: 'beginner' | 'advanced' | 'expert';
   label: string;
+  colorClassName: string;
 }> = [
-  { key: 'beginner', label: 'Beginner' },
-  { key: 'advanced', label: 'Advanced' },
-  { key: 'expert', label: 'Expert' },
+  { key: 'beginner', label: 'Beginner', colorClassName: 'bg-vs-accent-secondary' },
+  { key: 'advanced', label: 'Advanced', colorClassName: 'bg-vs-hero-primary' },
+  { key: 'expert', label: 'Expert', colorClassName: 'bg-vs-warning' },
 ];
 
 function DistributionList(props: {
   title: string;
-  rows: Array<{ label: string; count: number }>;
+  rows: DistributionRow[];
 }) {
+  const total = props.rows.reduce((sum, row) => sum + row.count, 0);
+
   return (
     <div className={analyticsStyles.distSectionCompact}>
       <h3 className={analyticsStyles.sectionTitle}>{props.title}</h3>
+      <div className="mt-3 overflow-hidden rounded-full border border-vs-border-strong bg-vs-surface">
+        <div className="flex h-4 w-full">
+          {props.rows.map((row) => (
+            <div
+              key={row.label}
+              className={row.colorClassName}
+              style={{
+                width: total > 0 ? `${(row.count / total) * 100}%` : '0%',
+              }}
+            />
+          ))}
+        </div>
+      </div>
       <ul className={analyticsStyles.distList}>
         {props.rows.map((row) => {
-          const width =
-            props.rows.length > 0
-              ? `${Math.round((row.count / Math.max(1, ...props.rows.map((r) => r.count))) * 100)}%`
-              : '0%';
+          const width = total > 0 ? `${Math.round((row.count / total) * 100)}%` : '0%';
           return (
             <li key={row.label} className={analyticsStyles.distRow}>
               <span className={analyticsStyles.distLabel}>{row.label}</span>
               <div className={analyticsStyles.distTrack}>
-                <div className={analyticsStyles.distBar} style={{ width }} />
+                <div className={`${analyticsStyles.distBar} ${row.colorClassName}`} style={{ width }} />
               </div>
               <span className={analyticsStyles.distCount}>{row.count}</span>
             </li>
@@ -57,39 +76,18 @@ export default function TelemetrySummary({ title, caption, summary }: Props) {
   const intentRows = INTENT_LABELS.map((item) => ({
     label: item.label,
     count: summary.repurchaseIntentDistribution[item.key],
+    colorClassName: item.colorClassName,
   }));
   const experienceRows = EXPERIENCE_LABELS.map((item) => ({
     label: item.label,
     count: summary.experienceLevelDistribution[item.key],
+    colorClassName: item.colorClassName,
   }));
 
   return (
     <section className={analyticsStyles.card}>
       <h2 className={analyticsStyles.cardTitle}>{title}</h2>
       {caption ? <p className={analyticsStyles.cardCaption}>{caption}</p> : null}
-
-      <dl className={analyticsStyles.statGridTelemetry}>
-        <div>
-          <dt className={analyticsStyles.statLabel}>Telemetry coverage</dt>
-          <dd className={analyticsStyles.statValue}>
-            {summary.logsWithTelemetry}
-            <span className={analyticsStyles.statSuffix}>/ {summary.totalLogs}</span>
-          </dd>
-          <p className={analyticsStyles.cardCaption}>{summary.coveragePercent.toFixed(2)}% of tastings</p>
-        </div>
-        <div>
-          <dt className={analyticsStyles.statLabel}>Avg acidity</dt>
-          <dd className={analyticsStyles.statValue}>{summary.avgSensoryAcidity?.toFixed(2) ?? '—'}</dd>
-        </div>
-        <div>
-          <dt className={analyticsStyles.statLabel}>Avg sweetness</dt>
-          <dd className={analyticsStyles.statValue}>{summary.avgSensorySweetness?.toFixed(2) ?? '—'}</dd>
-        </div>
-        <div>
-          <dt className={analyticsStyles.statLabel}>Avg body</dt>
-          <dd className={analyticsStyles.statValue}>{summary.avgSensoryBody?.toFixed(2) ?? '—'}</dd>
-        </div>
-      </dl>
 
       <DistributionList title="Repurchase intent" rows={intentRows} />
       <DistributionList title="Experience level" rows={experienceRows} />

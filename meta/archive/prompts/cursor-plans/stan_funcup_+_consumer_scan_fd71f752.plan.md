@@ -38,9 +38,9 @@ Agent ma traktować poniższą sekcję jako **binding checklist** — kolejnoś�
 
 ## Stan roaster-app (`product/apps/web`) — na dziś (referencja, nie zakres prac)
 
-Zrealizowane m.in.: auth, `/role`, `/roaster-profile`, `/roaster-hub` + setup + CRUD kaw/batchy + analityka, **`/tag`** (zapis `roaster_coffee_tags`, upload etykiety, **`POST /api/qr`**), **`/coffee-bank`**, web **`/q/[hash]`** → `scan_qr`, przekierowania `/dashboard` → `/roaster-hub`, pakiety współdzielone `product/packages/shared`, `product/packages/types`, E2E m.in. QR i coffee-bank.
+Zrealizowane m.in.: auth, `/role`, `/roaster-profile`, `/roaster-hub` + setup + CRUD kaw/batchy + analityka, **`/tag`** (zapis `roaster_coffee_tags`, upload etykiety, **`POST /api/qr`**), **`/roaster-hub/batches`**, web **`/q/[hash]`** → `scan_qr`, przekierowania `/dashboard` → `/roaster-hub`, pakiety współdzielone `product/packages/shared`, `product/packages/types`, E2E m.in. QR i batch manager.
 
-*(Jeśli aktualizujesz dokumentację tras: plik `.cursor/plans/routes and sites update.md` jest nieaktualny względem Coffee Bank — można go poprawić przy okazji.)*
+*(Jeśli aktualizujesz dokumentację tras: plik `.cursor/plans/routes and sites update.md` jest nieaktualny względem `roaster-hub/batches` — można go poprawić przy okazji.)*
 
 ---
 

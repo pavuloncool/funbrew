@@ -10,7 +10,7 @@ Status legend: `wired` (działa end-to-end), `partial` (działa z ograniczeniem)
 |---|---|---|---|---|---|
 | Publish | `coffees.name` | web form model + Supabase client | Web `/roaster-hub/coffees/new`.coffeeName | wired | MVP publish path aktywny |
 | Publish | `roast_batches.lot_number` | web form model + Supabase client | Web `/roaster-hub/coffees/new`.lotNumber | wired | Klucz lot identity |
-| Publish | `roast_batches.qr_hash` -> `qr_codes.hash` | `/api/batch-qr` | Web `/coffee-bank` QR actions | wired | QR do scan flow |
+| Publish | `roast_batches.qr_hash` -> `qr_codes.hash` | `/api/batch-qr` | Web `/roaster-hub/batches/[batchId]` QR actions | wired | QR do scan flow |
 | Scan | Function `scan_qr(hash)` | `parseFuncupQrScanPayload` + normalized coffee model | Mobile `/q/[hash]` -> `/coffee/[id]` | wired | Canonical resolver |
 | Coffee page | `coffees`,`roasters`,`roast_batches`,`tasting_notes` | `normalizeCoffeePage` + `useCoffeePage` | Mobile `/coffee/[id]` product sections | wired | Shared normalization |
 | Log | Function `log_tasting` | `tastingService.logTasting` + `normalizeFlowError` | Mobile `/coffee/[id]/log`.submit | wired | Online + retry fallback |

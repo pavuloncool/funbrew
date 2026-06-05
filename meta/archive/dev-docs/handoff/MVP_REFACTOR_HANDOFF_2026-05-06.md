@@ -127,8 +127,8 @@ curl -X POST http://127.0.0.1:54321/functions/v1/scan_qr \
 
 To nie są błędy architektury canonical modelu, tylko znane luki przejściowe:
 
-- `Coffee Bank` nadal jest tag-first management surface
-- canonical batch nie wraca jeszcze do zarządzania przez `Coffee Bank`
+- Legacy batch manager nadal jest tag-first management surface
+- canonical batch nie wraca jeszcze do zarządzania przez legacy batch manager
 - część starszych dokumentów Phase 010 nadal odnosi się do `product/apps/frontend` i mobile `/home`; przed wejściem w UX backlog trzeba zrobić re-baseline dokumentów względem aktualnego repo
 
 ## 5) Następny etap z pierwotnej listy

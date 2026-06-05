@@ -56,7 +56,7 @@ pnpm -C product/apps/web test -- src/lib/canonicalBatchFlow.test.ts src/lib/uplo
 ```
 4. Web e2e smoke (optional environment gate):
 ```bash
-pnpm -C product/apps/web test:e2e -- --grep "coffee-bank|qr|analytics"
+pnpm -C product/apps/web test:e2e -- --grep "batch|qr|analytics"
 ```
 
 ## Optional e2e fallback behavior

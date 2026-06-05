@@ -1,6 +1,13 @@
 'use client';
 
-import { resolveAccountRole } from '@funcup/shared';
+import {
+  buildWebLoginRedirectTarget,
+  canAccessSurface,
+  getDeniedAccessReason,
+  resolveAccountRole,
+  ROASTER_ONBOARDING_PATH,
+  shouldRedirectRoasterToOnboarding,
+} from '@funcup/shared';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 
@@ -13,11 +20,6 @@ function shouldEnforceRoasterOnly(pathname: string): boolean {
 }
 
 type GateStatus = 'checking' | 'allowed' | 'redirecting';
-
-function buildLoginRedirectTarget(pathname: string, searchParams: URLSearchParams | null): string {
-  const nextPath = searchParams?.size ? `${pathname}?${searchParams.toString()}` : pathname;
-  return `/login?reason=roaster_auth_required&next=${encodeURIComponent(nextPath)}`;
-}
 
 export default function WebAccountRoleGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -48,7 +50,7 @@ export default function WebAccountRoleGate({ children }: { children: ReactNode }
 
       if (!session?.user.id) {
         setStatus('redirecting');
-        router.replace(buildLoginRedirectTarget(pathname, searchParams));
+        router.replace(buildWebLoginRedirectTarget(pathname, searchParams));
         return;
       }
 
@@ -58,27 +60,36 @@ export default function WebAccountRoleGate({ children }: { children: ReactNode }
           session.user.id,
           session.user.user_metadata
         );
-        if (!active || role === 'roaster') {
-          if (active) {
-            setStatus('allowed');
-          }
-          return;
-        }
 
-        await supabaseBrowser.auth.signOut({ scope: 'local' });
         if (!active) {
           return;
         }
 
-        setStatus('redirecting');
-        router.replace('/login?reason=consumer_mobile_only');
+        if (!canAccessSurface(role, 'web_roaster')) {
+          await supabaseBrowser.auth.signOut({ scope: 'local' });
+          if (!active) {
+            return;
+          }
+
+          setStatus('redirecting');
+          router.replace(`/login?reason=${getDeniedAccessReason('web_roaster')}`);
+          return;
+        }
+
+        if (shouldRedirectRoasterToOnboarding(pathname, session.user.user_metadata)) {
+          setStatus('redirecting');
+          router.replace(ROASTER_ONBOARDING_PATH);
+          return;
+        }
+
+        setStatus('allowed');
       } catch {
         if (!active) {
           return;
         }
 
         setStatus('redirecting');
-        router.replace(buildLoginRedirectTarget(pathname, searchParams));
+        router.replace(buildWebLoginRedirectTarget(pathname, searchParams));
       }
     }
 
@@ -87,7 +98,7 @@ export default function WebAccountRoleGate({ children }: { children: ReactNode }
     return () => {
       active = false;
     };
-  }, [pathname, router, searchParams]);
+}, [pathname, router, searchParams]);
 
   if (status !== 'allowed') {
     return null;

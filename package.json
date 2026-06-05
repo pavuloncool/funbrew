@@ -1,7 +1,7 @@
 {
   "name": "funcup",
   "private": true,
-  "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499",
+  "packageManager": "pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -10,10 +10,13 @@
     "format": "prettier --write .",
     "phase004:readiness": "bash product/scripts/phase004-readiness-check.sh",
     "scan:preflight": "bash product/scripts/mobile-functions-smoke-check.sh",
+    "supabase:local:ensure": "bash product/scripts/ensure-local-supabase-ready.sh",
     "supabase:tunnel": "bash product/scripts/start-supabase-https-tunnel.sh",
     "dev:mobile-stack": "bash product/scripts/dev-mobile-stack.sh",
     "supabase:types": "echo \"Generate types via Supabase CLI: supabase gen types typescript --project-id <id> --schema public > product/supabase/types/database.ts\"",
-    "test": "turbo run test",
+    "test": "pnpm run test:contract && pnpm run test:apps",
+    "test:contract": "pnpm -C product/packages/shared test",
+    "test:apps": "pnpm -C product/apps/web test",
     "check:design-system": "node product/scripts/check-design-token-coverage.mjs",
     "consumer:start": "pnpm -C product/apps/consumer-mobile start",
     "consumer:start:expogo:tunnel": "pnpm -C product/apps/consumer-mobile run start:expogo:tunnel",
@@ -26,21 +29,6 @@
     "qr:prepare": "pnpm -C product/apps/web run qr:prepare",
     "postinstall": "node product/scripts/patch-metro-cache-exports.js",
     "prepare": "husky"
-  },
-  "pnpm": {
-    "overrides": {
-      "@types/react": "19.2.14",
-      "@types/react-dom": "19.2.3",
-      "xmlbuilder": "15.0.0",
-      "resolve": "1.22.10",
-      "react": "19.1.0",
-      "react-dom": "19.1.0"
-    },
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
-    ]
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",

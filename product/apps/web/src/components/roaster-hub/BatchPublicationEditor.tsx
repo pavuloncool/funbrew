@@ -1,29 +1,30 @@
 'use client';
 
 import {
-  aggregateRatingSummary,
   ensureRoasterBatchQr,
-  filterLogsByBrewMethod,
   flowErrorUiCopy,
   getRoasterBatchPublicationDetail,
+  listCoffeeVarieties,
+  loadBrewMethodOptions,
+  loadTastingNoteOptions,
   normalizeFlowError,
-  topFlavorNotesFromLogs,
+  sanitizeSelectedIds,
+  SENSORY_CORE_METRICS,
+  SENSORY_CORE_SCORE_OPTIONS,
+  type BrewMethodOption,
+  type CoffeeVarietyOption,
   type EnsureBatchQrResult,
-  type TelemetrySummary,
+  type TastingNoteOption,
   upsertRoasterBatchPublication,
-  useRoasterAnalytics,
 } from '@funcup/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState, type HTMLAttributes } from 'react';
 
-import AnalyticsSummary from '@/src/components/analytics/AnalyticsSummary';
-import AnonymizedFreeTextNotes from '@/src/components/analytics/AnonymizedFreeTextNotes';
-import AnonymizedReviews from '@/src/components/analytics/AnonymizedReviews';
-import BrewMethodFilter from '@/src/components/analytics/BrewMethodFilter';
-import TelemetrySummaryCard from '@/src/components/analytics/TelemetrySummary';
-import TopFlavorNotes from '@/src/components/analytics/TopFlavorNotes';
+import { BrewMethodPicker } from '@/src/components/roaster-hub/BrewMethodPicker';
+import { FlavorNoteSelector } from '@/src/components/roaster-hub/FlavorNoteSelector';
 import { CoffeeLabelUploadField } from '@/src/components/ui/coffee-label-upload-field';
+import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
 import { useRoasterProfile } from '@/src/hooks/useRoasterProfile';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import { PROCESSING_METHOD_OPTIONS } from '@/src/lib/canonicalPublisher';
@@ -38,7 +39,7 @@ type BatchPublicationEditorProps = {
 
 type FormValues = {
   name: string;
-  variety: string;
+  varietyIds: string[];
   processingMethod: string;
   producerNotes: string;
   coverImageUrl: string;
@@ -52,9 +53,50 @@ type FormValues = {
   roastDate: string;
   brewingNotes: string;
   roasterStory: string;
+  declaredSensoryAcidity: string;
+  declaredSensorySweetness: string;
+  declaredSensoryBody: string;
+  declaredSensoryBitter: string;
+  declaredSensoryAftertaste: string;
+  suggestedBrewMethodIds: string[];
+  suggestedTastingNoteIds: string[];
 };
 
 type FormErrors = Partial<Record<keyof FormValues, string>>;
+
+const ORIGIN_COUNTRY_OPTIONS = [
+{ value: 'Ethiopia', label: 'Ethiopia' }, 
+{ value: 'Colombia', label: 'Colombia' }, 
+{ value: 'Panama', label: 'Panama' }, 
+{ value: 'Kenya', label: 'Kenya' }, 
+{ value: 'Brazil', label: 'Brazil' }, 
+{ value: 'Guatemala', label: 'Guatemala' }, 
+{ value: 'Costa Rica', label: 'Costa Rica' }, 
+{ value: 'El Salvador', label: 'El Salvador' }, 
+{ value: 'Honduras', label: 'Honduras' }, 
+{ value: 'Peru', label: 'Peru' }, 
+{ value: 'Rwanda', label: 'Rwanda' }, 
+{ value: 'Burundi', label: 'Burundi' }, 
+{ value: 'Uganda', label: 'Uganda' }, 
+{ value: 'Indonesia', label: 'Indonesia' }, 
+{ value: 'Yemen', label: 'Yemen' }, 
+{ value: 'Mexico', label: 'Mexico' }, 
+{ value: 'Nicaragua', label: 'Nicaragua' }, 
+{ value: 'Tanzania', label: 'Tanzania' }, 
+{ value: 'Ecuador', label: 'Ecuador' }, 
+{ value: 'Laos', label: 'Laos' },
+] as const;
+
+const ALTITUDE_MIN_METERS = 500;
+const ALTITUDE_MAX_METERS = 2600;
+const ALTITUDE_STEP_METERS = 100;
+const ALTITUDE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = Array.from(
+  { length: Math.floor((ALTITUDE_MAX_METERS - ALTITUDE_MIN_METERS) / ALTITUDE_STEP_METERS) + 1 },
+  (_, index) => {
+    const meters = ALTITUDE_MIN_METERS + index * ALTITUDE_STEP_METERS;
+    return { value: String(meters), label: String(meters) };
+  }
+);
 
 function buildQrEntryPath(hash: string): string {
   return `/q/${encodeURIComponent(hash)}`;
@@ -63,7 +105,7 @@ function buildQrEntryPath(hash: string): string {
 function emptyFormValues(): FormValues {
   return {
     name: '',
-    variety: '',
+    varietyIds: [],
     processingMethod: '',
     producerNotes: '',
     coverImageUrl: '',
@@ -77,6 +119,13 @@ function emptyFormValues(): FormValues {
     roastDate: new Date().toISOString().slice(0, 10),
     brewingNotes: '',
     roasterStory: '',
+    declaredSensoryAcidity: '',
+    declaredSensorySweetness: '',
+    declaredSensoryBody: '',
+    declaredSensoryBitter: '',
+    declaredSensoryAftertaste: '',
+    suggestedBrewMethodIds: [],
+    suggestedTastingNoteIds: [],
   };
 }
 
@@ -108,16 +157,41 @@ function validateForm(values: FormValues): FormErrors {
   ].some((value) => value.trim().length > 0);
 
   if (hasOriginDetails && !values.originCountry.trim()) {
-    errors.originCountry = 'Origin country is required when origin details are provided.';
+    errors.originCountry = 'Country of origin is required when origin details are provided.';
+  }
+
+  const altitudeMin = toNullableNumber(values.originAltitudeMin);
+  const altitudeMax = toNullableNumber(values.originAltitudeMax);
+  if (altitudeMin != null && altitudeMax != null && altitudeMax < altitudeMin) {
+    errors.originAltitudeMax = 'Altitude max must be greater than or equal to altitude min.';
+  }
+
+  for (const metric of SENSORY_CORE_METRICS) {
+    const declaredScore = toNullableNumber(values[metric.declaredKey]);
+    if (
+      values[metric.declaredKey].trim().length > 0 &&
+      (declaredScore == null || declaredScore < 1 || declaredScore > 5 || !Number.isInteger(declaredScore))
+    ) {
+      errors[metric.declaredKey] = `Declared ${metric.label.toLowerCase()} must be an integer from 1 to 5.`;
+    }
   }
 
   return errors;
 }
 
 function mapDetailToFormValues(detail: Awaited<ReturnType<typeof getRoasterBatchPublicationDetail>>): FormValues {
+  const originAltitudeMin =
+    detail.origin?.altitudeMin == null ? '' : String(detail.origin.altitudeMin);
+  const originAltitudeMax =
+    detail.origin?.altitudeMax == null ? '' : String(detail.origin.altitudeMax);
+  const normalizedOriginAltitudeMax =
+    originAltitudeMin && originAltitudeMax && Number(originAltitudeMax) < Number(originAltitudeMin)
+      ? originAltitudeMin
+      : originAltitudeMax;
+
   return {
     name: detail.coffee.name,
-    variety: detail.coffee.variety ?? '',
+    varietyIds: detail.coffee.varieties.map((entry) => entry.id),
     processingMethod: detail.coffee.processingMethod ?? '',
     producerNotes: detail.coffee.producerNotes ?? '',
     coverImageUrl: detail.coffee.coverImageUrl ?? '',
@@ -125,12 +199,24 @@ function mapDetailToFormValues(detail: Awaited<ReturnType<typeof getRoasterBatch
     originRegion: detail.origin?.region ?? '',
     originFarm: detail.origin?.farm ?? '',
     originProducer: detail.origin?.producer ?? '',
-    originAltitudeMin: detail.origin?.altitudeMin == null ? '' : String(detail.origin.altitudeMin),
-    originAltitudeMax: detail.origin?.altitudeMax == null ? '' : String(detail.origin.altitudeMax),
+    originAltitudeMin,
+    originAltitudeMax: normalizedOriginAltitudeMax,
     lotNumber: detail.batch.lotNumber,
     roastDate: detail.batch.roastDate,
     brewingNotes: detail.batch.brewingNotes ?? '',
     roasterStory: detail.batch.roasterStory ?? '',
+    declaredSensoryAcidity:
+      detail.batch.declaredSensoryAcidity == null ? '' : String(detail.batch.declaredSensoryAcidity),
+    declaredSensorySweetness:
+      detail.batch.declaredSensorySweetness == null ? '' : String(detail.batch.declaredSensorySweetness),
+    declaredSensoryBody:
+      detail.batch.declaredSensoryBody == null ? '' : String(detail.batch.declaredSensoryBody),
+    declaredSensoryBitter:
+      detail.batch.declaredSensoryBitter == null ? '' : String(detail.batch.declaredSensoryBitter),
+    declaredSensoryAftertaste:
+      detail.batch.declaredSensoryAftertaste == null ? '' : String(detail.batch.declaredSensoryAftertaste),
+    suggestedBrewMethodIds: detail.batch.suggestedBrewMethodIds,
+    suggestedTastingNoteIds: detail.batch.suggestedTastingNoteIds,
   };
 }
 
@@ -142,34 +228,6 @@ function detailToQrPreview(detail: Awaited<ReturnType<typeof getRoasterBatchPubl
     lotNumber: detail.batch.lotNumber,
     svg: '',
     png: '',
-  };
-}
-
-function formatUpdatedAt(value: string | null): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
-}
-
-function emptyTelemetrySummary(totalLogs: number): TelemetrySummary {
-  return {
-    totalLogs,
-    logsWithTelemetry: 0,
-    coveragePercent: 0,
-    avgSensoryAcidity: null,
-    avgSensorySweetness: null,
-    avgSensoryBody: null,
-    repurchaseIntentDistribution: {
-      yes: 0,
-      no: 0,
-      unsure: 0,
-    },
-    experienceLevelDistribution: {
-      beginner: 0,
-      advanced: 0,
-      expert: 0,
-    },
   };
 }
 
@@ -191,11 +249,18 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | undefined>(undefined);
-  const [coffeeStatus, setCoffeeStatus] = useState('active');
-  const [batchStatus, setBatchStatus] = useState('active');
   const [qrPreview, setQrPreview] = useState<EnsureBatchQrResult | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [legacyVarietyLabel, setLegacyVarietyLabel] = useState<string | null>(null);
+  const [varietyOptions, setVarietyOptions] = useState<CoffeeVarietyOption[]>([]);
+  const [varietyOptionsLoading, setVarietyOptionsLoading] = useState(true);
+  const [varietyOptionsError, setVarietyOptionsError] = useState<string | null>(null);
+  const [brewMethodOptions, setBrewMethodOptions] = useState<BrewMethodOption[]>([]);
+  const [tastingNoteOptions, setTastingNoteOptions] = useState<TastingNoteOption[]>([]);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(true);
+  const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
+  const [legacyAnalyticsRedirecting, setLegacyAnalyticsRedirecting] = useState(false);
 
   async function hydrateQrPreview(nextBatchId: string) {
     setQrError(null);
@@ -216,6 +281,71 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
   }
 
   useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      setVarietyOptionsLoading(true);
+      setVarietyOptionsError(null);
+      try {
+        const options = await listCoffeeVarieties(supabaseBrowser);
+        if (!cancelled) {
+          setVarietyOptions(options);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        const normalized = normalizeFlowError({
+          error,
+          domain: 'batch_publication',
+        });
+        setVarietyOptionsError(flowErrorUiCopy(normalized).message);
+      } finally {
+        if (!cancelled) {
+          setVarietyOptionsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      setTaxonomyLoading(true);
+      setTaxonomyError(null);
+      try {
+        const [nextBrewMethods, nextTastingNotes] = await Promise.all([
+          loadBrewMethodOptions(supabaseBrowser),
+          loadTastingNoteOptions(supabaseBrowser),
+        ]);
+        if (cancelled) return;
+        setBrewMethodOptions(nextBrewMethods);
+        setTastingNoteOptions(nextTastingNotes);
+      } catch (error) {
+        if (cancelled) return;
+        const normalized = normalizeFlowError({
+          error,
+          domain: 'batch_publication',
+        });
+        setTaxonomyError(flowErrorUiCopy(normalized).message);
+        setBrewMethodOptions([]);
+        setTastingNoteOptions([]);
+      } finally {
+        if (!cancelled) {
+          setTaxonomyLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (mode !== 'edit' || !batchId) return;
     let cancelled = false;
 
@@ -226,8 +356,9 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
         const detail = await getRoasterBatchPublicationDetail(supabaseBrowser, batchId);
         if (cancelled) return;
         setValues(mapDetailToFormValues(detail));
-        setCoffeeStatus(detail.coffee.status);
-        setBatchStatus(detail.batch.status);
+        setLegacyVarietyLabel(
+          detail.coffee.varieties.length === 0 ? detail.coffee.variety ?? null : null
+        );
         setQrPreview(detailToQrPreview(detail));
         if (detail.qr?.hash) {
           void hydrateQrPreview(batchId);
@@ -251,42 +382,69 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
     };
   }, [batchId, mode]);
 
-  const currentBatchId = mode === 'edit' ? batchId ?? null : null;
-  const analytics = useRoasterAnalytics({
-    supabase: supabaseBrowser,
-    batchId: currentBatchId,
-  });
+  useEffect(() => {
+    if (mode !== 'edit' || !batchId || typeof window === 'undefined') return;
+    if (window.location.hash !== '#analytics') return;
+    setLegacyAnalyticsRedirecting(true);
+    router.replace(`/roaster-hub/analytics/${batchId}`);
+  }, [batchId, mode, router]);
 
-  const filteredLogs = useMemo(
+  const selectedVarietyOptions = useMemo(
     () =>
-      analytics.data && analytics.selectedBrewMethodId
-        ? filterLogsByBrewMethod(analytics.data.logs, analytics.selectedBrewMethodId)
-        : analytics.data?.logs ?? [],
-    [analytics.data, analytics.selectedBrewMethodId]
+      varietyOptions.filter((option) => values.varietyIds.includes(option.id)),
+    [values.varietyIds, varietyOptions]
   );
-  const filteredSummary = useMemo(
-    () => aggregateRatingSummary(filteredLogs),
-    [filteredLogs]
+  const sanitizedSuggestedBrewMethodIds = useMemo(
+    () => sanitizeSelectedIds(values.suggestedBrewMethodIds, brewMethodOptions),
+    [values.suggestedBrewMethodIds, brewMethodOptions]
   );
-  const filteredTopFlavorNotes = useMemo(
-    () => topFlavorNotesFromLogs(filteredLogs),
-    [filteredLogs]
+  const sanitizedSuggestedTastingNoteIds = useMemo(
+    () => sanitizeSelectedIds(values.suggestedTastingNoteIds, tastingNoteOptions),
+    [values.suggestedTastingNoteIds, tastingNoteOptions]
   );
-  const filteredTelemetrySummary = useMemo<TelemetrySummary>(() => {
-    if (!analytics.data || !analytics.selectedBrewMethodId) {
-      return analytics.data?.globalTelemetrySummary ?? emptyTelemetrySummary(0);
-    }
-    return (
-      analytics.data.telemetryByBrewMethodId[analytics.selectedBrewMethodId] ??
-      emptyTelemetrySummary(filteredLogs.length)
+
+  useEffect(() => {
+    if (!legacyVarietyLabel || values.varietyIds.length > 0 || varietyOptions.length === 0) return;
+    const matchingOption = varietyOptions.find((option) => option.name === legacyVarietyLabel);
+    if (!matchingOption) return;
+    setValues((prev) =>
+      prev.varietyIds.length > 0 ? prev : { ...prev, varietyIds: [matchingOption.id] }
     );
-  }, [analytics.data, analytics.selectedBrewMethodId, filteredLogs.length]);
+    setLegacyVarietyLabel(null);
+  }, [legacyVarietyLabel, values.varietyIds, varietyOptions]);
+
+  const currentBatchId = mode === 'edit' ? batchId ?? null : null;
+
+  const altitudeMinValue = useMemo(
+    () => toNullableNumber(values.originAltitudeMin),
+    [values.originAltitudeMin]
+  );
+  const altitudeMaxOptions = useMemo(() => {
+    if (altitudeMinValue == null) return ALTITUDE_OPTIONS;
+    return ALTITUDE_OPTIONS.filter((option) => Number(option.value) >= altitudeMinValue);
+  }, [altitudeMinValue]);
+
+  function handleOriginAltitudeMinChange(nextMinValue: string) {
+    setValues((prev) => {
+      const currentMax = toNullableNumber(prev.originAltitudeMax);
+      const nextMin = toNullableNumber(nextMinValue);
+      if (nextMin == null || currentMax == null || currentMax >= nextMin) {
+        return { ...prev, originAltitudeMin: nextMinValue };
+      }
+      return {
+        ...prev,
+        originAltitudeMin: nextMinValue,
+        originAltitudeMax: nextMinValue,
+      };
+    });
+  }
 
   async function refreshDetail(nextBatchId: string) {
     const detail = await getRoasterBatchPublicationDetail(supabaseBrowser, nextBatchId);
     setValues(mapDetailToFormValues(detail));
-    setCoffeeStatus(detail.coffee.status);
-    setBatchStatus(detail.batch.status);
+    setLegacyVarietyLabel(
+      detail.coffee.varieties.length === 0 ? detail.coffee.variety ?? null : null
+    );
     setQrPreview(detailToQrPreview(detail));
     if (detail.qr?.hash) {
       await hydrateQrPreview(nextBatchId);
@@ -350,8 +508,7 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
       const payloadBase = {
         coffee: {
           name: values.name.trim(),
-          status: coffeeStatus,
-          variety: trimNullable(values.variety),
+          varietyIds: values.varietyIds,
           processingMethod: trimNullable(values.processingMethod),
           producerNotes: trimNullable(values.producerNotes),
           coverImageUrl: trimNullable(nextCoverImageUrl),
@@ -360,9 +517,15 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
         batch: {
           lotNumber: values.lotNumber.trim(),
           roastDate: values.roastDate.trim(),
-          status: batchStatus,
           brewingNotes: trimNullable(values.brewingNotes),
           roasterStory: trimNullable(values.roasterStory),
+          declaredSensoryAcidity: toNullableNumber(values.declaredSensoryAcidity),
+          declaredSensorySweetness: toNullableNumber(values.declaredSensorySweetness),
+          declaredSensoryBody: toNullableNumber(values.declaredSensoryBody),
+          declaredSensoryBitter: toNullableNumber(values.declaredSensoryBitter),
+          declaredSensoryAftertaste: toNullableNumber(values.declaredSensoryAftertaste),
+          suggestedBrewMethodIds: sanitizedSuggestedBrewMethodIds,
+          suggestedTastingNoteIds: sanitizedSuggestedTastingNoteIds,
         },
       };
 
@@ -431,6 +594,14 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
     );
   }
 
+  if (legacyAnalyticsRedirecting) {
+    return (
+      <main className={hubCrudStyles.main760}>
+        <p className={hubCrudStyles.muted}>Redirecting to batch analytics…</p>
+      </main>
+    );
+  }
+
   return (
     <main className={hubCrudStyles.main760}>
       <p className="mb-4">
@@ -440,11 +611,21 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
       </p>
 
       <h1 className={hubCrudStyles.pageHeading}>
-        {mode === 'create' ? 'Publish batch publication' : 'Manage batch publication'}
+        {mode === 'create' ? 'New Coffee + QR Code' : 'Manage batch'}
       </h1>
       <p className={`${hubCrudStyles.muted} mb-5 max-w-[720px]`}>
-        Edge-first canonical batch publication: coffee, origin, roast batch, QR handoff and analytics are managed through one runtime contract.
+        {mode === 'create'
+          ? 'Use this screen to publish a new batch, attach label assets, and prepare the QR handoff consumers will scan.'
+          : 'Use this screen to update batch parameters, label assets, and QR handoff details. Tasting analytics now live in a separate workflow.'}
       </p>
+
+      {currentBatchId ? (
+        <div className="mb-6 flex flex-wrap gap-3">
+          <Link href={`/roaster-hub/analytics/${currentBatchId}`} className={hubCrudStyles.actionLink}>
+            Open batch analytics
+          </Link>
+        </div>
+      ) : null}
 
       {!userId ? (
         <div className="rounded border border-vs-warning/40 bg-vs-warning/10 p-3 text-sm text-vs-text-primary">
@@ -464,24 +645,14 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
 
       <form onSubmit={handleSubmit} className={hubCrudStyles.formGrid}>
         <Field
-          label="Coffee name"
+          label="Coffee name (shelf name, e.g. 'Ethiopia Yirgacheffe Chelbesa')"
           required
           value={values.name}
           onChange={(value) => setValues((prev) => ({ ...prev, name: value }))}
           error={errors.name}
         />
-        <Field
-          label="Variety"
-          value={values.variety}
-          onChange={(value) => setValues((prev) => ({ ...prev, variety: value }))}
-        />
-        <SelectField
-          label="Processing method"
-          value={values.processingMethod}
-          onChange={(value) => setValues((prev) => ({ ...prev, processingMethod: value }))}
-        />
         <label className={hubCrudStyles.formGrid}>
-          <span className={hubCrudStyles.label}>Coffee label / package image</span>
+          <span className={hubCrudStyles.label}>Package label (shelf package label (jpg, png))</span>
           <CoffeeLabelUploadField
             file={coverImageFile}
             onFileChange={setCoverImageFile}
@@ -493,24 +664,38 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
               Current image exists. Uploading a new file will replace it on save.
             </span>
           ) : null}
+          {values.coverImageUrl ? (
+            <div>
+              <span className={hubCrudStyles.label}>Current package label</span>
+              <div className={hubCrudStyles.assetPreviewFrame}>
+                <img
+                  src={values.coverImageUrl}
+                  alt={`${values.name || 'Coffee'} label`}
+                  className={hubCrudStyles.assetPreviewImage}
+                />
+              </div>
+            </div>
+          ) : null}
         </label>
-        <TextAreaField
-          label="Producer notes"
-          value={values.producerNotes}
-          onChange={(value) => setValues((prev) => ({ ...prev, producerNotes: value }))}
-          placeholder="What should the consumer know about this coffee?"
-        />
-
-        <hr className="my-2 border-vs-border-default" />
-        <h2 className={hubCrudStyles.pageHeading}>Origin</h2>
-        <Field
-          label="Origin country"
+        <SelectField
+          label="Country of Origin"
           value={values.originCountry}
           onChange={(value) => setValues((prev) => ({ ...prev, originCountry: value }))}
+          placeholder="Select origin country"
+          options={ORIGIN_COUNTRY_OPTIONS}
           error={errors.originCountry}
         />
+        <VarietyMultiSelectField
+          label="Variety"
+          value={values.varietyIds}
+          options={varietyOptions}
+          selectedOptions={selectedVarietyOptions}
+          onChange={(value) => setValues((prev) => ({ ...prev, varietyIds: value }))}
+          loading={varietyOptionsLoading}
+          error={varietyOptionsError}
+        />
         <Field
-          label="Origin region"
+          label="Region of origin"
           value={values.originRegion}
           onChange={(value) => setValues((prev) => ({ ...prev, originRegion: value }))}
         />
@@ -519,32 +704,41 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
           value={values.originFarm}
           onChange={(value) => setValues((prev) => ({ ...prev, originFarm: value }))}
         />
+        <SelectField
+          label="Processing method"
+          value={values.processingMethod}
+          onChange={(value) => setValues((prev) => ({ ...prev, processingMethod: value }))}
+          placeholder="Select processing"
+          options={PROCESSING_METHOD_OPTIONS}
+        />
+        {/*<TextAreaField
+          label="Producer notes"
+          value={values.producerNotes}
+          onChange={(value) => setValues((prev) => ({ ...prev, producerNotes: value }))}
+          placeholder="What should the consumer know about this coffee?"
+        />*/}
+
+        {/*<hr className="my-2 border-vs-border-default" />
+        <h2 className={hubCrudStyles.pageHeading}>Origin</h2>*/}
         <Field
-          label="Producer"
+          label="Importer name"
           value={values.originProducer}
           onChange={(value) => setValues((prev) => ({ ...prev, originProducer: value }))}
         />
-        <Field
-          label="Altitude min (m)"
+        <SelectField
+          label="Altitude min (masl)"
           value={values.originAltitudeMin}
-          onChange={(value) => setValues((prev) => ({ ...prev, originAltitudeMin: value }))}
-          inputMode="numeric"
+          onChange={handleOriginAltitudeMinChange}
+          options={ALTITUDE_OPTIONS}
+          placeholder="Select altitude min"
         />
-        <Field
-          label="Altitude max (m)"
+        <SelectField
+          label="Altitude max (masl)"
           value={values.originAltitudeMax}
           onChange={(value) => setValues((prev) => ({ ...prev, originAltitudeMax: value }))}
-          inputMode="numeric"
-        />
-
-        <hr className="my-2 border-vs-border-default" />
-        <h2 className={hubCrudStyles.pageHeading}>Batch</h2>
-        <Field
-          label="Lot number"
-          required
-          value={values.lotNumber}
-          onChange={(value) => setValues((prev) => ({ ...prev, lotNumber: value }))}
-          error={errors.lotNumber}
+          options={altitudeMaxOptions}
+          placeholder="Select altitude max"
+          error={errors.originAltitudeMax}
         />
         <label className={hubCrudStyles.formGrid}>
           <span className={hubCrudStyles.label}>Roast date *</span>
@@ -557,6 +751,16 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
           />
           {errors.roastDate ? <span className={hubCrudStyles.error}>{errors.roastDate}</span> : null}
         </label>
+        <Field
+          label="Lot ID (internal lot number or code on the bag)"
+          required
+          value={values.lotNumber}
+          onChange={(value) => setValues((prev) => ({ ...prev, lotNumber: value }))}
+          error={errors.lotNumber}
+        />
+
+        <hr className="my-2 border-vs-border-default" />
+        {/*<h2 className={hubCrudStyles.pageHeading}>Batch</h2>*/}
         <TextAreaField
           label="Brewing notes"
           value={values.brewingNotes}
@@ -569,15 +773,41 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
           onChange={(value) => setValues((prev) => ({ ...prev, roasterStory: value }))}
           placeholder="What makes this batch worth tasting?"
         />
-
-        <div className="rounded border border-vs-border-default bg-vs-surface p-4 text-sm text-vs-text-secondary">
-          <p>
-            <strong className={hubCrudStyles.bodyStrong}>Coffee status:</strong> {coffeeStatus}
-          </p>
-          <p>
-            <strong className={hubCrudStyles.bodyStrong}>Batch status:</strong> {batchStatus}
-          </p>
+        <div className="space-y-4 rounded-vs-md border border-vs-border-default bg-vs-surface px-4 py-4">
+          <div>
+            <p className={hubCrudStyles.label}>Sensory Core</p>
+            <p className={`${hubCrudStyles.muted} mt-1 text-xs`}>
+              Same 1-5 scale consumers use for perceived Sensory Core.
+            </p>
+          </div>
+          {SENSORY_CORE_METRICS.map((metric) => (
+            <ScorePickerField
+              key={metric.id}
+              label={metric.label}
+              leftLabel={metric.leftLabel}
+              rightLabel={metric.rightLabel}
+              value={values[metric.declaredKey]}
+              onChange={(value) => setValues((prev) => ({ ...prev, [metric.declaredKey]: value }))}
+              error={errors[metric.declaredKey]}
+            />
+          ))}
         </div>
+        <BrewMethodPicker
+          options={brewMethodOptions}
+          selectedIds={values.suggestedBrewMethodIds}
+          onChange={(value) => setValues((prev) => ({ ...prev, suggestedBrewMethodIds: value }))}
+          disabled={Boolean(taxonomyError)}
+          loading={taxonomyLoading}
+          error={taxonomyError}
+        />
+        <FlavorNoteSelector
+          options={tastingNoteOptions}
+          selectedIds={values.suggestedTastingNoteIds}
+          onChange={(value) => setValues((prev) => ({ ...prev, suggestedTastingNoteIds: value }))}
+          disabled={Boolean(taxonomyError)}
+          loading={taxonomyLoading}
+          error={taxonomyError}
+        />
 
         {submitError ? <p className={hubCrudStyles.error}>{submitError}</p> : null}
         {notice ? <p className={hubCrudStyles.muted}>{notice}</p> : null}
@@ -585,7 +815,16 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
         <button
           type="submit"
           className={hubCrudStyles.submitBtn}
-          disabled={saving || !userId || !roasterExists || !roasterComplete}
+          disabled={
+            saving ||
+            varietyOptionsLoading ||
+            taxonomyLoading ||
+            Boolean(varietyOptionsError) ||
+            Boolean(taxonomyError) ||
+            !userId ||
+            !roasterExists ||
+            !roasterComplete
+          }
         >
           {saving
             ? mode === 'create'
@@ -598,7 +837,7 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
       </form>
 
       {currentBatchId ? (
-        <section className="mt-8 space-y-8">
+        <section className="mt-8">
           <article className="rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-5 shadow-vs-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -606,7 +845,7 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
                   QR Handoff
                 </p>
                 <p className="mt-1 text-lg text-vs-text-secondary">
-                  Lot {values.lotNumber || '—'} · Roast {values.roastDate || '—'} · {batchStatus}
+                  Lot {values.lotNumber || '—'} · Roast {values.roastDate || '—'}
                 </p>
                 <p className="mt-2 text-sm text-vs-text-secondary">
                   This is the QR label preview for the mobile handoff consumers open after scanning.
@@ -658,88 +897,6 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
 
             {qrError ? <p className={`${hubCrudStyles.error} mt-4`}>{qrError}</p> : null}
           </article>
-
-          <section id="analytics" className="space-y-8">
-            <div className="rounded-vs-md border border-vs-border-subtle/40 bg-vs-surface px-4 py-3">
-              <p className="text-base text-vs-text-primary">
-                <span className="font-semibold">Published tastings:</span> {analytics.data?.globalFromStats?.totalTastings ?? 0}
-              </p>
-              <p className="text-base text-vs-text-primary">
-                <span className="font-semibold">Average rating:</span> {analytics.data?.globalFromStats?.avgRating ?? 0}
-              </p>
-              <p className="font-mono text-xs text-vs-text-muted">
-                Stats updated: {formatUpdatedAt(analytics.data?.statsUpdatedAt ?? null)}
-              </p>
-            </div>
-
-            {analytics.error ? (
-              <p className={hubCrudStyles.error}>
-                {flowErrorUiCopy(
-                  normalizeFlowError({ error: analytics.error, domain: 'analytics' })
-                ).message}
-              </p>
-            ) : null}
-
-            {analytics.isLoading ? (
-              <p className={hubCrudStyles.muted}>Loading analytics…</p>
-            ) : analytics.data ? (
-              <>
-                <AnalyticsSummary
-                  title="Published batch totals"
-                  caption={
-                    analytics.data.globalFromStats && analytics.data.statsUpdatedAt
-                      ? `Synced aggregates (updated ${new Date(analytics.data.statsUpdatedAt).toLocaleString()})`
-                      : 'Derived from raw tastings on file.'
-                  }
-                  summary={
-                    analytics.data.globalFromStats ??
-                    aggregateRatingSummary(analytics.data.logs)
-                  }
-                />
-
-                <TopFlavorNotes
-                  title="Top flavor notes (all tastings)"
-                  caption="Ranked from logged tastings on file."
-                  notes={analytics.data.globalTopFlavorNotes}
-                />
-
-                <TelemetrySummaryCard
-                  title="Roaster telemetry (all tastings)"
-                  caption="Telemetry fields captured in consumer tasting log."
-                  summary={analytics.data.globalTelemetrySummary}
-                />
-
-                <BrewMethodFilter
-                  options={analytics.data.brewMethodOptions}
-                  value={analytics.selectedBrewMethodId}
-                  onChange={analytics.setSelectedBrewMethodId}
-                />
-
-                {analytics.selectedBrewMethodId ? (
-                  <>
-                    <AnalyticsSummary
-                      title="Filtered totals"
-                      caption="Only tastings matching the selected brew method."
-                      summary={filteredSummary}
-                    />
-                    <TopFlavorNotes
-                      title="Top flavor notes (filtered)"
-                      caption="Same selection as the brew-method filter."
-                      notes={filteredTopFlavorNotes}
-                    />
-                    <TelemetrySummaryCard
-                      title="Roaster telemetry (filtered)"
-                      caption="Telemetry subset matching the same brew-method filter."
-                      summary={filteredTelemetrySummary}
-                    />
-                  </>
-                ) : null}
-
-                <AnonymizedFreeTextNotes notes={analytics.data.anonymizedFreeTextNotes} />
-                <AnonymizedReviews reviews={analytics.data.anonymizedReviews} />
-              </>
-            ) : null}
-          </section>
         </section>
       ) : null}
     </main>
@@ -794,27 +951,237 @@ function TextAreaField(props: {
   );
 }
 
+function ScorePickerField(props: {
+  label: string;
+  leftLabel: string;
+  rightLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+}) {
+  return (
+    <div className={hubCrudStyles.formGrid}>
+      <span className={hubCrudStyles.label}>{props.label}</span>
+      <div className="flex flex-wrap items-center gap-3 rounded-vs-md border border-vs-border-default bg-vs-elevated px-3 py-3">
+        <span className="min-w-0 flex-1 text-xs font-medium leading-snug text-vs-text-muted">
+          {props.leftLabel}
+        </span>
+        <div className="flex shrink-0 gap-2">
+          {SENSORY_CORE_SCORE_OPTIONS.map((option) => {
+            const active = props.value === String(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                className={[
+                  'flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold transition-colors',
+                  active
+                    ? 'border-vs-accent-primary bg-vs-accent-primary text-vs-text-inverse'
+                    : 'border-vs-border-default bg-vs-surface text-vs-text-secondary hover:bg-vs-elevated',
+                ].join(' ')}
+                onClick={() => props.onChange(String(option))}
+                aria-pressed={active}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+        <span className="min-w-0 flex-1 text-right text-xs font-medium leading-snug text-vs-text-muted">
+          {props.rightLabel}
+        </span>
+      </div>
+      {props.error ? <span className={hubCrudStyles.error}>{props.error}</span> : null}
+    </div>
+  );
+}
+
+function VarietyMultiSelectField(props: {
+  label: string;
+  value: string[];
+  options: CoffeeVarietyOption[];
+  selectedOptions: CoffeeVarietyOption[];
+  onChange: (value: string[]) => void;
+  loading: boolean;
+  error?: string | null;
+}) {
+  const { label, value, options, selectedOptions, onChange, loading, error } = props;
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const filteredOptions = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    if (!normalizedQuery) return options;
+    return options.filter((option) => option.name.toLocaleLowerCase().includes(normalizedQuery));
+  }, [options, query]);
+
+  function toggleOption(optionId: string) {
+    onChange(
+      value.includes(optionId)
+        ? value.filter((entry) => entry !== optionId)
+        : [...value, optionId]
+    );
+  }
+
+  const triggerLabel =
+    selectedOptions.length > 0
+      ? selectedOptions.map((option) => option.name).join(', ')
+      : loading
+        ? 'Loading varieties…'
+        : 'Search and select varieties';
+
+  return (
+    <label className={hubCrudStyles.formGrid}>
+      <span className={hubCrudStyles.label}>{label}</span>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={`${hubCrudStyles.input} min-h-11 text-left ${loading ? 'opacity-70' : ''}`}
+            disabled={loading || Boolean(error)}
+          >
+            <span className={selectedOptions.length > 0 ? '' : 'text-vs-text-muted'}>
+              {triggerLabel}
+            </span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[min(32rem,calc(100vw-3rem))] border-2 border-vs-border-strong bg-vs-elevated p-3">
+          <div className="grid gap-3">
+            <input
+              className={hubCrudStyles.input}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search WCR Arabica varieties"
+            />
+            <div className="max-h-72 overflow-y-auto rounded-vs-sm border border-vs-border-default bg-vs-surface">
+              {filteredOptions.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-vs-text-secondary">No matching varieties.</p>
+              ) : (
+                filteredOptions.map((option) => {
+                  const checked = value.includes(option.id);
+                  return (
+                    <label
+                      key={option.id}
+                      className="flex cursor-pointer items-center gap-3 border-b border-vs-border-subtle/40 px-3 py-2 text-sm text-vs-text-primary last:border-b-0"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOption(option.id)}
+                      />
+                      <span>{option.name}</span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+            {selectedOptions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {selectedOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className="rounded-full border border-vs-border-strong px-3 py-1 text-xs text-vs-text-primary"
+                    onClick={() => toggleOption(option.id)}
+                  >
+                    {option.name} ×
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {error ? <span className={hubCrudStyles.error}>{error}</span> : null}
+    </label>
+  );
+}
+
 function SelectField(props: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  placeholder: string;
+  error?: string;
 }) {
-  const { label, value, onChange } = props;
+  const { label, value, onChange, options, placeholder, error } = props;
+  const [open, setOpen] = useState(false);
+  const selectedOption = options.find((option) => option.value === value) ?? null;
+  const hasLegacyValue = value.trim().length > 0 && !selectedOption;
+
   return (
     <label className={hubCrudStyles.formGrid}>
       <span className={hubCrudStyles.label}>{label}</span>
-      <select
-        className={hubCrudStyles.input}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">Select processing</option>
-        {PROCESSING_METHOD_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={`${hubCrudStyles.input} min-h-11 text-left`}
+          >
+            <span className={selectedOption || hasLegacyValue ? '' : 'text-vs-text-muted'}>
+              {selectedOption?.label ?? (hasLegacyValue ? value : placeholder)}
+            </span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[min(32rem,calc(100vw-3rem))] border-2 border-vs-border-strong bg-vs-elevated p-3"
+        >
+          <div className="overflow-hidden rounded-vs-sm border border-vs-border-default bg-vs-surface">
+            <button
+              type="button"
+              className={`flex w-full items-center gap-3 border-b border-vs-border-subtle/40 px-3 py-2 text-left text-sm ${
+                value === '' ? 'bg-vs-border-default/20 text-vs-text-primary' : 'text-vs-text-muted'
+              }`}
+              onClick={() => {
+                onChange('');
+                setOpen(false);
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={value === ''}
+                readOnly
+                disabled={value !== ''}
+                className={`h-5 w-5 rounded border-vs-border-strong ${
+                  value !== '' ? 'opacity-40' : ''
+                }`}
+              />
+              <span>{placeholder}</span>
+            </button>
+            {options.map((option) => {
+              const selected = option.value === value;
+              const dimCheckbox = value !== '' && !selected;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`flex w-full items-center gap-3 border-b border-vs-border-subtle/40 px-3 py-2 text-left text-sm last:border-b-0 ${
+                    selected ? 'bg-vs-border-default/20 text-vs-text-primary' : 'text-vs-text-primary'
+                  }`}
+                  onClick={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    readOnly
+                    disabled={dimCheckbox}
+                    className={`h-5 w-5 rounded border-vs-border-strong ${
+                      dimCheckbox ? 'opacity-40' : ''
+                    }`}
+                  />
+                  <span>{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {error ? <span className={hubCrudStyles.error}>{error}</span> : null}
     </label>
   );
 }

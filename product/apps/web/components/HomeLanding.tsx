@@ -18,7 +18,15 @@ const INITIAL_FORM: LeadFormValues = {
 
 type SubmitState = 'idle' | 'loading' | 'success' | 'error';
 
-export default function HomeLanding() {
+type HomeLandingProps = {
+  formTitle?: string;
+  formDescription?: string;
+};
+
+export default function HomeLanding({
+  formTitle = 'Contact',
+  formDescription = 'Leave your details and we will follow up with beta access details.',
+}: HomeLandingProps) {
   const [form, setForm] = useState<LeadFormValues>(INITIAL_FORM);
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
@@ -83,10 +91,10 @@ export default function HomeLanding() {
 
         <div className="rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-5 shadow-vs-sm sm:p-6">
           <h2 className="font-display text-[32px] uppercase leading-none tracking-[-0.03em] text-vs-text-primary">
-            Contact
+            {formTitle}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-vs-text-secondary">
-            Leave your details and we will follow up with beta access details.
+            {formDescription}
           </p>
 
           <form onSubmit={handleContactSubmit} className="mt-5 grid gap-3">
@@ -113,18 +121,18 @@ export default function HomeLanding() {
             <input
               className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
               type="text"
-              placeholder="Company (optional)"
+              placeholder="Company"
               value={form.company}
               onChange={event => setForm(prev => ({ ...prev, company: event.target.value }))}
-              maxLength={140}
+              required
+              maxLength={160}
               disabled={submitState === 'loading'}
             />
             <textarea
               className="min-h-[120px] rounded border border-vs-border-default bg-vs-surface px-3 py-2 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
-              placeholder="What do you want to achieve with fun•brew?"
+              placeholder="What do you want to achieve with fun•brew? (optional)"
               value={form.message}
               onChange={event => setForm(prev => ({ ...prev, message: event.target.value }))}
-              required
               maxLength={2000}
               disabled={submitState === 'loading'}
             />

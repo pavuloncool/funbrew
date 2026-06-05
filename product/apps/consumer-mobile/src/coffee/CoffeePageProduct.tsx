@@ -3,19 +3,20 @@ import { AppPanel, AppText } from '../components/ui/primitives';
 
 export function CoffeePageProduct(props: {
   coffeeName?: string;
-  variety?: string | null;
+  varieties?: Array<{ id: string; name: string }>;
   processingMethod?: string | null;
   producerNotes?: string | null;
   roasterName?: string | null;
 }) {
+  const varietyLabel = props.varieties?.map((entry) => entry.name).join(', ') ?? null;
   return (
     <AppPanel style={styles.section}>
       <AppText variant="h3" weight="600">Product</AppText>
       <AppText variant="body" weight="600">{props.coffeeName ?? 'Coffee'}</AppText>
       {props.roasterName ? <AppText tone="secondary">{props.roasterName}</AppText> : null}
-      {[props.variety, props.processingMethod].filter(Boolean).length > 0 ? (
+      {[varietyLabel, props.processingMethod].filter(Boolean).length > 0 ? (
         <AppText tone="muted" style={styles.meta}>
-          {[props.variety, props.processingMethod].filter(Boolean).join(' · ')}
+          {[varietyLabel, props.processingMethod].filter(Boolean).join(' · ')}
         </AppText>
       ) : null}
       {props.producerNotes ? (

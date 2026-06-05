@@ -5,6 +5,7 @@ import {
   logFlowError,
   normalizeFlowError,
   normalizeTastingSyncError,
+  SENSORY_CORE_METRICS,
   type RepurchaseIntent,
   upsertRoasterTelemetryCore,
   useUnlockedTastingNotes,
@@ -20,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrewMethodPicker } from '../../../src/coffee/tasting/BrewMethodPicker';
 import { FlavorNoteSelector } from '../../../src/coffee/tasting/FlavorNoteSelector';
 import { RatingInput } from '../../../src/coffee/tasting/RatingInput';
+import { SensoryCoreScorePicker } from '../../../src/coffee/tasting/SensoryCoreScorePicker';
 import { useOfflineTastingSync } from '../../../src/hooks/useOfflineTastingSync';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { offlineQueueStorage } from '../../../src/services/offlineQueueStorage';
@@ -49,8 +51,9 @@ export default function TastingLogScreen() {
   const [sensoryAcidity, setSensoryAcidity] = useState(3);
   const [sensorySweetness, setSensorySweetness] = useState(3);
   const [sensoryBody, setSensoryBody] = useState(3);
+  const [sensoryBitter, setSensoryBitter] = useState(3);
+  const [sensoryAftertaste, setSensoryAftertaste] = useState(3);
   const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
-  const lockedNoteIds = new Set((unlocksQuery.data?.lockedOptions ?? []).map((option) => option.id));
 
   const validate = (): string | null => {
     if (!batchId) return 'Missing batch id';
@@ -62,9 +65,6 @@ export default function TastingLogScreen() {
     }
     if (tastingNoteIds.length === 0) {
       return 'Select at least one tasting note';
-    }
-    if (tastingNoteIds.some((id) => lockedNoteIds.has(id))) {
-      return 'Some tasting notes are still locked for your current sensory level.';
     }
     return null;
   };
@@ -127,6 +127,8 @@ export default function TastingLogScreen() {
               sensoryAcidity,
               sensorySweetness,
               sensoryBody,
+              sensoryBitter,
+              sensoryAftertaste,
               repurchaseIntent,
               experienceLevel: 'beginner',
             },
@@ -205,22 +207,57 @@ export default function TastingLogScreen() {
           <FlavorNoteSelector
             selectedIds={tastingNoteIds}
             onChange={setTastingNoteIds}
-            options={unlocksQuery.data?.options}
-            disabledIds={unlocksQuery.data?.lockedOptions.map((option) => option.id)}
-            disabledHint={unlocksQuery.data?.unlockHint ?? null}
-            getDisabledReason={(option) => `Unlocks at ${option.requiredLevel} level.`}
+            options={unlocksQuery.data?.unlockedOptions}
           />
           {unlocksQuery.data ? (
-            <AppText tone="secondary">
-              Current level: {unlocksQuery.data.levelLabel}
-              {unlocksQuery.data.nextLevelLabel ? ` · next unlock at ${unlocksQuery.data.nextLevelLabel}` : ''}
-            </AppText>
+            <View style={styles.selectorMeta}>
+              <AppText tone="secondary">
+                Current level: {unlocksQuery.data.levelLabel}
+                {unlocksQuery.data.nextLevelLabel ? ` · next unlock at ${unlocksQuery.data.nextLevelLabel}` : ''}
+              </AppText>
+              {unlocksQuery.data.unlockHint ? (
+                <AppText tone="secondary">{unlocksQuery.data.unlockHint}</AppText>
+              ) : null}
+            </View>
           ) : null}
           <View style={styles.fieldBlock}>
-            <AppText variant="body" weight="600">Roaster telemetry profile (MVP core)</AppText>
-            <ScorePicker label="Acidity" value={sensoryAcidity} onChange={setSensoryAcidity} />
-            <ScorePicker label="Sweetness" value={sensorySweetness} onChange={setSensorySweetness} />
-            <ScorePicker label="Body" value={sensoryBody} onChange={setSensoryBody} />
+            <AppText variant="body" weight="600">Sensory Core</AppText>
+            {SENSORY_CORE_METRICS.map((metric) => (
+              <SensoryCoreScorePicker
+                key={metric.id}
+                metric={metric}
+                value={
+                  metric.telemetryKey === 'sensoryAcidity'
+                    ? sensoryAcidity
+                    : metric.telemetryKey === 'sensorySweetness'
+                      ? sensorySweetness
+                      : metric.telemetryKey === 'sensoryBody'
+                        ? sensoryBody
+                        : metric.telemetryKey === 'sensoryBitter'
+                          ? sensoryBitter
+                          : sensoryAftertaste
+                }
+                onChange={(value) => {
+                  if (metric.telemetryKey === 'sensoryAcidity') {
+                    setSensoryAcidity(value);
+                    return;
+                  }
+                  if (metric.telemetryKey === 'sensorySweetness') {
+                    setSensorySweetness(value);
+                    return;
+                  }
+                  if (metric.telemetryKey === 'sensoryBody') {
+                    setSensoryBody(value);
+                    return;
+                  }
+                  if (metric.telemetryKey === 'sensoryBitter') {
+                    setSensoryBitter(value);
+                    return;
+                  }
+                  setSensoryAftertaste(value);
+                }}
+              />
+            ))}
             <View style={styles.intentGroup}>
               <AppText tone="secondary">Would you buy this lot again?</AppText>
               <View style={styles.intentRow}>
@@ -296,30 +333,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   fieldBlock: { gap: visualSystemTokens.spacing.xs },
+  selectorMeta: { gap: visualSystemTokens.spacing.xxs },
   multilineInput: {
     minHeight: 132,
   },
   submit: { gap: visualSystemTokens.spacing.xs, paddingBottom: visualSystemTokens.spacing.md },
-  scoreRow: {
-    gap: visualSystemTokens.spacing.xs,
-  },
-  scoreButtons: {
-    flexDirection: 'row',
-    gap: visualSystemTokens.spacing.xs,
-  },
-  scoreButton: {
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: visualSystemTokens.radius.pill,
-    borderWidth: 1,
-    borderColor: visualSystemTokens.colors.borderSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scoreButtonActive: {
-    backgroundColor: visualSystemTokens.colors.accentPrimary,
-    borderColor: visualSystemTokens.colors.accentPrimary,
-  },
   intentGroup: {
     gap: visualSystemTokens.spacing.xs,
   },
@@ -346,33 +364,3 @@ const INTENT_OPTIONS: Array<{ value: RepurchaseIntent; label: string }> = [
   { value: 'no', label: 'No' },
   { value: 'unsure', label: 'Unsure' },
 ];
-
-function ScorePicker(props: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <View style={styles.scoreRow}>
-      <AppText tone="secondary">{props.label}</AppText>
-      <View style={styles.scoreButtons}>
-        {[1, 2, 3, 4, 5].map((score) => {
-          const active = score === props.value;
-          return (
-            <Pressable
-              key={`${props.label}-${score}`}
-              onPress={() => props.onChange(score)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              style={[styles.scoreButton, active ? styles.scoreButtonActive : null]}
-            >
-              <AppText tone={active ? 'onPrimary' : 'secondary'} weight="700">
-                {score}
-              </AppText>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}

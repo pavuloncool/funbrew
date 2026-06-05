@@ -1,5 +1,10 @@
 import { Link, useRouter } from 'expo-router';
-import { resolveAccountRole } from '@funcup/shared';
+import {
+  canAccessSurface,
+  getDeniedAccessReason,
+  getMobileLoginReasonMessage,
+  resolveAccountRole,
+} from '@funcup/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
@@ -17,10 +22,7 @@ export default function LoginFormScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const roleGateMessage =
-    params.reason === 'roaster_web_only'
-      ? 'To konto palarni działa tylko w aplikacji web.'
-      : null;
+  const roleGateMessage = getMobileLoginReasonMessage(params.reason);
 
   const onLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -43,9 +45,9 @@ export default function LoginFormScreen() {
 
       if (user?.id) {
         const role = await resolveAccountRole(supabase, user.id, user.user_metadata);
-        if (role !== 'consumer') {
+        if (!canAccessSurface(role, 'consumer_mobile')) {
           await logout();
-          setError('To konto palarni działa tylko w aplikacji web.');
+          setError(getMobileLoginReasonMessage(getDeniedAccessReason('consumer_mobile')));
           return;
         }
       }

@@ -14,6 +14,8 @@ type TelemetryRow = {
   sensory_acidity: number;
   sensory_sweetness: number;
   sensory_body: number;
+  sensory_bitter: number | null;
+  sensory_aftertaste: number | null;
   repurchase_intent: 'yes' | 'no' | 'unsure';
   experience_level: RoasterExperienceLevel;
   created_at: string;
@@ -28,6 +30,8 @@ function mapTelemetryRow(row: TelemetryRow): RoasterTelemetryCoreRecord {
     sensoryAcidity: row.sensory_acidity,
     sensorySweetness: row.sensory_sweetness,
     sensoryBody: row.sensory_body,
+    sensoryBitter: row.sensory_bitter ?? 3,
+    sensoryAftertaste: row.sensory_aftertaste ?? 3,
     repurchaseIntent: row.repurchase_intent,
     experienceLevel: row.experience_level,
     createdAt: row.created_at,
@@ -72,6 +76,8 @@ export async function upsertRoasterTelemetryCore(params: {
     sensory_acidity: normalized.sensoryAcidity,
     sensory_sweetness: normalized.sensorySweetness,
     sensory_body: normalized.sensoryBody,
+    sensory_bitter: normalized.sensoryBitter,
+    sensory_aftertaste: normalized.sensoryAftertaste,
     repurchase_intent: normalized.repurchaseIntent,
     experience_level: experienceLevel,
   };
@@ -95,7 +101,7 @@ export async function upsertRoasterTelemetryCore(params: {
   const { data, error } = await telemetryTable
     .upsert(payload, { onConflict: 'coffee_log_id' })
     .select(
-      'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,repurchase_intent,experience_level,created_at,updated_at'
+      'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,sensory_bitter,sensory_aftertaste,repurchase_intent,experience_level,created_at,updated_at'
     )
     .maybeSingle();
 
@@ -104,7 +110,7 @@ export async function upsertRoasterTelemetryCore(params: {
 
   const { data: fallbackData, error: fallbackError } = await telemetryTable
     .select(
-      'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,repurchase_intent,experience_level,created_at,updated_at'
+      'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,sensory_bitter,sensory_aftertaste,repurchase_intent,experience_level,created_at,updated_at'
     )
     .eq('coffee_log_id', params.coffeeLogId)
     .maybeSingle();
@@ -130,7 +136,7 @@ export async function fetchRoasterTelemetryCore(
 
   const { data, error } = await telemetryTable
     .select(
-      'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,repurchase_intent,experience_level,created_at,updated_at'
+      'coffee_log_id,brew_method_id,overall_rating,sensory_acidity,sensory_sweetness,sensory_body,sensory_bitter,sensory_aftertaste,repurchase_intent,experience_level,created_at,updated_at'
     )
     .eq('coffee_log_id', coffeeLogId)
     .maybeSingle();

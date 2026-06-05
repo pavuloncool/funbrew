@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { AppText } from '../../../components/ui/primitives';
+import { labelForSelectedId } from '@funcup/shared';
 import type { BrewMethodOption } from './brewMethods';
 
 export function BrewMethodPickerField(props: {
@@ -19,8 +20,7 @@ export function BrewMethodPickerField(props: {
   const [open, setOpen] = useState(false);
 
   const selectedLabel = useMemo(() => {
-    const selected = props.options.find((option) => option.id === props.value);
-    return selected?.name ?? 'Ulubiona metoda parzenia';
+    return labelForSelectedId(props.options, props.value, 'Ulubiona metoda parzenia');
   }, [props.options, props.value]);
 
   return (

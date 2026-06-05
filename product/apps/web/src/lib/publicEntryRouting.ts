@@ -1,6 +1,11 @@
 'use client';
 
-import { resolveAccountRole } from '@funcup/shared';
+import {
+  canAccessSurface,
+  getDeniedAccessReason,
+  resolveAccountRole,
+  resolveWebAuthenticatedPath,
+} from '@funcup/shared';
 
 import { getBrowserSessionSafely } from '@/src/lib/supabase/browserAuth';
 import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
@@ -30,12 +35,12 @@ export async function resolvePublicHubCtaTarget(): Promise<string> {
       session.user.user_metadata
     );
 
-    if (role === 'roaster') {
-      return '/roaster-hub';
+    if (canAccessSurface(role, 'web_roaster')) {
+      return resolveWebAuthenticatedPath(null, session.user.user_metadata);
     }
 
     await supabaseBrowser.auth.signOut({ scope: 'local' });
-    return '/login?reason=consumer_mobile_only';
+    return `/login?reason=${getDeniedAccessReason('web_roaster')}`;
   } catch {
     return '/login';
   }

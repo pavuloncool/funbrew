@@ -10,7 +10,6 @@ export type ScanQrBatchResponse = {
     id: string;
     roast_date: string;
     lot_number: string | null;
-    status: string;
     brewing_notes: string | null;
     roaster_story: string | null;
   };
@@ -18,15 +17,16 @@ export type ScanQrBatchResponse = {
     id: string;
     name: string;
     variety: string | null;
+    varieties: Array<{ id: string; name: string }>;
     processing_method: string | null;
     producer_notes: string | null;
     cover_image_url: string | null;
-    status: string;
   };
   origin: Record<string, unknown> | null;
   roaster: {
     id: string;
     name: string;
+    roaster_short_name: string | null;
     city: string | null;
     country: string | null;
     logo_url: string | null;

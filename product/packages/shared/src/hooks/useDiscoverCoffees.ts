@@ -40,7 +40,6 @@ type QrDiscoverRow = {
       id: string;
       name: string;
       processing_method: string | null;
-      status: string;
       origin: {
         country: string | null;
       } | null;
@@ -78,7 +77,6 @@ export async function fetchDiscoverCoffees(
           origin:origins (
             country
           ),
-          status,
           roasters (
             id,
             name,
@@ -100,7 +98,8 @@ export async function fetchDiscoverCoffees(
 
   for (const row of rows) {
     const coffee = row.roast_batches?.coffees;
-    if (!coffee || coffee.status !== 'active') continue;
+    const batch = row.roast_batches;
+    if (!coffee || !batch) continue;
     if (seenCoffeeIds.has(coffee.id)) continue;
     seenCoffeeIds.add(coffee.id);
     out.push({

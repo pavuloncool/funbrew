@@ -1,9 +1,18 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+type VarietyOptionRow = {
+  id: string
+  name: string
+  sort_order: number
+}
+
+type IdRow = {
+  id: string
 }
 
 function json(status: number, body: Record<string, unknown>) {
@@ -28,6 +37,35 @@ function asNullableNumber(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null
   }
   return null
+}
+
+function asNullableScore(value: unknown): number | null {
+  const parsed = asNullableNumber(value)
+  if (parsed == null) return null
+  const rounded = Math.round(parsed)
+  if (rounded < 1 || rounded > 5) {
+    throw new Error('Declared sensory scores must be between 1 and 5.')
+  }
+  return rounded
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .filter((entry) => {
+      if (seen.has(entry)) return false
+      seen.add(entry)
+      return true
+    })
+}
+
+function isMissingColumnError(error: { message?: string } | null | undefined, column: string): boolean {
+  if (!error?.message) return false
+  return error.message.includes(column)
 }
 
 async function createAdminClient() {
@@ -93,7 +131,91 @@ function parseOrigin(record: Record<string, unknown> | null) {
   return payload
 }
 
-serve(async (req) => {
+async function resolveVarieties(
+  admin: Awaited<ReturnType<typeof createAdminClient>>,
+  varietyIds: string[]
+): Promise<Array<{ id: string; name: string }>> {
+  if (!admin || varietyIds.length === 0) return []
+
+  const uniqueIds = [...new Set(varietyIds)]
+  const result = await admin
+    .from('coffee_varieties')
+    .select('id, name, sort_order')
+    .in('id', uniqueIds)
+    .order('sort_order', { ascending: true })
+
+  if (result.error) {
+    throw new Error(result.error.message)
+  }
+
+  const rows = (result.data ?? []) as VarietyOptionRow[]
+  if (rows.length !== uniqueIds.length) {
+    throw new Error('All selected varieties must exist in the catalog.')
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+  }))
+}
+
+async function resolveCatalogIds(
+  admin: Awaited<ReturnType<typeof createAdminClient>>,
+  table: 'brew_methods' | 'tasting_notes',
+  ids: string[]
+): Promise<string[]> {
+  if (!admin || ids.length === 0) return []
+
+  const uniqueIds = [...new Set(ids)]
+  const result = await admin
+    .from(table)
+    .select('id')
+    .in('id', uniqueIds)
+
+  if (result.error) {
+    throw new Error(result.error.message)
+  }
+
+  const rows = (result.data ?? []) as IdRow[]
+  if (rows.length !== uniqueIds.length) {
+    throw new Error(`All selected ${table} entries must exist in the catalog.`)
+  }
+
+  const resolvedIds = new Set(rows.map((row) => row.id))
+  return uniqueIds.filter((id) => resolvedIds.has(id))
+}
+
+async function replaceVarietyAssignments(
+  admin: Awaited<ReturnType<typeof createAdminClient>>,
+  coffeeId: string,
+  varietyIds: string[]
+) {
+  if (!admin) return
+
+  const deleteResult = await admin
+    .from('coffee_variety_assignments')
+    .delete()
+    .eq('coffee_id', coffeeId)
+
+  if (deleteResult.error) {
+    throw new Error(deleteResult.error.message)
+  }
+
+  if (varietyIds.length === 0) return
+
+  const insertResult = await admin
+    .from('coffee_variety_assignments')
+    .insert(varietyIds.map((varietyId) => ({
+      coffee_id: coffeeId,
+      variety_id: varietyId,
+    })))
+
+  if (insertResult.error) {
+    throw new Error(insertResult.error.message)
+  }
+}
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -134,6 +256,26 @@ serve(async (req) => {
     const admin = auth.admin
     const roasterId = auth.roasterId
     const originPayload = parseOrigin(asRecord(body.origin))
+    const resolvedVarieties = await resolveVarieties(admin, asStringArray(coffeeInput.varietyIds))
+    const suggestedBrewMethodIds = await resolveCatalogIds(
+      admin,
+      'brew_methods',
+      asStringArray(batchInput.suggestedBrewMethodIds)
+    )
+    const suggestedTastingNoteIds = await resolveCatalogIds(
+      admin,
+      'tasting_notes',
+      asStringArray(batchInput.suggestedTastingNoteIds)
+    )
+    const declaredSensoryAcidity = asNullableScore(batchInput.declaredSensoryAcidity)
+    const declaredSensorySweetness = asNullableScore(batchInput.declaredSensorySweetness)
+    const declaredSensoryBody = asNullableScore(batchInput.declaredSensoryBody)
+    const declaredSensoryBitter = asNullableScore(batchInput.declaredSensoryBitter)
+    const declaredSensoryAftertaste = asNullableScore(batchInput.declaredSensoryAftertaste)
+    const varietyLabel = resolvedVarieties.length > 0
+      ? resolvedVarieties.map((entry) => entry.name).join(', ')
+      : null
+
     let originId: string | null = null
     let coffeeId: string
     let batchId: string
@@ -153,11 +295,11 @@ serve(async (req) => {
           roaster_id: roasterId,
           origin_id: originId,
           name: coffeeName,
-          variety: asNullableString(coffeeInput.variety),
+          variety: varietyLabel,
           processing_method: asNullableString(coffeeInput.processingMethod),
           producer_notes: asNullableString(coffeeInput.producerNotes),
           cover_image_url: asNullableString(coffeeInput.coverImageUrl),
-          status: asNullableString(coffeeInput.status) ?? 'active',
+          status: 'active',
         })
         .select('id')
         .single()
@@ -167,19 +309,50 @@ serve(async (req) => {
       }
 
       coffeeId = (createCoffee.data as { id: string }).id
+      await replaceVarietyAssignments(admin, coffeeId, resolvedVarieties.map((entry) => entry.id))
 
-      const createBatch = await admin
+      const createBatchPayload = {
+        coffee_id: coffeeId,
+        lot_number: lotNumber,
+        roast_date: roastDate,
+        brewing_notes: asNullableString(batchInput.brewingNotes),
+        roaster_story: asNullableString(batchInput.roasterStory),
+        declared_sensory_acidity: declaredSensoryAcidity,
+        declared_sensory_sweetness: declaredSensorySweetness,
+        declared_sensory_body: declaredSensoryBody,
+        declared_sensory_bitter: declaredSensoryBitter,
+        declared_sensory_aftertaste: declaredSensoryAftertaste,
+        suggested_brew_method_ids: suggestedBrewMethodIds,
+        suggested_tasting_note_ids: suggestedTastingNoteIds,
+        status: 'active',
+      }
+
+      let createBatch = await admin
         .from('roast_batches')
-        .insert({
-          coffee_id: coffeeId,
-          lot_number: lotNumber,
-          roast_date: roastDate,
-          brewing_notes: asNullableString(batchInput.brewingNotes),
-          roaster_story: asNullableString(batchInput.roasterStory),
-          status: asNullableString(batchInput.status) ?? 'active',
-        })
+        .insert(createBatchPayload)
         .select('id')
         .single()
+
+      if (
+        createBatch.error &&
+        (
+          isMissingColumnError(createBatch.error, 'declared_sensory_body') ||
+          isMissingColumnError(createBatch.error, 'declared_sensory_bitter') ||
+          isMissingColumnError(createBatch.error, 'declared_sensory_aftertaste')
+        )
+      ) {
+        const {
+          declared_sensory_body: _declaredSensoryBody,
+          declared_sensory_bitter: _declaredSensoryBitter,
+          declared_sensory_aftertaste: _declaredSensoryAftertaste,
+          ...legacyCreateBatchPayload
+        } = createBatchPayload
+        createBatch = await admin
+          .from('roast_batches')
+          .insert(legacyCreateBatchPayload)
+          .select('id')
+          .single()
+      }
 
       if (createBatch.error || !createBatch.data) {
         return json(500, { error: 'server_error', message: createBatch.error?.message ?? 'Unable to create batch.' })
@@ -250,11 +423,11 @@ serve(async (req) => {
       .update({
         origin_id: originId,
         name: coffeeName,
-        variety: asNullableString(coffeeInput.variety),
+        variety: varietyLabel,
         processing_method: asNullableString(coffeeInput.processingMethod),
         producer_notes: asNullableString(coffeeInput.producerNotes),
         cover_image_url: asNullableString(coffeeInput.coverImageUrl),
-        status: asNullableString(coffeeInput.status) ?? 'active',
+        status: 'active',
       })
       .eq('id', coffeeId)
       .eq('roaster_id', roasterId)
@@ -265,19 +438,53 @@ serve(async (req) => {
       return json(500, { error: 'server_error', message: updateCoffee.error?.message ?? 'Unable to update coffee.' })
     }
 
-    const updateBatch = await admin
+    await replaceVarietyAssignments(admin, coffeeId, resolvedVarieties.map((entry) => entry.id))
+
+    const updateBatchPayload = {
+      lot_number: lotNumber,
+      roast_date: roastDate,
+      brewing_notes: asNullableString(batchInput.brewingNotes),
+      roaster_story: asNullableString(batchInput.roasterStory),
+      declared_sensory_acidity: declaredSensoryAcidity,
+      declared_sensory_sweetness: declaredSensorySweetness,
+      declared_sensory_body: declaredSensoryBody,
+      declared_sensory_bitter: declaredSensoryBitter,
+      declared_sensory_aftertaste: declaredSensoryAftertaste,
+      suggested_brew_method_ids: suggestedBrewMethodIds,
+      suggested_tasting_note_ids: suggestedTastingNoteIds,
+      status: 'active',
+    }
+
+    let updateBatch = await admin
       .from('roast_batches')
-      .update({
-        lot_number: lotNumber,
-        roast_date: roastDate,
-        brewing_notes: asNullableString(batchInput.brewingNotes),
-        roaster_story: asNullableString(batchInput.roasterStory),
-        status: asNullableString(batchInput.status) ?? 'active',
-      })
+      .update(updateBatchPayload)
       .eq('id', batchId)
       .eq('coffee_id', coffeeId)
       .select('id')
       .single()
+
+    if (
+      updateBatch.error &&
+      (
+        isMissingColumnError(updateBatch.error, 'declared_sensory_body') ||
+        isMissingColumnError(updateBatch.error, 'declared_sensory_bitter') ||
+        isMissingColumnError(updateBatch.error, 'declared_sensory_aftertaste')
+      )
+    ) {
+      const {
+        declared_sensory_body: _declaredSensoryBody,
+        declared_sensory_bitter: _declaredSensoryBitter,
+        declared_sensory_aftertaste: _declaredSensoryAftertaste,
+        ...legacyUpdateBatchPayload
+      } = updateBatchPayload
+      updateBatch = await admin
+        .from('roast_batches')
+        .update(legacyUpdateBatchPayload)
+        .eq('id', batchId)
+        .eq('coffee_id', coffeeId)
+        .select('id')
+        .single()
+    }
 
     if (updateBatch.error || !updateBatch.data) {
       return json(500, { error: 'server_error', message: updateBatch.error?.message ?? 'Unable to update batch.' })

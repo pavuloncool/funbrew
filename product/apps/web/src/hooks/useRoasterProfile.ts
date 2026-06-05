@@ -1,5 +1,6 @@
 'use client';
 
+import { requiresPasswordChange } from '@funcup/shared';
 import { useCallback, useEffect, useState } from 'react';
 
 import { getBrowserUserSafely } from '@/src/lib/supabase/browserAuth';
@@ -9,9 +10,11 @@ import { isProfileComplete, normalizeRoasterProfileRow, type RoasterProfile } fr
 type UseRoasterProfileState = {
   loading: boolean;
   userId: string | null;
+  userMetadata: unknown;
   profile: RoasterProfile | null;
   exists: boolean;
   complete: boolean;
+  requiresPasswordChange: boolean;
   error: string | null;
   refresh: () => Promise<void>;
 };
@@ -22,7 +25,9 @@ const PROFILE_SELECT =
 export function useRoasterProfile(): UseRoasterProfileState {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userMetadata, setUserMetadata] = useState<unknown>(null);
   const [profile, setProfile] = useState<RoasterProfile | null>(null);
+  const [requiresPasswordReset, setRequiresPasswordReset] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -35,19 +40,25 @@ export function useRoasterProfile(): UseRoasterProfileState {
     } catch (userError) {
       setError(userError instanceof Error ? userError.message : 'Auth error');
       setUserId(null);
+      setUserMetadata(null);
       setProfile(null);
+      setRequiresPasswordReset(false);
       setLoading(false);
       return;
     }
 
     if (!user) {
       setUserId(null);
+      setUserMetadata(null);
       setProfile(null);
+      setRequiresPasswordReset(false);
       setLoading(false);
       return;
     }
 
     setUserId(user.id);
+    setUserMetadata(user.user_metadata);
+    setRequiresPasswordReset(requiresPasswordChange(user.user_metadata));
 
     const { data, error: profileError } = await supabaseBrowser
       .from('roasters')
@@ -74,5 +85,15 @@ export function useRoasterProfile(): UseRoasterProfileState {
   const exists = Boolean(profile);
   const complete = isProfileComplete(profile);
 
-  return { loading, userId, profile, exists, complete, error, refresh };
+  return {
+    loading,
+    userId,
+    userMetadata,
+    profile,
+    exists,
+    complete,
+    requiresPasswordChange: requiresPasswordReset,
+    error,
+    refresh,
+  };
 }

@@ -7,7 +7,7 @@ import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import { resolvePublicHubCtaTarget } from '@/src/lib/publicEntryRouting';
 import { isPublicRoute } from '@/src/lib/publicRoutes';
 
-const NAV_ITEMS = ['Individuals', 'Business', 'Support', 'About', 'News'];
+const NAV_ITEMS = ['Support', 'About', 'News', 'Contact', 'Individuals', 'Business'];
 
 export default function WebHeader() {
   const pathname = usePathname();

@@ -1,9 +1,11 @@
 'use client';
 
+import { flowErrorUiCopy, listRoasterBatchPublications, normalizeFlowError } from '@funcup/shared';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useRoasterProfile } from '@/src/hooks/useRoasterProfile';
+import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 
 import { roasterHubStyles } from './roaster-hub.styles';
 
@@ -13,85 +15,174 @@ type Tile = {
   disabled?: boolean;
 };
 
-const useOriginalCircleHeroDecor = true;
+type WeeklyAnalyticsLogRow = {
+  batch_id: string;
+  rating: number;
+  logged_at: string;
+};
 
-function MokaPotGraphic() {
-  return (
-    <svg viewBox="0 0 240 240" className="h-full w-full" aria-hidden>
-      <g fill="none" stroke="currentColor" strokeWidth="6.5">
-        <path d="M112 24h16l10 18h-36z" />
-        <path d="M58 86h124" />
-        <path d="M72 86l28 74h40l28-74" />
-        <path d="M98 86l6 74" />
-        <path d="M142 86l-6 74" />
-        <path d="M104 160h32" />
-        <path d="M100 160l-16 54" />
-        <path d="M140 160l16 54" />
-        <path d="M84 214h72" />
-        <path d="M68 86l-24 18 28 40" />
-        <path d="M172 90c12 0 22 3 28 9 6 6 9 15 9 25 0 12-3 28-10 47-4 12-8 24-10 36" />
-        <path d="M188 207c-9 0-14-5-14-14s5-14 14-14h2" />
-        <path d="M58 86l48-14h28l48 14" />
-        <path d="M98 72l14-18h16l14 18" />
-      </g>
-    </svg>
-  );
+type TopCoffeeLastWeek = {
+  coffeeName: string;
+  avgRating: number;
+  tastingCount: number;
+};
+
+function formatSystemDate(value: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(value);
 }
 
-function V60Graphic() {
-  return (
-    <svg viewBox="0 0 240 240" className="h-full w-full" aria-hidden>
-      <g fill="none" stroke="currentColor" strokeWidth="6.5">
-        <path d="M48 44h144" />
-        <path d="M68 44l26 34" />
-        <path d="M172 44l-26 34" />
-        <path d="M94 78l18 74" />
-        <path d="M146 78l-18 74" />
-        <path d="M112 78v74" />
-        <path d="M76 78h72" />
-        <path d="M96 152h32" />
-        <path d="M82 152l-8 18" />
-        <path d="M142 152l8 18" />
-        <path d="M74 170h76" />
-        <path d="M88 170l-8 28" />
-        <path d="M136 170l8 28" />
-        <path d="M80 198h64" />
-      </g>
-    </svg>
-  );
+function buildLastWeekTopCoffee(
+  logs: WeeklyAnalyticsLogRow[],
+  coffeeNameByBatchId: Map<string, string>
+): TopCoffeeLastWeek | null {
+  const aggregate = new Map<string, { ratingSum: number; tastingCount: number }>();
+
+  for (const log of logs) {
+    const coffeeName = coffeeNameByBatchId.get(log.batch_id)?.trim();
+    if (!coffeeName) continue;
+
+    const current = aggregate.get(coffeeName) ?? { ratingSum: 0, tastingCount: 0 };
+    current.ratingSum += log.rating;
+    current.tastingCount += 1;
+    aggregate.set(coffeeName, current);
+  }
+
+  let topCoffee: TopCoffeeLastWeek | null = null;
+
+  for (const [coffeeName, stats] of aggregate.entries()) {
+    if (stats.tastingCount === 0) continue;
+    const avgRating = Number((stats.ratingSum / stats.tastingCount).toFixed(2));
+    const candidate: TopCoffeeLastWeek = {
+      coffeeName,
+      avgRating,
+      tastingCount: stats.tastingCount,
+    };
+
+    if (
+      !topCoffee ||
+      candidate.avgRating > topCoffee.avgRating ||
+      (candidate.avgRating === topCoffee.avgRating && candidate.tastingCount > topCoffee.tastingCount) ||
+      (candidate.avgRating === topCoffee.avgRating &&
+        candidate.tastingCount === topCoffee.tastingCount &&
+        candidate.coffeeName.localeCompare(topCoffee.coffeeName) < 0)
+    ) {
+      topCoffee = candidate;
+    }
+  }
+
+  return topCoffee;
 }
 
-function AeropressGraphic() {
-  return (
-    <svg viewBox="0 0 240 240" className="h-full w-full" aria-hidden>
-      <g fill="none" stroke="currentColor" strokeWidth="6.5">
-        <path d="M96 24h48" />
-        <path d="M108 24V10h24v14" />
-        <path d="M92 38h56" />
-        <path d="M98 38v40" />
-        <path d="M142 38v40" />
-        <path d="M84 78h72" />
-        <path d="M92 78l-10 90h76l-10-90" />
-        <path d="M78 168h84" />
-        <path d="M84 168l-8 28h88l-8-28" />
-        <path d="M92 196h56" />
-        <path d="M156 92h16c8 0 14 6 14 14v18c0 8-6 14-14 14h-10" />
-        <path d="M78 92h-10c-8 0-14 6-14 14v10c0 8 6 14 14 14h10" />
-      </g>
-    </svg>
+function isAnalyticsFlowError(value: unknown): value is { domain: 'analytics' } {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      'domain' in value &&
+      (value as { domain?: unknown }).domain === 'analytics'
   );
 }
 
 export default function RoasterHubPage() {
   const router = useRouter();
-  const { loading, exists, complete, profile, error } = useRoasterProfile();
+  const { loading, exists, complete, profile, requiresPasswordChange, error } = useRoasterProfile();
+  const [batchCount, setBatchCount] = useState<number | null>(null);
+  const [topCoffeeLastWeek, setTopCoffeeLastWeek] = useState<TopCoffeeLastWeek | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [systemNow, setSystemNow] = useState<Date | null>(null);
+  const [systemDate, setSystemDate] = useState('');
 
   useEffect(() => {
     if (loading) return;
-    if (!exists || !complete) {
+    if (requiresPasswordChange || !exists || !complete) {
       router.replace('/roaster-profile');
     }
-  }, [complete, exists, loading, router]);
+  }, [complete, exists, loading, requiresPasswordChange, router]);
+
+  useEffect(() => {
+    const now = new Date();
+    setSystemNow(now);
+    setSystemDate(formatSystemDate(now));
+  }, []);
+
+  useEffect(() => {
+    if (loading || requiresPasswordChange || !exists || !complete || !systemNow) {
+      setBatchCount(null);
+      setTopCoffeeLastWeek(null);
+      setSummaryError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setBatchCount(null);
+    setTopCoffeeLastWeek(null);
+    setSummaryError(null);
+
+    void (async () => {
+      try {
+        const records = await listRoasterBatchPublications(supabaseBrowser);
+        if (cancelled) return;
+
+        setBatchCount(records.length);
+
+        if (records.length === 0) {
+          setTopCoffeeLastWeek(null);
+          return;
+        }
+
+        const coffeeNameByBatchId = new Map(
+          records.map((record) => [record.batchId, record.coffeeName] as const)
+        );
+        const batchIds = records.map((record) => record.batchId);
+        const lastWeekStart = new Date(systemNow);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+        const { data: analyticsLogs, error: analyticsError } = await supabaseBrowser
+          .from('coffee_logs')
+          .select('batch_id, rating, logged_at')
+          .in('batch_id', batchIds)
+          .gte('logged_at', lastWeekStart.toISOString())
+          .lte('logged_at', systemNow.toISOString());
+
+        if (analyticsError) {
+          throw normalizeFlowError({
+            error: analyticsError,
+            domain: 'analytics',
+          });
+        }
+
+        if (cancelled) return;
+
+        const topCoffee = buildLastWeekTopCoffee(
+          ((analyticsLogs ?? []) as WeeklyAnalyticsLogRow[]).filter(
+            (log) => typeof log.batch_id === 'string' && typeof log.rating === 'number'
+          ),
+          coffeeNameByBatchId
+        );
+        setTopCoffeeLastWeek(topCoffee);
+      } catch (nextError) {
+        if (cancelled) return;
+
+        const normalized = normalizeFlowError({
+          error: nextError,
+          domain: isAnalyticsFlowError(nextError) ? 'analytics' : 'batch_publication',
+        });
+        setSummaryError(flowErrorUiCopy(normalized).message);
+        setTopCoffeeLastWeek(null);
+
+        if (normalized.domain === 'batch_publication') {
+          setBatchCount(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [complete, exists, loading, requiresPasswordChange, systemNow]);
 
   if (loading) {
     return (
@@ -113,7 +204,7 @@ export default function RoasterHubPage() {
     );
   }
 
-  if (!exists || !complete) {
+  if (requiresPasswordChange || !exists || !complete) {
     return (
       <div className={roasterHubStyles.pageWithPad}>
         <div className={roasterHubStyles.narrowContent}>
@@ -129,24 +220,32 @@ export default function RoasterHubPage() {
       onClick: () => router.push('/roaster-hub/batches/new'),
     },
     {
-      label: 'Roaster profile',
-      onClick: () => router.push('/roaster-profile'),
-    },
-    {
       label: 'Batch Manager',
       onClick: () => router.push('/roaster-hub/batches'),
     },
     {
       label: 'Batch analytics',
-      onClick: () => router.push('/roaster-hub/batches'),
+      onClick: () => router.push('/roaster-hub/analytics'),
+    },
+    {
+      label: 'Roaster profile',
+      onClick: () => router.push('/roaster-profile'),
     },
   ];
 
   const shortName = profile?.roaster_short_name || 'Roaster';
+  const logoAlt = `${profile?.company_name ?? shortName} logo`;
+  const logoFallback = shortName.slice(0, 2).toUpperCase();
+  const coffeeCountLabel = batchCount === null ? '—' : String(batchCount);
+  const topCoffeeLabel = topCoffeeLastWeek?.coffeeName ?? 'No tastings';
+  const topCoffeeAverageLabel = topCoffeeLastWeek
+    ? `${topCoffeeLastWeek.avgRating.toFixed(2)} avg from ${topCoffeeLastWeek.tastingCount} tastings`
+    : null;
 
   return (
     <div className={roasterHubStyles.pageWithPad}>
       <div className={roasterHubStyles.narrowContentTop}>
+        {/* –– to jest sekcja hero, która była w oryginalnym projekcie, ale w trakcie testów okazało się, że nie spełnia swojej roli i jest bardziej rozpraszająca niż zachęcająca. Na razie ją ukrywam, ale zostawiam w kodzie, bo może kiedyś wróci w jakiejś innej formie
         <section className={roasterHubStyles.splitHero}>
           <div className={roasterHubStyles.leftPanel}>
             <div>
@@ -169,7 +268,7 @@ export default function RoasterHubPage() {
                 <button
                   type="button"
                   className={roasterHubStyles.secondaryCta}
-                  onClick={() => router.push('/roaster-hub/batches')}
+                  onClick={() => router.push('/roaster-hub/analytics')}
                 >
                   Open analytics
                   <span aria-hidden>→</span>
@@ -205,10 +304,48 @@ export default function RoasterHubPage() {
               </>
             )}
           </div>
+        </section>*/}
+
+        <section className={roasterHubStyles.summaryApplet}>
+          <div className={roasterHubStyles.summaryIntro}>
+            {profile?.logo_url ? (
+              <div className={roasterHubStyles.summaryLogoFrame}>
+                <img src={profile.logo_url} alt={logoAlt} className={roasterHubStyles.summaryLogoImage} />
+              </div>
+            ) : (
+              <div className={roasterHubStyles.summaryLogoFallback} aria-hidden>
+                {logoFallback}
+              </div>
+            )}
+            <div className={roasterHubStyles.summaryMeta}>
+              <span className={roasterHubStyles.summaryEyebrow}>Roaster Dashboard</span>
+              <h1 className={roasterHubStyles.summaryTitle}>{shortName}</h1>
+            </div>
+          </div>
+
+          <div className={roasterHubStyles.summaryStatGrid}>
+            <article className={roasterHubStyles.summaryStatCard}>
+              <span className={roasterHubStyles.summaryStatLabel}>Today is</span>
+              <strong className={roasterHubStyles.summaryStatValue}>{systemDate || '—'}</strong>
+            </article>
+            <article className={roasterHubStyles.summaryStatCard}>
+              <span className={roasterHubStyles.summaryStatLabel}>Top of last week</span>
+              <strong className={roasterHubStyles.summaryStatValue}>{topCoffeeLabel}</strong>
+              {topCoffeeAverageLabel ? (
+                <span className={roasterHubStyles.summaryStatMeta}>{topCoffeeAverageLabel}</span>
+              ) : null}
+            </article>
+            <article className={roasterHubStyles.summaryStatCard}>
+              <span className={roasterHubStyles.summaryStatLabel}>Your fun•brew coffees</span>
+              <strong className={roasterHubStyles.summaryStatValue}>{coffeeCountLabel}</strong>
+            </article>
+          </div>
+
+          {summaryError ? <p className={roasterHubStyles.summaryError}>{summaryError}</p> : null}
         </section>
 
         <section className={roasterHubStyles.tileSection}>
-          <h2 className={roasterHubStyles.tileSectionTitle}>Choose your next action</h2>
+          <h2 className={roasterHubStyles.tileSectionTitle}>What&apos;s your next move?</h2>
           <div className={roasterHubStyles.tileGrid}>
             {tiles.map((tile) => (
               <button

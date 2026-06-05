@@ -155,7 +155,7 @@ Powód:
 - Lokalne loginy seedowe po `supabase db reset`:
   - `bart@ex.com / swetry`
   - `kazik@neoneon.online / swetry`
-- `Coffee Bank` nadal jest tag-first management surface i nie powinien wyznaczać kierunku dla nowych prac Phase 010.
+- Legacy batch manager nadal jest tag-first management surface i nie powinien wyznaczać kierunku dla nowych prac Phase 010.
 
 ## 7) Minimalny start lokalny
 

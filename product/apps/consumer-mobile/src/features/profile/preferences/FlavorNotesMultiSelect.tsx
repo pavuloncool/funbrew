@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { AppText } from '../../../components/ui/primitives';
+import { labelsForSelectedIds, toggleSelectedId } from '@funcup/shared';
 import type { TastingNoteOption } from './tastingNotes';
 
 export function FlavorNotesMultiSelect(props: {
@@ -29,28 +30,11 @@ export function FlavorNotesMultiSelect(props: {
       return 'Ulubione tasting notes';
     }
 
-    const labels = props.options
-      .filter((option) => props.selectedIds.includes(option.id))
-      .map((option) => option.label);
-
-    return labels.join(', ');
+    return labelsForSelectedIds(props.options, props.selectedIds, (option) => option.label).join(', ');
   }, [props.options, props.selectedIds]);
 
   const toggle = (id: string) => {
-    const selectedSet = new Set(props.selectedIds);
-
-    if (selectedSet.has(id)) {
-      selectedSet.delete(id);
-      props.onChange(Array.from(selectedSet));
-      return;
-    }
-
-    if (selectedSet.size >= maxSelected) {
-      return;
-    }
-
-    selectedSet.add(id);
-    props.onChange(Array.from(selectedSet));
+    props.onChange(toggleSelectedId(props.selectedIds, id, maxSelected));
   };
 
   return (

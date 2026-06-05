@@ -19,7 +19,7 @@ Folder zawiera diagramy przepływów i opisy ekranów dla:
 
 ## Diagramy
 - `01_web_internal_flows.mmd`  
-  Co pokazuje: wszystkie wewnętrzne przepływy ekranów web (entry/auth/roaster-hub/tag/coffee-bank/analytics) oraz ich zależności od danych.
+  Co pokazuje: wszystkie wewnętrzne przepływy ekranów web (entry/auth/roaster-hub/tag/batches/analytics) oraz ich zależności od danych.
 
 - `02_mobile_internal_flows.mmd`  
   Co pokazuje: wszystkie wewnętrzne przepływy ekranów mobile (entry/auth/tabs/scan/coffee/log/profile), łącznie z offline queue dla logowania degustacji.

@@ -9,7 +9,7 @@ export type {
 export type SensoryLevel = 'beginner' | 'advanced' | 'expert';
 export type VerificationStatus = 'pending' | 'verified' | 'revoked';
 export type CoffeeStatus = 'draft' | 'active' | 'archived';
-export type BatchStatus = 'active' | 'archived';
+export type BatchStatus = 'draft' | 'active' | 'archived';
 export type ProcessingMethod = 'washed' | 'natural' | 'honey' | 'anaerobic' | 'wet-hulled' | 'other';
 
 export interface BaseEntity {
@@ -171,7 +171,7 @@ export interface BatchSummary {
   id: string;
   roast_date: string;
   lot_number: string;
-  status: 'active' | 'archived';
+  status: BatchStatus;
   brewing_notes: string | null;
   roaster_story: string | null;
 }
@@ -180,10 +180,11 @@ export interface CoffeeResponse {
   id: string;
   name: string;
   variety: string | null;
+  varieties: Array<{ id: string; name: string }>;
   processing_method: string | null;
   producer_notes: string | null;
   cover_image_url: string | null;
-  status: 'active' | 'archived';
+  status: CoffeeStatus;
 }
 
 export interface ScanQRResponse {

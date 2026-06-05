@@ -13,7 +13,7 @@ Audyt obejmuje dwa równoległe modele obecne w repo:
 - Repo zawiera dwa aktywne, ale niespójne nurty produktu: pełny model `coffee/batch/log/analytics` i uproszczony model `roaster_coffee_tags`.
 - Najlepiej domknięty cross-app flow to dziś: `roaster-profile/setup -> tag -> api/qr -> /q/[hash] -> mobile coffee/[id]`.
 - Największe rozdarcie występuje w legacy flow: `coffees`, `roast_batches`, `qr_codes` są czytane przez mobile i analytics, ale web nie ma pełnego UI do zasilania pól takich jak `origin`, `cover_image_url`, `brewing_notes`, `roaster_story`.
-- Największa luka cross-role po stronie biznesowej to `users.following_roaster_ids`: consumer zapisuje follow, ale web nie pokazuje tego roasterowi w `Coffee Bank`, mimo że to jest ważny przyszły use case handlowy.
+- Największa luka cross-role po stronie biznesowej to `users.following_roaster_ids`: consumer zapisuje follow, ale web nie pokazuje tego roasterowi w batch managerze, mimo że to jest ważny przyszły use case handlowy.
 - Część ekranów jest świadomie jednostronna i nie powinna być traktowana jako błąd: auth, biometria, reset hasła, onboarding, edukacja, entry screens.
 
 ## Tabela UML: pary ekranów
@@ -30,7 +30,7 @@ Audyt obejmuje dwa równoległe modele obecne w repo:
 | P08 | `/roaster-profile` | `/roaster/[id]` | public/private roaster profile | `roasters.name`, `roaster_short_name`, `city`, `website` | web input -> mobile read | `pipeline pair` | Mobile czyta publiczną wersję profilu, web edytuje prywatny rekord roastera. |
 | P09 | `/tag` | `/coffee/[id]` | tag produktu kawowego | `roaster_coffee_tags.*` | web input -> mobile read | `direct pair` | Najbardziej spójny obecnie flow produktowy. |
 | P10 | `/tag/edit/[id]` | `/coffee/[id]` | aktualizacja tagu | `roaster_coffee_tags.*` | web update -> mobile read | `direct pair` | Edycja zachowuje ten sam obieg publiczny przez `public_hash`. |
-| P11 | `/coffee-bank` | `/coffee/[id]` | biblioteka produktów roastera | `roaster_coffee_tags.*`, `public_hash` | web read/manage -> mobile read | `pipeline pair` | `Coffee Bank` jest zarządczy, mobile jest publicznym czytnikiem tej samej encji. |
+| P11 | `/roaster-hub/batches` | `/coffee/[id]` | batch manager roastera | `coffees`, `roast_batches`, `qr_codes` | web read/manage -> mobile read | `pipeline pair` | Route zarządza kanonicznymi batchami, które consumer czyta przez public coffee flow. |
 | P12 | `/api/qr` | `/q/[hash]`, `/coffee/[id]` | generator identyfikatora publicznego | `roaster_coffee_tags.public_hash` | private generate -> public resolve | `bridge` | API route scala prywatny rekord roastera z publicznym adresem `/q/{hash}`. |
 | P13 | `/roaster-hub/coffees/new` | `/coffee/[id]` | coffee entity w modelu legacy | `coffees.id`, `name`, `status` | web input -> mobile read | `pipeline pair` | UI tworzy tylko rdzeń `coffee`; reszta pól nie ma producenta w web. |
 | P14 | `/roaster-hub/coffees/[id]` | `/coffee/[id]` | coffee details w legacy flow | `coffees.*` | web read/manage -> mobile read | `pipeline pair` | Para istnieje na poziomie encji, ale nie na poziomie pełnego zakresu pól. |
@@ -56,7 +56,7 @@ Audyt obejmuje dwa równoległe modele obecne w repo:
 | `app/roaster-profile/page.tsx` | `roaster` | `input/read` | `roasters.company_name`, `roaster_short_name`, `city`, `website` | `mobile app/roaster/[id]/index.tsx` | `pipeline pair` | |
 | `app/tag/page.tsx` | `roaster` | `input` | `roaster_coffee_tags.*` | `mobile app/coffee/[id]/index.tsx` | `direct pair` | |
 | `app/tag/edit/[id]/page.tsx` | `roaster` | `input/update` | `roaster_coffee_tags.*` | `mobile app/coffee/[id]/index.tsx` | `direct pair` | |
-| `app/coffee-bank/page.tsx` | `roaster` | `read/manage` | `roaster_coffee_tags.*` | `mobile app/coffee/[id]/index.tsx` | `pipeline pair` | |
+| `app/roaster-hub/batches/page.tsx` | `roaster` | `read/manage` | `coffees`, `roast_batches`, `qr_codes` | `mobile app/coffee/[id]/index.tsx` | `pipeline pair` | |
 | `app/api/qr/route.ts` | `shared/system` | `transform` | `roaster_coffee_tags.public_hash` | `mobile app/q/[hash].tsx` | `bridge` | |
 | `app/roaster-hub/coffees/new/page.tsx` | `roaster` | `input` | `coffees.name`, `status` | `mobile app/coffee/[id]/index.tsx` | `pipeline pair` | Legacy CRUD. |
 | `app/roaster-hub/coffees/[id]/page.tsx` | `roaster` | `read` | `coffees.id`, `name`, `status` | `mobile app/coffee/[id]/index.tsx` | `pipeline pair` | Legacy CRUD. |
@@ -84,7 +84,7 @@ Audyt obejmuje dwa równoległe modele obecne w repo:
 | `app/(tabs)/profile/index.tsx` | `consumer` | `input/read` | `users`, `user_favorite_flavor_notes` | `—` | `same-side only` | Consumer account/profile. |
 | `app/(tabs)/scan/scan.tsx` | `consumer` | `bridge` | qr payload -> `hash` | `web app/scan/page.tsx` | `pipeline pair` | Mobile ma pełną implementację. |
 | `app/q/[hash].tsx` | `shared/system` | `bridge` | `hash` | `web app/q/[hash]/page.tsx` | `direct pair` | Redirect do Coffee Page. |
-| `app/coffee/[id]/index.tsx` | `consumer` | `read` | `roaster_coffee_tags` lub legacy `qr_codes` join | `web app/tag/page.tsx`, `web app/coffee-bank/page.tsx`, `web app/roaster-hub/coffees/[id]/page.tsx` | `direct pair` | Publiczny czytnik obu modeli. |
+| `app/coffee/[id]/index.tsx` | `consumer` | `read` | `roaster_coffee_tags` lub legacy `qr_codes` join | `web app/tag/page.tsx`, `web app/roaster-hub/batches/page.tsx`, `web app/roaster-hub/coffees/[id]/page.tsx` | `direct pair` | Publiczny czytnik obu modeli. |
 | `app/coffee/[id]/log.tsx` | `consumer` | `input` | `coffee_logs` | `web app/roaster-hub/analytics/[batchId]/page.tsx` | `direct pair` | Najważniejszy feedback flow. |
 | `app/roaster/[id]/index.tsx` | `consumer` | `read/input` | `roasters`, `users.following_roaster_ids` | `web app/roaster-profile/page.tsx` | `pipeline pair` | Consumer czyta roastera i zapisuje follow. |
 | `app/learn/[slug].tsx` | `consumer` | `read` | static article content | `—` | `same-side only` | Brak web odpowiednika. |
@@ -98,7 +98,7 @@ Poniższa tabela obejmuje pliki bez realnego pokrycia w drugiej aplikacji albo z
 |---|---|---|---|---|---|
 | O01 | `product/apps/web/app/scan/page.tsx` | route | shared/system | Web nie skanuje, tylko pokazuje komunikat; mobile ma pełny skaner i parser QR. | Albo rozbudować do realnego web scanner flow, albo jawnie oznaczyć jako info-only. |
 | O02 | `product/apps/web/app/roaster-hub/coffees/new/page.tsx` | route | legacy canonical | Tworzy tylko `coffees.name` i `status`; brak pary po stronie tagowego flow i brak pełnego producenta pól czytanych przez mobile. | Zachować tylko jeśli model legacy zostaje rozwijany; inaczej zwinąć do migracji na `tag`. |
-| O03 | `product/apps/web/app/roaster-hub/coffees/[id]/page.tsx` | route | legacy canonical | Ekran czyta minimalny rekord `coffees`, ale nie domyka publicznego produktu jak `tag`/`coffee-bank`. | Zintegrować z pełnym edytorem legacy albo wygasić na rzecz `roaster_coffee_tags`. |
+| O03 | `product/apps/web/app/roaster-hub/coffees/[id]/page.tsx` | route | legacy canonical | Ekran czyta minimalny rekord `coffees`, ale nie domyka publicznego produktu jak `tag`/`roaster-hub/batches`. | Zintegrować z pełnym edytorem legacy albo wygasić na rzecz `roaster_coffee_tags`. |
 | O04 | `product/apps/web/app/roaster-hub/coffees/[id]/batches/new/page.tsx` | route | legacy canonical | Tworzy tylko `lot_number` i `roast_date`; batch ma pola czytane przez mobile, których nikt nie edytuje. | Rozbudować o `brewing_notes` i `roaster_story` albo zamrozić jako legacy. |
 | O05 | `product/apps/web/app/roaster-hub/coffees/[id]/batches/[batchId]/page.tsx` | route | legacy canonical | Sam ekran mówi, że QR generation przeniesiono do `/tag`, więc jest częścią niespójnego flow. | Uczynić z niego pełny batch manager albo usunąć po migracji. |
 | O06 | `product/apps/consumer-mobile/app/(tabs)/brew-your-skills/index.tsx` | route | static | Brak odpowiednika w web i brak sprzężenia z danymi roaster/consumer. | Zostawić jako consumer-only, nie traktować jako bug. |
@@ -128,7 +128,7 @@ Poniżej są tylko pola z luką w obiegu. Pola nieujęte w tej tabeli mają dzia
 | `roasters.country` | brak aktywnego UI w web | `mobile discover hooks`, `scan_qr` | `producer gap` | Dodać do profilu roastera albo usunąć z konsumenta. |
 | `roasters.logo_url` | brak aktywnego UI w web | `scan_qr` zwraca, ale UI prawie nie używa | `producer gap` | Dodać upload logo i jawne użycie w mobile. |
 | `roasters.verification_status` | brak UI roastera; tylko schema/filter | `mobile discover roasters` filtruje verified | `operational gap` | Potrzebny admin/backoffice workflow weryfikacji. |
-| `users.following_roaster_ids` | `mobile /roaster/[id]` | brak web roaster view | `orphan cross-role` | Dodać widok followerów/favorites w `Coffee Bank` lub analytics. |
+| `users.following_roaster_ids` | `mobile /roaster/[id]` | brak web roaster view | `orphan cross-role` | Dodać widok followerów/favorites w `batch managerze` lub analytics. |
 | `users.favorite_brew_method_id` | `mobile complete-profile/profile` | brak web | `same-side only` | Zostawić consumer-only albo wykorzystać w ofertach/rekomendacjach roastera. |
 | `user_favorite_flavor_notes.tasting_note_id` | `mobile complete-profile/profile` | brak web | `same-side only` | Jak wyżej. |
 | `users.sensory_score` | backend `update_coffee_stats` | `mobile profile` | `same-side only` | Web może używać do segmentacji feedbacku, dziś nie używa. |
@@ -224,7 +224,7 @@ flowchart LR
     WSetup["/roaster-hub/setup"]
     WTag["/tag"]
     WTagEdit["/tag/edit/[id]"]
-    WBank["/coffee-bank"]
+    WBank["/roaster-hub/batches"]
     WApiQr["/api/qr"]
     WPublic["/q/[hash]"]
   end
@@ -293,7 +293,7 @@ flowchart TB
   end
 
   subgraph Roaster["Roaster surfaces"]
-    TG["/tag + /coffee-bank"]
+    TG["/tag + /roaster-hub/batches"]
     LG["legacy coffees/batches"]
     AN["analytics"]
   end
@@ -349,7 +349,7 @@ flowchart TB
    - bo dziś `tag` prowadzi do Coffee Page, ale nie do roaster analytics.
 
 4. `users.following_roaster_ids` powinno dostać webowego konsumenta:
-   - minimum: licznik followersów / favorites w `Coffee Bank`,
+   - minimum: licznik followersów / favorites w `batch managerze`,
    - docelowo: segmentacja ofert handlowych zgodnie z założeniem produktu.
 
 ## Minimalna mapa implementacyjna po audycie

@@ -1,3 +1,5 @@
+import type { BrewMethodOption } from '../coffeeTaxonomy';
+
 /**
  * Pure analytics helpers for roaster batch tastings.
  * Rating aggregation matches `supabase/functions/update_coffee_stats` (same rounding and buckets).
@@ -26,6 +28,8 @@ export type RoasterTastingLog = {
     sensoryAcidity: number;
     sensorySweetness: number;
     sensoryBody: number;
+    sensoryBitter: number;
+    sensoryAftertaste: number;
     repurchaseIntent: 'yes' | 'no' | 'unsure';
     experienceLevel: 'beginner' | 'advanced' | 'expert';
   } | null;
@@ -49,6 +53,18 @@ export type FlavorNoteRank = {
   label: string;
   category: string;
   count: number;
+};
+
+export type BrewMethodRank = {
+  id: string;
+  name: string;
+  count: number;
+};
+
+export type SelectionComparison<TItem> = {
+  matched: TItem[];
+  suggestedOnly: TItem[];
+  observedOnly: TItem[];
 };
 
 export type AnonymizedReview = {
@@ -113,7 +129,30 @@ export function topFlavorNotesFromLogs(
   return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, limit);
 }
 
-export type BrewMethodOption = { id: string; name: string };
+export function brewMethodCountsFromLogs(
+  logs: RoasterTastingLog[],
+  limit = 10
+): BrewMethodRank[] {
+  const counts = new Map<string, BrewMethodRank>();
+
+  for (const log of logs) {
+    if (!log.brewMethodId || !log.brewMethodName) continue;
+    const current = counts.get(log.brewMethodId);
+    if (current) {
+      current.count++;
+    } else {
+      counts.set(log.brewMethodId, {
+        id: log.brewMethodId,
+        name: log.brewMethodName,
+        count: 1,
+      });
+    }
+  }
+
+  return [...counts.values()]
+    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+    .slice(0, limit);
+}
 
 export function brewMethodsPresentInLogs(logs: RoasterTastingLog[]): BrewMethodOption[] {
   const byId = new Map<string, string>();
@@ -133,4 +172,18 @@ export function filterLogsByBrewMethod(
 ): RoasterTastingLog[] {
   if (brewMethodId === null) return logs;
   return logs.filter(l => l.brewMethodId === brewMethodId);
+}
+
+export function compareSuggestedIdsToObserved<TItem extends { id: string }>(
+  suggested: TItem[],
+  observed: TItem[]
+): SelectionComparison<TItem> {
+  const suggestedIds = new Set(suggested.map((item) => item.id));
+  const observedIds = new Set(observed.map((item) => item.id));
+
+  return {
+    matched: suggested.filter((item) => observedIds.has(item.id)),
+    suggestedOnly: suggested.filter((item) => !observedIds.has(item.id)),
+    observedOnly: observed.filter((item) => !suggestedIds.has(item.id)),
+  };
 }

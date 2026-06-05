@@ -10,11 +10,16 @@ export type BatchPublicationOrigin = {
   altitudeMax: number | null;
 };
 
+export type CoffeeVarietyOption = {
+  id: string;
+  name: string;
+};
+
 export type BatchPublicationCoffee = {
   id: string;
   name: string;
-  status: string;
   variety: string | null;
+  varieties: CoffeeVarietyOption[];
   processingMethod: string | null;
   producerNotes: string | null;
   coverImageUrl: string | null;
@@ -24,9 +29,15 @@ export type BatchPublicationBatch = {
   id: string;
   lotNumber: string;
   roastDate: string;
-  status: string;
   brewingNotes: string | null;
   roasterStory: string | null;
+  declaredSensoryAcidity: number | null;
+  declaredSensorySweetness: number | null;
+  declaredSensoryBody: number | null;
+  declaredSensoryBitter: number | null;
+  declaredSensoryAftertaste: number | null;
+  suggestedBrewMethodIds: string[];
+  suggestedTastingNoteIds: string[];
   createdAt: string | null;
 };
 
@@ -44,12 +55,14 @@ export type BatchPublicationSummary = {
   batchId: string;
   coffeeId: string;
   coffeeName: string;
-  coffeeStatus: string;
+  coverImageUrl: string | null;
   coffeeVariety: string | null;
+  coffeeVarieties: CoffeeVarietyOption[];
   coffeeProcessingMethod: string | null;
   lotNumber: string;
   roastDate: string;
-  batchStatus: string;
+  suggestedBrewMethodIds: string[];
+  suggestedTastingNoteIds: string[];
   qrHash: string | null;
   totalCount: number;
   avgRating: number;
@@ -67,8 +80,7 @@ export type BatchPublicationDetail = {
 export type BatchPublicationPayload = {
   coffee: {
     name: string;
-    status: string;
-    variety: string | null;
+    varietyIds: string[];
     processingMethod: string | null;
     producerNotes: string | null;
     coverImageUrl: string | null;
@@ -77,9 +89,15 @@ export type BatchPublicationPayload = {
   batch: {
     lotNumber: string;
     roastDate: string;
-    status: string;
     brewingNotes: string | null;
     roasterStory: string | null;
+    declaredSensoryAcidity: number | null;
+    declaredSensorySweetness: number | null;
+    declaredSensoryBody: number | null;
+    declaredSensoryBitter: number | null;
+    declaredSensoryAftertaste: number | null;
+    suggestedBrewMethodIds: string[];
+    suggestedTastingNoteIds: string[];
   };
 };
 
@@ -180,5 +198,13 @@ export async function ensureRoasterBatchQr(
 ): Promise<EnsureBatchQrResult> {
   return invokeOrThrow<EnsureBatchQrResult>(supabase, 'ensure_batch_qr', {
     batchId,
+  });
+}
+
+export async function listCoffeeVarieties(
+  supabase: TypedSupabaseClient
+): Promise<CoffeeVarietyOption[]> {
+  return invokeOrThrow<CoffeeVarietyOption[]>(supabase, 'roaster_batch_publications', {
+    mode: 'varieties',
   });
 }

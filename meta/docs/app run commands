@@ -1,27 +1,234 @@
 # app run commands
 
-## toolchain baseline (required)
-supabase --version  # expected: >= 2.98.2
+## goal
+Uruchomić na czysto:
+- local Supabase
+- local Edge Functions
+- Cloudflare tunnel do local Supabase API
+- web app (`product/apps/web`)
+- consumer-mobile (`product/apps/consumer-mobile`)
+
+Repo root: `/Users/pa/projects/funcup`
+
+## toolchain baseline
+Uruchom raz przed pierwszym startem:
+
+```bash
+pnpm install
+supabase --version
 docker version
+cloudflared --version
+tmux -V
+```
 
-## Supabase (local)
-pnpm exec supabase start
-bash product/scripts/mobile-functions-smoke-check.sh
+Oczekiwane:
+- `supabase >= 2.98.2`
+- Docker działa
+- `cloudflared` jest zainstalowany
+- `tmux` jest zainstalowany, jeśli chcesz używać trybu all-in-one
 
-## tunnel (Cloudflare -> local Supabase API)
-bash product/scripts/start-supabase-https-tunnel.sh
+## fastest clean start: all-in-one
+To jest teraz najprostszy i najbardziej powtarzalny start całego stacku.
 
-## metro (Expo for consumer-mobile)
-pnpm -C product/apps/consumer-mobile run start:expogo:tunnel
-
-## localhost (web app on local host)
-pnpm -C product/apps/web dev
-
-## optional: one-command orchestrator
+```bash
 pnpm run dev:mobile-stack -- --restart
+```
 
-## recovery (when local stack breaks)
-supabase stop
-supabase start --debug
-pnpm exec supabase status
+Co zrobi ten command:
+- odpali `supabase:local:ensure`
+- w razie driftu zrobi reset lokalnej bazy
+- odpali local Edge Functions (`supabase functions serve --no-verify-jwt`)
+- zrobi smoke-check funkcji
+- uruchomi Cloudflare tunnel do `http://127.0.0.1:54321`
+- zaktualizuje `product/apps/consumer-mobile/.env.local` o nowy `EXPO_PUBLIC_SUPABASE_URL`
+- odpali web app
+- odpali Expo Metro dla mobile przez Cloudflare tunnel, bez ścieżki ngrok z `expo start --tunnel`
+
+Po starcie:
+- pojawi się sesja `tmux` o nazwie `funcup-dev`
+- możesz się do niej podpiąć ponownie:
+
+```bash
+tmux attach -t funcup-dev
+```
+
+Zatrzymanie:
+
+```bash
+tmux kill-session -t funcup-dev
+pnpm exec supabase stop --project-id funcup --workdir product
+pnpm exec supabase stop --project-id supabase --workdir product
+```
+
+## clean manual start: 5 terminals
+Użyj tego wariantu, jeśli chcesz mieć pełną kontrolę nad każdym procesem.
+
+### terminal 1: local Supabase
+Standardowy start, zachowujący lokalne ratingi, batche i uploady:
+
+```bash
+pnpm run supabase:local:ensure
+```
+
+Jeśli po rolloutach Sensory Core mobilka zgłasza brak kolumny `sensory_aftertaste` albo `sensory_bitter`, oznacza to drift lokalnej bazy i trzeba ponownie uruchomić:
+
+```bash
+pnpm run supabase:local:ensure
+```
+
+Lub, gdy drift nie znika:
+
+```bash
+pnpm exec supabase db reset --local --workdir product
+```
+
+Wymuszony reset tylko wtedy, gdy świadomie chcesz skasować lokalne dane i odtworzyć seed:
+
+```bash
+pnpm run supabase:local:ensure --force-reset
+```
+
+Kontrola statusu:
+
+```bash
+pnpm exec supabase status --workdir product
+```
+
+### terminal 2: local Edge Functions
+
+```bash
+pnpm exec supabase functions serve --workdir product --no-verify-jwt
+```
+
+Ten proces zostaw uruchomiony.
+
+### terminal 3: smoke-check + tunnel
+Najpierw sprawdź lokalne funkcje:
+
+```bash
 bash product/scripts/mobile-functions-smoke-check.sh
+```
+
+Jeśli smoke-check jest zielony, uruchom tunel:
+
+```bash
+bash product/scripts/start-supabase-https-tunnel.sh
+```
+
+Skopiuj wygenerowany URL:
+
+```txt
+https://<random>.trycloudflare.com
+```
+
+### update mobile env
+Wpisz ten URL do:
+
+`product/apps/consumer-mobile/.env.local`
+
+Minimalny zestaw:
+
+```dotenv
+EXPO_PUBLIC_SUPABASE_URL=https://<random>.trycloudflare.com
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<local-anon-key>
+```
+
+Opcjonalnie:
+
+```dotenv
+EXPO_PUBLIC_APP_URL=http://<your-lan-ip>:8081
+EXPO_PUBLIC_ROASTER_WEB_URL=http://<your-lan-ip>:3000
+```
+
+Local anon key pobierzesz z:
+
+```bash
+pnpm exec supabase status --workdir product
+```
+
+### terminal 4: web app
+
+```bash
+pnpm -C product/apps/web dev
+```
+
+Jeśli chcesz jawnie przypiąć host i port:
+
+```bash
+pnpm -C product/apps/web dev --hostname 127.0.0.1 --port 3000
+```
+
+### terminal 5: consumer-mobile
+Tryb zalecany dla Expo Go / telefonu:
+
+```bash
+pnpm -C product/apps/consumer-mobile run start:expogo:tunnel
+```
+
+Ten command robi smoke-check funkcji, uruchamia Cloudflare tunnel do Metro (`127.0.0.1:8081`) i startuje Expo z `EXPO_PACKAGER_PROXY_URL`. Nie używa ngrok.
+
+Alias z repo root:
+
+```bash
+pnpm run consumer:start:expogo:tunnel
+```
+
+Jeśli urządzenie i Mac są w tej samej LAN i nie potrzebujesz Expo tunnel:
+
+```bash
+pnpm -C product/apps/consumer-mobile run start:lan
+```
+
+## canonical order
+Jeśli odpalasz ręcznie, trzymaj tę kolejność:
+
+1. `pnpm run supabase:local:ensure`
+2. `pnpm exec supabase functions serve --workdir product --no-verify-jwt`
+3. `bash product/scripts/mobile-functions-smoke-check.sh`
+4. `bash product/scripts/start-supabase-https-tunnel.sh`
+5. update `product/apps/consumer-mobile/.env.local`
+6. `pnpm -C product/apps/web dev`
+7. `pnpm -C product/apps/consumer-mobile run start:expogo:tunnel`
+
+## root aliases
+
+```bash
+pnpm run supabase:local:ensure
+pnpm run supabase:tunnel
+pnpm run consumer:start:expogo:tunnel
+pnpm run consumer:ios
+pnpm run consumer:web
+```
+
+## recovery
+Jeśli lokalny stack się rozjedzie:
+
+```bash
+pnpm exec supabase stop --project-id funcup --workdir product
+pnpm exec supabase stop --project-id supabase --workdir product
+pnpm exec supabase start --workdir product --debug
+pnpm exec supabase status --workdir product
+```
+
+```bash
+pnpm exec supabase functions serve --workdir product --no-verify-jwt
+bash product/scripts/mobile-functions-smoke-check.sh
+bash product/scripts/start-supabase-https-tunnel.sh
+```
+
+## quick checks
+
+```bash
+lsof -nP -iTCP:54321 -sTCP:LISTEN
+lsof -nP -iTCP:54322 -sTCP:LISTEN
+curl -I http://127.0.0.1:3000
+curl -X OPTIONS http://127.0.0.1:54321/functions/v1/scan_qr -i
+pnpm exec supabase db query "select count(*) as variety_count from public.coffee_varieties;" --db-url postgresql://postgres:postgres@127.0.0.1:54322/postgres
+```
+
+## notes
+- `pnpm run supabase:local:ensure` synchronizuje `product/apps/web/.env.local`, ale nie wpisuje tunelu do mobile. Mobile tunnel URL trafia do `product/apps/consumer-mobile/.env.local` ręcznie albo automatycznie przez `dev:mobile-stack`.
+- Po każdej zmianie w `product/apps/consumer-mobile/.env.local` zrestartuj Metro.
+- `--force-reset` oraz `supabase db reset --local` usuwają lokalne dane runtime: tasting logs, ratingi, roaster-created batche, `coffees.cover_image_url` i metadane Storage. Używaj ich tylko do świadomego powrotu do seed state.
+- `start-supabase-https-tunnel.sh` tuneluje local Supabase API pod `127.0.0.1:54321`, nie web app.
+- Dla pełnego QR / scan QA patrz: `meta/docs/scan-qr-local-runbook.md`

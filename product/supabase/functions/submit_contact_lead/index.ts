@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +10,7 @@ type ContactLeadRequest = {
   full_name?: string;
   email?: string;
   company?: string | null;
-  message?: string;
+  message?: string | null;
   source?: string;
   metadata?: unknown;
 };
@@ -33,8 +32,8 @@ function buildEmailText(params: {
   createdAt: string;
   fullName: string;
   email: string;
-  company: string | null;
-  message: string;
+  company: string;
+  message: string | null;
   source: string;
   metadata: Record<string, unknown>;
 }): string {
@@ -50,11 +49,11 @@ function buildEmailText(params: {
     `Created at: ${params.createdAt}`,
     `Name: ${params.fullName}`,
     `Email: ${params.email}`,
-    `Company: ${params.company ?? '-'}`,
+    `Company: ${params.company}`,
     `Source: ${params.source}`,
     '',
     'Message:',
-    params.message,
+    params.message ?? '-',
     '',
     'Metadata:',
     metadataString,
@@ -66,8 +65,8 @@ async function trySendNotificationEmail(params: {
   createdAt: string;
   fullName: string;
   email: string;
-  company: string | null;
-  message: string;
+  company: string;
+  message: string | null;
   source: string;
   metadata: Record<string, unknown>;
 }): Promise<void> {
@@ -127,7 +126,7 @@ async function trySendNotificationEmail(params: {
   }
 }
 
-serve(async req => {
+Deno.serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -193,11 +192,11 @@ serve(async req => {
       );
     }
 
-    if (!message || message.length > 4000) {
+    if (!companyRaw || companyRaw.length > 160) {
       return new Response(
         JSON.stringify({
           error: 'bad_request',
-          message: 'message is required and must be 1-4000 chars.',
+          message: 'company is required and must be 1-160 chars.',
         }),
         {
           status: 400,
@@ -206,11 +205,11 @@ serve(async req => {
       );
     }
 
-    if (companyRaw.length > 160) {
+    if (message.length > 4000) {
       return new Response(
         JSON.stringify({
           error: 'bad_request',
-          message: 'company must be <= 160 chars.',
+          message: 'message must be <= 4000 chars when provided.',
         }),
         {
           status: 400,
@@ -262,8 +261,8 @@ serve(async req => {
       .insert({
         full_name: fullName,
         email,
-        company: companyRaw || null,
-        message,
+        company: companyRaw,
+        message: message || null,
         source,
         metadata: requestMetadata,
       })
@@ -286,8 +285,8 @@ serve(async req => {
         createdAt: leadRow.created_at,
         fullName,
         email,
-        company: companyRaw || null,
-        message,
+        company: companyRaw,
+        message: message || null,
         source,
         metadata: requestMetadata,
       });

@@ -13,6 +13,8 @@ describe('roaster telemetry core contract', () => {
       sensoryAcidity: 0,
       sensorySweetness: 2.4,
       sensoryBody: 4.6,
+      sensoryBitter: 5.8,
+      sensoryAftertaste: -2,
       repurchaseIntent: 'yes',
       experienceLevel: 'advanced',
     });
@@ -21,6 +23,8 @@ describe('roaster telemetry core contract', () => {
     expect(normalized.sensoryAcidity).toBe(1);
     expect(normalized.sensorySweetness).toBe(2);
     expect(normalized.sensoryBody).toBe(5);
+    expect(normalized.sensoryBitter).toBe(5);
+    expect(normalized.sensoryAftertaste).toBe(1);
   });
 
   it('returns user-facing repurchase labels', () => {

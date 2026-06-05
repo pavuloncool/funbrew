@@ -18,14 +18,24 @@ docker version
 From repo root:
 
 ```bash
+pnpm run supabase:local:ensure
 bash product/scripts/mobile-functions-smoke-check.sh
 ```
 
 Expected:
+- local Supabase self-heals into a healthy state (`public` schema + seeded auth/demo data)
+- `public.coffee_log_telemetry_core` contains `sensory_bitter` and `sensory_aftertaste`
 - `scan_qr` is `PASS`
 - preferably `log_tasting` and `update_coffee_stats` are also `PASS`
 
 If preflight fails, do not continue with scan QA.
+
+If you see a mobile save error such as `Could not find the 'sensory_aftertaste' column ... in the schema cache`, your local DB is stale relative to the current Sensory Core schema. Run one of:
+
+```bash
+pnpm run supabase:local:ensure
+pnpm exec supabase db reset --local --workdir product
+```
 
 ## 2) Start HTTPS tunnel to local Supabase API
 Install once:
@@ -67,6 +77,8 @@ Get local anon key from:
 pnpm exec supabase status
 ```
 
+`pnpm run supabase:local:ensure` already refreshes `product/apps/web/.env.local` from the local Supabase status output. Re-run it after a local reset if web auth/data looks stale.
+
 After every `.env*` change, restart Metro.
 
 ## 4) Start apps
@@ -81,6 +93,11 @@ Mobile (with preflight gate):
 ```bash
 pnpm -C product/apps/consumer-mobile run start:expogo:tunnel
 ```
+
+Notes:
+- This command uses a Cloudflare tunnel to Metro via `EXPO_PACKAGER_PROXY_URL`; it does not use Expo/ngrok `--tunnel`.
+- Use it when your phone is on hotspot / outside the same LAN as your Mac.
+- `EXPO_PUBLIC_SUPABASE_URL` still must point to an HTTPS Supabase endpoint reachable from the phone, e.g. the Cloudflare tunnel from step 2.
 
 ## 5) QA flow
 1. In web: `roaster-hub/coffees/new` create/publish coffee + batch + QR.

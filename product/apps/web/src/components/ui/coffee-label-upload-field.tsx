@@ -18,10 +18,12 @@ type CoffeeLabelUploadFieldProps = {
   labelIdle?: string;
   className?: string;
   testId?: string;
+  acceptedFileTypes?: string[];
+  disabled?: boolean;
 };
 
 export function CoffeeLabelUploadField(props: CoffeeLabelUploadFieldProps) {
-  const { file, onFileChange, labelIdle, className, testId } = props;
+  const { file, onFileChange, labelIdle, className, testId, acceptedFileTypes, disabled } = props;
   const files = useMemo(() => (file instanceof File ? [file] : []), [file]);
 
   return (
@@ -32,8 +34,9 @@ export function CoffeeLabelUploadField(props: CoffeeLabelUploadFieldProps) {
         maxFiles={1}
         instantUpload={false}
         credits={false}
+        disabled={disabled}
         allowImagePreview
-        acceptedFileTypes={['image/jpeg', 'image/png', 'image/webp']}
+        acceptedFileTypes={acceptedFileTypes ?? ['image/jpeg', 'image/png', 'image/webp']}
         maxFileSize="512KB"
         labelIdle={
           labelIdle ?? 'Przeciągnij obraz lub <span class="filepond--label-action">wybierz</span>'

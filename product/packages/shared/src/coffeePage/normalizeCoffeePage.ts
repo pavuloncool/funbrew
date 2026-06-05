@@ -4,10 +4,10 @@ export type CanonicalPublicationFields = {
   coffee: {
     name: string;
     variety: string | null;
+    varieties: Array<{ id: string; name: string }>;
     processingMethod: string | null;
     producerNotes: string | null;
     imageUrl: string | null;
-    status: string | null;
   };
   origin: {
     country: string | null;
@@ -22,7 +22,6 @@ export type CanonicalPublicationFields = {
     id: string | null;
     lotNumber: string | null;
     roastDate: string | null;
-    status: string | null;
     brewingNotes: string | null;
     roasterStory: string | null;
   };
@@ -46,10 +45,10 @@ export type NormalizedCoffeePageData = {
     id: string;
     name: string;
     variety: string | null;
+    varieties: Array<{ id: string; name: string }>;
     processingMethod: string | null;
     producerNotes: string | null;
     imageUrl: string | null;
-    status: string | null;
   };
   origin: {
     country: string | null;
@@ -64,7 +63,6 @@ export type NormalizedCoffeePageData = {
     id: string | null;
     date: string | null;
     lotNumber: string | null;
-    status: string | null;
     level: string | null;
   };
   brewing: {
@@ -132,16 +130,16 @@ export function normalizeCoffeePageData(
       city: input.roaster.city,
       country: input.roaster.country,
       logoUrl: input.roaster.logo_url,
-      shortName: input.roaster.name,
+      shortName: input.roaster.roaster_short_name ?? input.roaster.name,
     },
     product: {
       id: input.coffee.id,
       name: input.coffee.name,
       variety: input.coffee.variety,
+      varieties: input.coffee.varieties ?? [],
       processingMethod: input.coffee.processing_method,
       producerNotes: input.coffee.producer_notes,
       imageUrl: input.coffee.cover_image_url,
-      status: input.coffee.status ?? null,
     },
     origin: {
       country: origin.country ?? null,
@@ -159,7 +157,6 @@ export function normalizeCoffeePageData(
       id: input.batch.id,
       date: input.batch.roast_date,
       lotNumber: input.batch.lot_number,
-      status: input.batch.status ?? null,
       level: null,
     },
     brewing: {
@@ -185,10 +182,10 @@ export function toCanonicalPublicationFields(
     coffee: {
       name: input.product.name,
       variety: input.product.variety,
+      varieties: input.product.varieties,
       processingMethod: input.product.processingMethod,
       producerNotes: input.product.producerNotes,
       imageUrl: input.product.imageUrl,
-      status: input.product.status,
     },
     origin: {
       country: input.origin.country,
@@ -203,7 +200,6 @@ export function toCanonicalPublicationFields(
       id: input.roast.id ?? input.logBatchId,
       lotNumber: input.roast.lotNumber,
       roastDate: input.roast.date,
-      status: input.roast.status,
       brewingNotes: input.brewing.notes,
       roasterStory: input.story.roasterStory,
     },

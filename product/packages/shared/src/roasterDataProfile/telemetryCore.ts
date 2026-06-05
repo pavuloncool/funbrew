@@ -8,6 +8,8 @@ export type RoasterTelemetryCoreInput = {
   sensoryAcidity: number;
   sensorySweetness: number;
   sensoryBody: number;
+  sensoryBitter: number;
+  sensoryAftertaste: number;
   repurchaseIntent: RepurchaseIntent;
   experienceLevel: RoasterExperienceLevel;
 };
@@ -34,6 +36,8 @@ export function normalizeRoasterTelemetryCoreInput(
     sensoryAcidity: clampScore(input.sensoryAcidity),
     sensorySweetness: clampScore(input.sensorySweetness),
     sensoryBody: clampScore(input.sensoryBody),
+    sensoryBitter: clampScore(input.sensoryBitter),
+    sensoryAftertaste: clampScore(input.sensoryAftertaste),
     repurchaseIntent: input.repurchaseIntent,
     experienceLevel: input.experienceLevel,
   };

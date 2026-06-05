@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { visualSystemTokens } from '@funcup/shared';
+import { resolveMobileAuthenticatedPath, visualSystemTokens } from '@funcup/shared';
 
 import { AppButton, AppScreen, AppText } from '../../src/components/ui/primitives';
 import { useAuth } from '../../src/auth';
@@ -26,8 +26,7 @@ export default function LoginScreen() {
       return;
     }
 
-    const postLoginPath = profileCompleted ? '/(tabs)/hub' : '/(auth)/complete-profile';
-    router.replace(postLoginPath);
+    router.replace(resolveMobileAuthenticatedPath(profileCompleted));
   }, [profileCompleted, router, status]);
 
   const onUnlock = async () => {

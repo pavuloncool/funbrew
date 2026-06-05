@@ -1,12 +1,27 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function json(status: number, body: Record<string, unknown>) {
+type CoffeeVarietyRow = {
+  id: string
+  name: string
+  sort_order: number
+}
+
+type CoffeeRow = {
+  id: string
+  name: string
+  variety: string | null
+  processing_method: string | null
+  producer_notes: string | null
+  cover_image_url: string | null
+  origin_id: string | null
+}
+
+function json(status: number, body: Record<string, unknown> | unknown[]) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -64,7 +79,89 @@ async function requireRoaster(req: Request) {
   }
 }
 
-serve(async (req) => {
+function formatVarietyLabel(varieties: Array<{ name: string }>, fallback: string | null): string | null {
+  if (varieties.length > 0) {
+    return varieties.map((entry) => entry.name).join(', ')
+  }
+  return fallback
+}
+
+async function loadCoffeeVarieties(
+  admin: Awaited<ReturnType<typeof createAdminClient>>,
+  coffeeIds: string[]
+): Promise<Map<string, Array<{ id: string; name: string }>>> {
+  const empty = new Map<string, Array<{ id: string; name: string }>>()
+  if (!admin || coffeeIds.length === 0) return empty
+
+  const assignmentsResult = await admin
+    .from('coffee_variety_assignments')
+    .select('coffee_id, coffee_varieties!inner(id, name, sort_order)')
+    .in('coffee_id', coffeeIds)
+
+  if (assignmentsResult.error) {
+    throw new Error(assignmentsResult.error.message)
+  }
+
+  const byCoffeeId = new Map<string, Array<{ id: string; name: string; sortOrder: number }>>()
+  for (const row of (assignmentsResult.data ?? []) as Array<{
+    coffee_id: string
+    coffee_varieties:
+      | { id: string; name: string; sort_order: number }
+      | Array<{ id: string; name: string; sort_order: number }>
+  }>) {
+    const related = Array.isArray(row.coffee_varieties)
+      ? row.coffee_varieties[0] ?? null
+      : row.coffee_varieties
+    if (!related) continue
+
+    const bucket = byCoffeeId.get(row.coffee_id) ?? []
+    bucket.push({
+      id: related.id,
+      name: related.name,
+      sortOrder: related.sort_order,
+    })
+    byCoffeeId.set(row.coffee_id, bucket)
+  }
+
+  const normalized = new Map<string, Array<{ id: string; name: string }>>()
+  for (const [coffeeId, bucket] of byCoffeeId.entries()) {
+    normalized.set(
+      coffeeId,
+      bucket
+        .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name))
+        .map(({ id, name }) => ({ id, name }))
+    )
+  }
+
+  return normalized
+}
+
+async function listVarieties(
+  admin: Awaited<ReturnType<typeof createAdminClient>>
+) {
+  if (!admin) {
+    return json(500, { error: 'server_error', message: 'Supabase env is not configured.' })
+  }
+
+  const varietiesResult = await admin
+    .from('coffee_varieties')
+    .select('id, name, sort_order')
+    .order('sort_order', { ascending: true })
+
+  if (varietiesResult.error) {
+    return json(500, { error: 'server_error', message: varietiesResult.error.message })
+  }
+
+  return json(
+    200,
+    ((varietiesResult.data ?? []) as CoffeeVarietyRow[]).map((row) => ({
+      id: row.id,
+      name: row.name,
+    }))
+  )
+}
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -76,16 +173,20 @@ serve(async (req) => {
     const body = asRecord(await req.json().catch(() => null))
     const mode = typeof body?.mode === 'string' ? body.mode : null
 
-    if (mode !== 'list' && mode !== 'detail') {
-      return json(400, { error: 'bad_request', message: 'Mode must be list or detail.' })
+    if (mode !== 'list' && mode !== 'detail' && mode !== 'varieties') {
+      return json(400, { error: 'bad_request', message: 'Mode must be list, detail or varieties.' })
     }
 
     const admin = auth.admin
+    if (mode === 'varieties') {
+      return await listVarieties(admin)
+    }
+
     const roasterId = auth.roaster.id
 
     const coffeesResult = await admin
       .from('coffees')
-      .select('id, name, status, variety, processing_method, producer_notes, cover_image_url, origin_id')
+      .select('id, name, variety, processing_method, producer_notes, cover_image_url, origin_id')
       .eq('roaster_id', roasterId)
       .order('created_at', { ascending: false })
 
@@ -93,16 +194,7 @@ serve(async (req) => {
       return json(500, { error: 'server_error', message: coffeesResult.error.message })
     }
 
-    const coffees = (coffeesResult.data ?? []) as Array<{
-      id: string
-      name: string
-      status: string
-      variety: string | null
-      processing_method: string | null
-      producer_notes: string | null
-      cover_image_url: string | null
-      origin_id: string | null
-    }>
+    const coffees = (coffeesResult.data ?? []) as CoffeeRow[]
 
     if (coffees.length === 0) {
       return json(200, mode === 'list' ? [] : { error: 'not_found', message: 'Batch not found.' })
@@ -110,11 +202,12 @@ serve(async (req) => {
 
     const coffeeById = new Map(coffees.map((coffee) => [coffee.id, coffee]))
     const coffeeIds = coffees.map((coffee) => coffee.id)
+    const coffeeVarietiesByCoffeeId = await loadCoffeeVarieties(admin, coffeeIds)
 
     if (mode === 'list') {
       const batchesResult = await admin
         .from('roast_batches')
-        .select('id, coffee_id, lot_number, roast_date, status, brewing_notes, roaster_story, created_at')
+        .select('*')
         .in('coffee_id', coffeeIds)
         .order('roast_date', { ascending: false })
 
@@ -130,6 +223,13 @@ serve(async (req) => {
         status: string
         brewing_notes: string | null
         roaster_story: string | null
+        declared_sensory_acidity: number | null
+        declared_sensory_sweetness: number | null
+        declared_sensory_body?: number | null
+        declared_sensory_bitter?: number | null
+        declared_sensory_aftertaste?: number | null
+        suggested_brew_method_ids: string[] | null
+        suggested_tasting_note_ids: string[] | null
         created_at: string | null
       }>
 
@@ -172,16 +272,24 @@ serve(async (req) => {
         if (!coffee) return []
         const qr = qrByBatch.get(batch.id) ?? null
         const stats = statsByBatch.get(batch.id) ?? null
+        const coffeeVarieties = coffeeVarietiesByCoffeeId.get(coffee.id) ?? []
         return [{
           batchId: batch.id,
           coffeeId: coffee.id,
           coffeeName: coffee.name,
-          coffeeStatus: coffee.status,
-          coffeeVariety: coffee.variety,
+          coverImageUrl: coffee.cover_image_url,
+          coffeeVariety: formatVarietyLabel(coffeeVarieties, coffee.variety),
+          coffeeVarieties,
           coffeeProcessingMethod: coffee.processing_method,
           lotNumber: batch.lot_number,
           roastDate: batch.roast_date,
-          batchStatus: batch.status,
+          declaredSensoryAcidity: batch.declared_sensory_acidity,
+          declaredSensorySweetness: batch.declared_sensory_sweetness,
+          declaredSensoryBody: batch.declared_sensory_body,
+          declaredSensoryBitter: batch.declared_sensory_bitter ?? null,
+          declaredSensoryAftertaste: batch.declared_sensory_aftertaste ?? null,
+          suggestedBrewMethodIds: batch.suggested_brew_method_ids ?? [],
+          suggestedTastingNoteIds: batch.suggested_tasting_note_ids ?? [],
           qrHash: qr?.hash ?? null,
           totalCount: stats?.total_count ?? 0,
           avgRating: Number(stats?.avg_rating ?? 0),
@@ -199,7 +307,7 @@ serve(async (req) => {
 
     const batchResult = await admin
       .from('roast_batches')
-      .select('id, coffee_id, lot_number, roast_date, status, brewing_notes, roaster_story, created_at')
+      .select('*')
       .eq('id', batchId)
       .maybeSingle()
 
@@ -219,6 +327,13 @@ serve(async (req) => {
       status: string
       brewing_notes: string | null
       roaster_story: string | null
+      declared_sensory_acidity: number | null
+      declared_sensory_sweetness: number | null
+      declared_sensory_body?: number | null
+      declared_sensory_bitter?: number | null
+      declared_sensory_aftertaste?: number | null
+      suggested_brew_method_ids: string[] | null
+      suggested_tasting_note_ids: string[] | null
       created_at: string | null
     }
 
@@ -283,14 +398,15 @@ serve(async (req) => {
       }
       : null
 
+    const coffeeVarieties = coffeeVarietiesByCoffeeId.get(coffee.id) ?? []
     const statsRow = statsResult.data as { total_count: number; avg_rating: number; updated_at: string | null } | null
 
     return json(200, {
       coffee: {
         id: coffee.id,
         name: coffee.name,
-        status: coffee.status,
-        variety: coffee.variety,
+        variety: formatVarietyLabel(coffeeVarieties, coffee.variety),
+        varieties: coffeeVarieties,
         processingMethod: coffee.processing_method,
         producerNotes: coffee.producer_notes,
         coverImageUrl: coffee.cover_image_url,
@@ -300,9 +416,15 @@ serve(async (req) => {
         id: batch.id,
         lotNumber: batch.lot_number,
         roastDate: batch.roast_date,
-        status: batch.status,
         brewingNotes: batch.brewing_notes,
         roasterStory: batch.roaster_story,
+        declaredSensoryAcidity: batch.declared_sensory_acidity,
+        declaredSensorySweetness: batch.declared_sensory_sweetness,
+        declaredSensoryBody: batch.declared_sensory_body,
+        declaredSensoryBitter: batch.declared_sensory_bitter ?? null,
+        declaredSensoryAftertaste: batch.declared_sensory_aftertaste ?? null,
+        suggestedBrewMethodIds: batch.suggested_brew_method_ids ?? [],
+        suggestedTastingNoteIds: batch.suggested_tasting_note_ids ?? [],
         createdAt: batch.created_at,
       },
       qr,

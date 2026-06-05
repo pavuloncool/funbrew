@@ -7,11 +7,11 @@ import {
   brewMethodsPresentInLogs,
   filterLogsByBrewMethod,
   topFlavorNotesFromLogs,
-  type BrewMethodOption,
   type FlavorNoteRank,
   type RatingSummary,
   type RoasterTastingLog,
 } from '../analytics/roasterBatchAnalytics';
+import type { BrewMethodOption } from '../coffeeTaxonomy';
 import { logFlowError, normalizeFlowError } from '../errors/flowError';
 import type { TypedSupabaseClient } from '../services/supabaseClientFactory';
 
@@ -49,6 +49,8 @@ export type TelemetryAggregateRow = {
   avg_sensory_acidity: number | null;
   avg_sensory_sweetness: number | null;
   avg_sensory_body: number | null;
+  avg_sensory_bitter: number | null;
+  avg_sensory_aftertaste: number | null;
   repurchase_yes_count: number;
   repurchase_no_count: number;
   repurchase_unsure_count: number;
@@ -76,6 +78,8 @@ export type TelemetrySummary = {
   avgSensoryAcidity: number | null;
   avgSensorySweetness: number | null;
   avgSensoryBody: number | null;
+  avgSensoryBitter: number | null;
+  avgSensoryAftertaste: number | null;
   repurchaseIntentDistribution: RepurchaseIntentDistribution;
   experienceLevelDistribution: ExperienceLevelDistribution;
 };
@@ -110,6 +114,8 @@ function emptyTelemetrySummary(totalLogs: number): TelemetrySummary {
     avgSensoryAcidity: null,
     avgSensorySweetness: null,
     avgSensoryBody: null,
+    avgSensoryBitter: null,
+    avgSensoryAftertaste: null,
     repurchaseIntentDistribution: {
       yes: 0,
       no: 0,
@@ -142,6 +148,8 @@ function mapAggregateRowToTelemetrySummary(
     avgSensoryAcidity: coerceAverage(row.avg_sensory_acidity),
     avgSensorySweetness: coerceAverage(row.avg_sensory_sweetness),
     avgSensoryBody: coerceAverage(row.avg_sensory_body),
+    avgSensoryBitter: coerceAverage(row.avg_sensory_bitter),
+    avgSensoryAftertaste: coerceAverage(row.avg_sensory_aftertaste),
     repurchaseIntentDistribution: {
       yes: coerceCount(row.repurchase_yes_count),
       no: coerceCount(row.repurchase_no_count),

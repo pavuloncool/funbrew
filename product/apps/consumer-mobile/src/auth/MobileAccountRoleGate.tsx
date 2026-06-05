@@ -1,4 +1,4 @@
-import { resolveAccountRole } from '@funcup/shared';
+import { canAccessSurface, getDeniedAccessReason, resolveAccountRole } from '@funcup/shared';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 
@@ -35,7 +35,7 @@ export function MobileAccountRoleGate() {
           currentUserId,
           currentUser.user_metadata
         );
-        if (!active || role === 'consumer') {
+        if (!active || canAccessSurface(role, 'consumer_mobile')) {
           return;
         }
 
@@ -44,7 +44,7 @@ export function MobileAccountRoleGate() {
           return;
         }
 
-        router.replace('/(auth)/login-form?reason=roaster_web_only');
+        router.replace(`/(auth)/login-form?reason=${getDeniedAccessReason('consumer_mobile')}`);
       } catch {
         // Best effort gate: leave the current session untouched if role lookup fails.
       }

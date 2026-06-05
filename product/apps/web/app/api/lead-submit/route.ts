@@ -40,9 +40,9 @@ export async function POST(request: Request) {
   const company = asTrimmedString(body.company);
   const message = asTrimmedString(body.message);
 
-  if (!fullName || !email || !message) {
+  if (!fullName || !email || !company) {
     return NextResponse.json(
-      { error: 'bad_request', message: 'fullName, email and message are required.' },
+      { error: 'bad_request', message: 'fullName, email and company are required.' },
       { status: 400 }
     );
   }
@@ -74,8 +74,8 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         full_name: fullName,
         email,
-        company: company || null,
-        message,
+        company,
+        message: message || null,
         source: 'web_public_entry',
         metadata: {
           origin: request.headers.get('origin'),

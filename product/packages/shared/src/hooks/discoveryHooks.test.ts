@@ -15,6 +15,7 @@ type RoasterSelectRow = {
 type QrCodeRow = {
   hash: string;
   roast_batches: {
+    status: string;
     coffees: {
       id: string;
       name: string;
@@ -75,6 +76,7 @@ describe('discovery hooks fetchers', () => {
         {
           hash: 'qr-hash-1',
           roast_batches: {
+            status: 'active',
             coffees: {
               id: 'coffee-1',
               name: 'Kenya AA',

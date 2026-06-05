@@ -1,10 +1,10 @@
-import { redirect } from 'next/navigation';
+import { BatchAnalyticsDetail } from '@/src/components/roaster-hub/BatchAnalyticsDetail';
 
 type Props = {
   params: Promise<{ batchId: string }>;
 };
 
-export default async function LegacyBatchAnalyticsRedirectPage({ params }: Props) {
+export default async function BatchAnalyticsDetailPage({ params }: Props) {
   const { batchId } = await params;
-  redirect(`/roaster-hub/batches/${batchId}#analytics`);
+  return <BatchAnalyticsDetail batchId={batchId} />;
 }

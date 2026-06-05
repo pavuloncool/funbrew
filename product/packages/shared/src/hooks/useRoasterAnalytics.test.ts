@@ -5,6 +5,10 @@ import {
   extractEmbeddedReview,
   type TelemetryAggregateRow,
 } from './useRoasterAnalytics';
+import {
+  brewMethodCountsFromLogs,
+  compareSuggestedIdsToObserved,
+} from '../analytics/roasterBatchAnalytics';
 
 function row(
   partial: Partial<TelemetryAggregateRow> & {
@@ -19,6 +23,8 @@ function row(
     avg_sensory_acidity: partial.avg_sensory_acidity ?? null,
     avg_sensory_sweetness: partial.avg_sensory_sweetness ?? null,
     avg_sensory_body: partial.avg_sensory_body ?? null,
+    avg_sensory_bitter: partial.avg_sensory_bitter ?? null,
+    avg_sensory_aftertaste: partial.avg_sensory_aftertaste ?? null,
     repurchase_yes_count: partial.repurchase_yes_count ?? 0,
     repurchase_no_count: partial.repurchase_no_count ?? 0,
     repurchase_unsure_count: partial.repurchase_unsure_count ?? 0,
@@ -39,6 +45,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
           avg_sensory_acidity: 3.4,
           avg_sensory_sweetness: 3.9,
           avg_sensory_body: 2.6,
+          avg_sensory_bitter: 2.2,
+          avg_sensory_aftertaste: 4.1,
           repurchase_yes_count: 4,
           repurchase_no_count: 3,
           repurchase_unsure_count: 3,
@@ -56,6 +64,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
     expect(result.global.avgSensoryAcidity).toBe(3.4);
     expect(result.global.avgSensorySweetness).toBe(3.9);
     expect(result.global.avgSensoryBody).toBe(2.6);
+    expect(result.global.avgSensoryBitter).toBe(2.2);
+    expect(result.global.avgSensoryAftertaste).toBe(4.1);
     expect(result.global.repurchaseIntentDistribution).toEqual({
       yes: 4,
       no: 3,
@@ -78,6 +88,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
           avg_sensory_acidity: 2.75,
           avg_sensory_sweetness: 3.25,
           avg_sensory_body: 4.25,
+          avg_sensory_bitter: 2.5,
+          avg_sensory_aftertaste: 3.75,
           repurchase_yes_count: 2,
           repurchase_no_count: 1,
           repurchase_unsure_count: 1,
@@ -94,6 +106,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
     expect(result.global.avgSensoryAcidity).toBe(2.75);
     expect(result.global.avgSensorySweetness).toBe(3.25);
     expect(result.global.avgSensoryBody).toBe(4.25);
+    expect(result.global.avgSensoryBitter).toBe(2.5);
+    expect(result.global.avgSensoryAftertaste).toBe(3.75);
   });
 
   it('returns empty summary when RPC has no rows', () => {
@@ -105,6 +119,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
       avgSensoryAcidity: null,
       avgSensorySweetness: null,
       avgSensoryBody: null,
+      avgSensoryBitter: null,
+      avgSensoryAftertaste: null,
       repurchaseIntentDistribution: {
         yes: 0,
         no: 0,
@@ -137,6 +153,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
           avg_sensory_acidity: 3.1,
           avg_sensory_sweetness: 3.4,
           avg_sensory_body: 2.9,
+          avg_sensory_bitter: 2.6,
+          avg_sensory_aftertaste: 3.8,
           repurchase_yes_count: 3,
           repurchase_no_count: 1,
           repurchase_unsure_count: 1,
@@ -152,6 +170,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
           avg_sensory_acidity: 2.7,
           avg_sensory_sweetness: 3.8,
           avg_sensory_body: 4.2,
+          avg_sensory_bitter: 3.1,
+          avg_sensory_aftertaste: 4.4,
           repurchase_yes_count: 1,
           repurchase_no_count: 1,
           repurchase_unsure_count: 1,
@@ -167,6 +187,8 @@ describe('deriveTelemetrySummariesFromRpc', () => {
     expect(result.byBrewMethodId[espressoId]?.coveragePercent).toBe(75);
     expect(result.byBrewMethodId[v60Id]?.avgSensorySweetness).toBe(3.4);
     expect(result.byBrewMethodId[espressoId]?.avgSensoryBody).toBe(4.2);
+    expect(result.byBrewMethodId[v60Id]?.avgSensoryBitter).toBe(2.6);
+    expect(result.byBrewMethodId[espressoId]?.avgSensoryAftertaste).toBe(4.4);
   });
 });
 
@@ -197,5 +219,71 @@ describe('extractEmbeddedReview', () => {
     });
     expect(extractEmbeddedReview(null)).toBeNull();
     expect(extractEmbeddedReview([])).toBeNull();
+  });
+});
+
+describe('brewMethodCountsFromLogs', () => {
+  it('aggregates brew methods by id and sorts by count', () => {
+    expect(
+      brewMethodCountsFromLogs([
+        {
+          id: '1',
+          loggedAt: '2026-05-10T12:00:00.000Z',
+          rating: 4,
+          brewMethodId: 'v60',
+          brewMethodName: 'V60',
+          freeTextNotes: null,
+          review: null,
+          telemetry: null,
+          flavorNotes: [],
+        },
+        {
+          id: '2',
+          loggedAt: '2026-05-10T13:00:00.000Z',
+          rating: 5,
+          brewMethodId: 'espresso',
+          brewMethodName: 'Espresso',
+          freeTextNotes: null,
+          review: null,
+          telemetry: null,
+          flavorNotes: [],
+        },
+        {
+          id: '3',
+          loggedAt: '2026-05-10T14:00:00.000Z',
+          rating: 3,
+          brewMethodId: 'v60',
+          brewMethodName: 'V60',
+          freeTextNotes: null,
+          review: null,
+          telemetry: null,
+          flavorNotes: [],
+        },
+      ])
+    ).toEqual([
+      { id: 'v60', name: 'V60', count: 2 },
+      { id: 'espresso', name: 'Espresso', count: 1 },
+    ]);
+  });
+});
+
+describe('compareSuggestedIdsToObserved', () => {
+  it('classifies matched, suggested-only, and observed-only selections', () => {
+    expect(
+      compareSuggestedIdsToObserved(
+        [
+          { id: 'v60', label: 'V60' },
+          { id: 'espresso', label: 'Espresso' },
+        ],
+        [
+          { id: 'espresso', label: 'Espresso' },
+          { id: 'aero', label: 'Aeropress' },
+        ]
+      )
+    ).toEqual({
+      matched: [{ id: 'espresso', label: 'Espresso' }],
+      suggestedOnly: [{ id: 'v60', label: 'V60' }],
+      observedOnly: [{ id: 'aero', label: 'Aeropress' }],
+    });
   });
 });

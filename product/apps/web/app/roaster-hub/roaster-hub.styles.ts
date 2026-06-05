@@ -40,6 +40,26 @@ export const roasterHubStyles = {
   rightDeviceAeropress:
     'bottom-8 right-6 h-[11rem] w-[11rem] rotate-[18deg] text-vs-accent-secondary/95 lg:bottom-10 lg:right-10 lg:h-[14.5rem] lg:w-[14.5rem]',
 
+  summaryApplet:
+    'grid gap-6 border-2 border-vs-border-strong bg-vs-surface p-6 shadow-vs-md lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center lg:p-8',
+  summaryIntro: 'flex items-center gap-4 lg:gap-5',
+  summaryLogoFrame:
+    'flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated shadow-vs-sm lg:h-24 lg:w-24',
+  summaryLogoImage: 'h-full w-full object-contain',
+  summaryLogoFallback:
+    'flex h-20 w-20 shrink-0 items-center justify-center rounded-vs-md border-2 border-vs-border-strong bg-vs-accent-secondary font-display text-3xl uppercase tracking-[-0.03em] text-vs-text-primary shadow-vs-sm lg:h-24 lg:w-24 lg:text-4xl',
+  summaryMeta: 'min-w-0',
+  summaryEyebrow:
+    'inline-flex w-fit items-center rounded-full border-2 border-vs-border-strong bg-vs-elevated px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-vs-text-secondary',
+  summaryTitle: 'mt-3 font-display text-4xl uppercase tracking-[-0.03em] text-vs-text-primary lg:text-5xl',
+  summaryStatGrid: 'grid gap-3 sm:grid-cols-3',
+  summaryStatCard:
+    'rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-4 shadow-vs-sm',
+  summaryStatLabel: 'text-xs font-semibold uppercase tracking-[0.14em] text-vs-text-muted',
+  summaryStatValue: 'mt-3 block font-display text-3xl uppercase tracking-[-0.03em] text-vs-text-primary',
+  summaryStatMeta: 'mt-2 block text-sm text-vs-text-secondary',
+  summaryError: 'text-sm text-vs-danger lg:col-span-2',
+
   tileSection: 'mt-8 border-2 border-vs-border-strong bg-vs-elevated p-6 lg:p-8',
   tileSectionTitle: 'font-display text-4xl uppercase tracking-[-0.03em] text-vs-text-primary lg:text-5xl',
   tileGrid: 'mt-6 grid grid-cols-1 gap-4 md:grid-cols-2',

@@ -45,7 +45,7 @@ Validated against active repo state, not historical handoff text:
   - web primitives exist in `product/apps/web/src/components/ui` and `product/packages/ui/src/components`
   - the primitive set is incomplete for the backlog target and not yet unified on one token source
 - `010-025` real status: `partial`
-  - `Coffee Bank` now reads canonical `coffees + roast_batches + qr_codes`
+  - batch manager now reads canonical `coffees + roast_batches + qr_codes`
   - archive affordance / full CRUD polish remains open
 - `010-026` real status: `done`
   - canonical publish flow exposes QR preview + SVG download + post-publish CTA to batch routes
@@ -55,7 +55,7 @@ Validated against active repo state, not historical handoff text:
 - `010-028` real status: `done`
   - empty analytics state now directs roaster to publish canonical coffee+batch+QR
 - `010-029` real status: `partial`
-  - roaster web IA moved toward canonical surfaces (`/coffee-bank`, batch-first analytics)
+  - roaster web IA moved toward canonical surfaces (`/roaster-hub/batches`, batch-first analytics)
   - final responsive/navigation polish across all core screens is still open
 
 ---

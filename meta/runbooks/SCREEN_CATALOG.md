@@ -17,7 +17,7 @@ Każdy ekran opisuje: **co użytkownik widzi**, **skąd biorą się dane**, **ja
 | `/roaster-hub/setup` | Założenie rekordu palarni | `roasters` | Uruchamia profil i publikację produktów |
 | `/roaster-profile` | Edycja danych palarni | `roasters` | Aktualne dane publiczne i operacyjne palarni |
 | `/roaster-hub/coffees/new` | Kreator publikacji kawy i batcha MVP | `coffees`, `origins`, `roast_batches`, `/api/batch-qr` | Publikacja produktu, który consumer może zeskanować |
-| `/coffee-bank` | Lista opublikowanych kaw i batchy + akcje QR/analityka | `coffees`, `roast_batches`, `qr_codes` | Operacyjne zarządzanie portfolio |
+| `/roaster-hub/batches` | Lista batchy palarni i wejście do zarządzania/QR/analityki | `coffees`, `roast_batches`, `qr_codes` | Operacyjne zarządzanie publikacją i portfolio batchy |
 | `/tag` | Formularz tagu kawy i generowanie publicznego QR/hash | `roaster_coffee_tags`, `tasting_notes`, `/api/qr` | Alternatywny, szybki kanał publikacji landingu |
 | `/tag/edit/[id]` | Edycja istniejącego tagu | `roaster_coffee_tags`, `tasting_notes` | Aktualizacja treści produktu bez zmiany kanału publicznego |
 | `/roaster-hub/analytics` | Lista batchy z podstawowymi metrykami | `coffees`, `roast_batches`, `coffee_stats` | Szybki podgląd skuteczności batchy |

@@ -77,8 +77,8 @@ run_required \
   "pnpm -C apps/web test -- src/lib/canonicalBatchFlow.test.ts src/lib/uploadCoffeeLabel.test.ts"
 
 run_optional_e2e \
-  "4) Web e2e smoke (coffee-bank|qr|analytics)" \
-  "pnpm -C apps/web test:e2e -- --grep \"coffee-bank|qr|analytics\"" \
+  "4) Web e2e smoke (batch|qr|analytics)" \
+  "pnpm -C apps/web test:e2e -- --grep \"batch|qr|analytics\"" \
   "4b) Web fallback smoke (unit subset)" \
   "pnpm -C apps/web test -- src/lib/canonicalBatchFlow.test.ts src/lib/uploadCoffeeLabel.test.ts"
 

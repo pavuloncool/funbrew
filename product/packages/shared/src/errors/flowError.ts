@@ -26,6 +26,15 @@ export type FlowUiCopy = {
   retryLabel: string | null;
 };
 
+function appendLocalDiagnostic(baseMessage: string, error: FlowError): string {
+  if (typeof window === 'undefined') return baseMessage;
+  if (!/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) return baseMessage;
+
+  const detail = error.message.trim();
+  if (!detail || detail === baseMessage) return baseMessage;
+  return `${baseMessage} (${detail})`;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
   return value as Record<string, unknown>;
@@ -278,7 +287,10 @@ export function flowErrorUiCopy(error: FlowError): FlowUiCopy {
     if (kind === 'server') {
       return {
         title: 'Batch service unavailable',
-        message: 'The batch publication service returned an internal error. Please retry shortly.',
+        message: appendLocalDiagnostic(
+          'The batch publication service returned an internal error. Please retry shortly.',
+          error
+        ),
         retryLabel: 'Retry',
       };
     }

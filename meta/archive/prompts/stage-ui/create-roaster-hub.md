@@ -6,13 +6,13 @@ Ekran strony `roaster-hub` w górnej części wyświetla `roaster_short_name` za
 Ponadto ekran strony `roaster-hub` wyświetla siatkę przycisków/kafli, które nawigują użytkownika do dalszych ekranów aplikacji. Kafle te to:
 1. **Dodaj kawę** linkujący do `product/apps/web/app/tag/page.tsx`;
 2. **Profil palarni** linkujcy do `roaster-profile` (strona do utworzenia, zawiera oficjalne informacje rejestrowe na temat firmy `roastera`, tj. zarejestrowana nazwa firmy, `roaster_short_name`, adres siedziby (ulica + numer domu, opcjonalny nr lokalu, kod pocztowy, miasto), REGON, NIP, informacje o subskrypcji aplikacji);
-3. **Coffee Bank** linkujący do `coffee-bank` (strona do utworzenia, wyświetla listę wszystkich kaw, jakie `roaster` dodał za pomocą `product/apps/web/app/tag/page.tsx`; każda pozycja na tej liście jest linkiem URL do karty produktu wyświetlającej informacje na temat wprowadzonej kawy w kolumnie obok listy (układ strony dwukolumnowy, jak w przypadku `product/apps/web/app/tag/page.tsx`));
+3. **Batch Manager** linkujący do `roaster-hub/batches` (strona do utworzenia, wyświetla listę batchy i pozwala przejść do kanonicznego zarządzania publikacją oraz analityki);
 4. **Analytics** – entry gate do stron aplikacji udostępniających analitykę danych – do rozwinięcia w kolejnch etapach – na teraz potrzebna wizualizacja kafla, 
 
 # Problem:
 1. Potrzebujemy stworzyć ekran strony `roaster-hub`, zgodnie z instrukcją powyżej; użyj stylów jak na stronie `product/apps/web/app/tag/page.tsx` (uniwersalny styl aplikacji `roaster-app`).
 2. Potrzebuujemy umieścić ekran strony `roaster-hub` we flow roli `roaster` po ekranie strony wyboru roli (sekwencja startowa: `animated-splash`, wybór roli, ekran strony `roaster-hub`).
-3. Potrzebujemy na ekranie strony `roaster-hub` umieścić w górnej części `roaster_short_name`, a poniżej siatkę kafli: "Dodaj kawę" (`product/apps/web/app/tag/page.tsx`); "Profil palarni", "Coffee Bank", "Analytics".
+3. Potrzebujemy na ekranie strony `roaster-hub` umieścić w górnej części `roaster_short_name`, a poniżej siatkę kafli: "Dodaj kawę" (`product/apps/web/app/tag/page.tsx`); "Profil palarni", "Batch Manager", "Analytics".
 4. Potrzebujemy do kafla **Dodaj kawę** podłącz URL do `product/apps/web/app/tag/page.tsx`, aby kliknięcie w niego otwierało ekran geneorwania kodu QR.
 
 # Zadanie
@@ -63,7 +63,7 @@ Create the following routes:
 ```txt
 /app/roaster-hub/page.tsx
 /app/roaster-profile/page.tsx
-/app/coffee-bank/page.tsx
+/app/roaster-hub/batches/page.tsx
 ```
 
 Existing route (DO NOT MODIFY structure, only link to it):
@@ -129,7 +129,7 @@ Implement 4 clickable tiles:
 | -------------- | --------------------------------- |
 | Dodaj kawę     | `router.push('/tag')`             |
 | Profil palarni | `router.push('/roaster-profile')` |
-| Coffee Bank    | `router.push('/coffee-bank')`     |
+| Batch Manager | `router.push('/roaster-hub/batches')`     |
 | Analytics      | no-op (disabled or no handler)    |
 
 ---
@@ -162,11 +162,11 @@ export default function Page() {
 
 ---
 
-### `/coffee-bank/page.tsx`
+### `/roaster-hub/batches/page.tsx`
 
 ```tsx
 export default function Page() {
-  return <h1>Coffee Bank</h1>
+  return <h1>Batch Manager</h1>
 }
 ```
 
@@ -201,7 +201,7 @@ All must pass:
 
 * "Dodaj kawę" → `/tag`
 * "Profil palarni" → `/roaster-profile`
-* "Coffee Bank" → `/coffee-bank`
+* "Batch Manager" → `/roaster-hub/batches`
 
 ### Technical
 

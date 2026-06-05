@@ -1,5 +1,5 @@
-// Generated types placeholder (T017).
-// In a real setup this file should be generated via Supabase CLI (types gen).
+// Supabase schema types used by the apps in this repo.
+// Keep this file aligned with repo migrations and refresh from `supabase gen types` when the local stack is current.
 
 export type Json =
   | string
@@ -52,11 +52,20 @@ export type Database = {
           id: string;
           user_id: string;
           name: string;
+          company_name: string | null;
+          roaster_short_name: string | null;
           country: string | null;
           city: string | null;
           description: string | null;
           website: string | null;
           logo_url: string | null;
+          street: string | null;
+          building_number: string | null;
+          apartment_number: string | null;
+          postal_code: string | null;
+          regon: string | null;
+          nip: string | null;
+          subscription_status: string | null;
           verification_status: 'pending' | 'verified' | 'revoked';
           created_at: string;
           updated_at: string;
@@ -65,11 +74,20 @@ export type Database = {
           id?: string;
           user_id: string;
           name: string;
+          company_name?: string | null;
+          roaster_short_name?: string | null;
           country?: string | null;
           city?: string | null;
           description?: string | null;
           website?: string | null;
           logo_url?: string | null;
+          street?: string | null;
+          building_number?: string | null;
+          apartment_number?: string | null;
+          postal_code?: string | null;
+          regon?: string | null;
+          nip?: string | null;
+          subscription_status?: string | null;
           verification_status?: 'pending' | 'verified' | 'revoked';
           created_at?: string;
           updated_at?: string;
@@ -77,11 +95,20 @@ export type Database = {
         Update: {
           user_id?: string;
           name?: string;
+          company_name?: string | null;
+          roaster_short_name?: string | null;
           country?: string | null;
           city?: string | null;
           description?: string | null;
           website?: string | null;
           logo_url?: string | null;
+          street?: string | null;
+          building_number?: string | null;
+          apartment_number?: string | null;
+          postal_code?: string | null;
+          regon?: string | null;
+          nip?: string | null;
+          subscription_status?: string | null;
           verification_status?: 'pending' | 'verified' | 'revoked';
           created_at?: string;
           updated_at?: string;
@@ -110,18 +137,104 @@ export type Database = {
           updated_at: string;
         };
       };
+      coffee_varieties: {
+        Row: {
+          id: string;
+          name: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          sort_order: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      coffee_variety_assignments: {
+        Row: {
+          id: string;
+          coffee_id: string;
+          variety_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coffee_id: string;
+          variety_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coffee_id?: string;
+          variety_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       roast_batches: {
         Row: {
           id: string;
           coffee_id: string;
           roast_date: string;
           lot_number: string;
-          status: 'active' | 'archived';
+          status: 'draft' | 'active' | 'archived';
           brewing_notes: string | null;
           roaster_story: string | null;
+          declared_sensory_acidity: number | null;
+          declared_sensory_sweetness: number | null;
+          declared_sensory_body: number | null;
+          declared_sensory_bitter: number | null;
+          declared_sensory_aftertaste: number | null;
+          suggested_brew_method_ids: string[];
+          suggested_tasting_note_ids: string[];
           created_at: string;
           updated_at: string;
         };
+        Insert: {
+          id?: string;
+          coffee_id: string;
+          roast_date: string;
+          lot_number: string;
+          status?: 'draft' | 'active' | 'archived';
+          brewing_notes?: string | null;
+          roaster_story?: string | null;
+          declared_sensory_acidity?: number | null;
+          declared_sensory_sweetness?: number | null;
+          declared_sensory_body?: number | null;
+          declared_sensory_bitter?: number | null;
+          declared_sensory_aftertaste?: number | null;
+          suggested_brew_method_ids?: string[];
+          suggested_tasting_note_ids?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          coffee_id?: string;
+          roast_date?: string;
+          lot_number?: string;
+          status?: 'draft' | 'active' | 'archived';
+          brewing_notes?: string | null;
+          roaster_story?: string | null;
+          declared_sensory_acidity?: number | null;
+          declared_sensory_sweetness?: number | null;
+          declared_sensory_body?: number | null;
+          declared_sensory_bitter?: number | null;
+          declared_sensory_aftertaste?: number | null;
+          suggested_brew_method_ids?: string[];
+          suggested_tasting_note_ids?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       qr_codes: {
         Row: {
@@ -243,6 +356,8 @@ export type Database = {
           sensory_acidity: number;
           sensory_sweetness: number;
           sensory_body: number;
+          sensory_bitter: number | null;
+          sensory_aftertaste: number | null;
           repurchase_intent: 'yes' | 'no' | 'unsure';
           experience_level: 'beginner' | 'advanced' | 'expert';
           created_at: string;
@@ -256,6 +371,8 @@ export type Database = {
           sensory_acidity: number;
           sensory_sweetness: number;
           sensory_body: number;
+          sensory_bitter?: number | null;
+          sensory_aftertaste?: number | null;
           repurchase_intent: 'yes' | 'no' | 'unsure';
           experience_level?: 'beginner' | 'advanced' | 'expert';
           created_at?: string;
@@ -269,6 +386,8 @@ export type Database = {
           sensory_acidity?: number;
           sensory_sweetness?: number;
           sensory_body?: number;
+          sensory_bitter?: number | null;
+          sensory_aftertaste?: number | null;
           repurchase_intent?: 'yes' | 'no' | 'unsure';
           experience_level?: 'beginner' | 'advanced' | 'expert';
           created_at?: string;

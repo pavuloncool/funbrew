@@ -12,7 +12,6 @@ describe('normalizeCoffeePageData', () => {
           id: 'batch-1',
           roast_date: '2026-05-01',
           lot_number: 'LOT-42',
-          status: 'active',
           brewing_notes: 'Use softer water.',
           roaster_story: 'Seasonal espresso.',
         },
@@ -20,10 +19,10 @@ describe('normalizeCoffeePageData', () => {
           id: 'coffee-1',
           name: 'Demo Coffee',
           variety: 'Bourbon',
+          varieties: [{ id: 'var-1', name: 'Bourbon' }],
           processing_method: 'washed',
           producer_notes: 'Stone fruit and sugarcane.',
           cover_image_url: 'https://example.com/cover.png',
-          status: 'active',
         },
         origin: {
           country: 'Colombia',
@@ -36,6 +35,7 @@ describe('normalizeCoffeePageData', () => {
         roaster: {
           id: 'roaster-1',
           name: 'Roaster One',
+          roaster_short_name: 'R1',
           city: 'Warsaw',
           country: 'PL',
           logo_url: 'https://example.com/logo.png',
@@ -52,10 +52,10 @@ describe('normalizeCoffeePageData', () => {
 
     expect(result.source).toBe('canonical');
     expect(result.product.name).toBe('Demo Coffee');
+    expect(result.product.varieties).toEqual([{ id: 'var-1', name: 'Bourbon' }]);
     expect(result.origin.altitudeLabel).toBe('1700-1900 m');
     expect(result.logBatchId).toBe('batch-1');
-    expect(result.product.status).toBe('active');
-    expect(result.roast.status).toBe('active');
+    expect(result.roaster.shortName).toBe('R1');
     expect(result.origin.altitudeMin).toBe(1700);
     expect(result.origin.altitudeMax).toBe(1900);
   });
@@ -69,7 +69,6 @@ describe('normalizeCoffeePageData', () => {
           id: 'batch-1',
           roast_date: '2026-05-01',
           lot_number: 'LOT-42',
-          status: 'active',
           brewing_notes: 'Use softer water.',
           roaster_story: 'Seasonal espresso.',
         },
@@ -77,10 +76,13 @@ describe('normalizeCoffeePageData', () => {
           id: 'coffee-1',
           name: 'Demo Coffee',
           variety: 'Bourbon',
+          varieties: [
+            { id: 'var-1', name: 'Bourbon' },
+            { id: 'var-2', name: 'Caturra' },
+          ],
           processing_method: 'washed',
           producer_notes: 'Stone fruit and sugarcane.',
           cover_image_url: 'https://example.com/cover.png',
-          status: 'active',
         },
         origin: {
           country: 'Colombia',
@@ -93,6 +95,7 @@ describe('normalizeCoffeePageData', () => {
         roaster: {
           id: 'roaster-1',
           name: 'Roaster One',
+          roaster_short_name: 'R1',
           city: 'Warsaw',
           country: 'PL',
           logo_url: 'https://example.com/logo.png',
@@ -109,7 +112,7 @@ describe('normalizeCoffeePageData', () => {
 
     const fields = toCanonicalPublicationFields(normalized);
     expect(fields.coffee.name).toBe('Demo Coffee');
-    expect(fields.coffee.status).toBe('active');
+    expect(fields.coffee.varieties.map((entry) => entry.name)).toEqual(['Bourbon', 'Caturra']);
     expect(fields.origin.country).toBe('Colombia');
     expect(fields.origin.altitudeLabel).toBe('1700-1900 m');
     expect(fields.batch.id).toBe('batch-1');

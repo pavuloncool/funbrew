@@ -5,17 +5,20 @@ SESSION_NAME="funcup-dev"
 ATTACH_SESSION=1
 RESTART_SESSION=0
 WAIT_TUNNEL_SECONDS="${WAIT_TUNNEL_SECONDS:-30}"
+WAIT_FUNCTIONS_SECONDS="${WAIT_FUNCTIONS_SECONDS:-20}"
 SUPABASE_LOCAL_URL="${SUPABASE_LOCAL_URL:-http://127.0.0.1:54321}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-MOBILE_ENV_FILE="${REPO_ROOT}/apps/consumer-mobile/.env.local"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PRODUCT_ROOT="${REPO_ROOT}/product"
+MOBILE_ENV_FILE="${PRODUCT_ROOT}/apps/consumer-mobile/.env.local"
 MOBILE_ENV_BACKUP="${MOBILE_ENV_FILE}.bak"
 TUNNEL_LOG="/tmp/${SESSION_NAME}.tunnel.log"
+FUNCTIONS_LOG="/tmp/${SESSION_NAME}.functions.log"
 
 usage() {
   cat <<'USAGE'
-Usage: bash scripts/dev-mobile-stack.sh [options]
+Usage: bash product/scripts/dev-mobile-stack.sh [options]
 
 Options:
   --session <name>  tmux session name (default: funcup-dev)
@@ -91,7 +94,7 @@ update_env_supabase_url() {
     printf '\nEXPO_PUBLIC_SUPABASE_URL=%s\n' "$url" >> "$MOBILE_ENV_FILE"
   fi
 
-  echo "Updated EXPO_PUBLIC_SUPABASE_URL in apps/consumer-mobile/.env.local"
+  echo "Updated EXPO_PUBLIC_SUPABASE_URL in product/apps/consumer-mobile/.env.local"
 }
 
 extract_tunnel_url() {
@@ -110,6 +113,27 @@ extract_tunnel_url() {
     elapsed=$((elapsed + 1))
   done
 
+  return 1
+}
+
+wait_for_functions() {
+  local elapsed=0
+  local code=""
+
+  while [[ "$elapsed" -lt "$WAIT_FUNCTIONS_SECONDS" ]]; do
+    code="$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "${SUPABASE_LOCAL_URL}/functions/v1/scan_qr" || true)"
+    if [[ "$code" =~ ^[23] ]]; then
+      return 0
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+
+  echo "Edge functions did not become ready within ${WAIT_FUNCTIONS_SECONDS}s."
+  if [[ -f "$FUNCTIONS_LOG" ]]; then
+    echo "Recent functions log:"
+    tail -n 40 "$FUNCTIONS_LOG" || true
+  fi
   return 1
 }
 
@@ -164,24 +188,29 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   fi
 fi
 
-echo "Starting local Supabase..."
-if ! supabase start; then
-  echo "supabase start failed."
+echo "Ensuring local Supabase state..."
+if ! bash "${REPO_ROOT}/product/scripts/ensure-local-supabase-ready.sh"; then
+  echo "Local Supabase preflight failed."
+  exit 1
+fi
+
+rm -f "$TUNNEL_LOG" "$FUNCTIONS_LOG"
+
+echo "Creating tmux session: $SESSION_NAME"
+tmux new-session -d -s "$SESSION_NAME" -n supabase "cd \"$REPO_ROOT\" && pnpm exec supabase status --workdir product; echo ''; echo 'Supabase local stack ready on ${SUPABASE_LOCAL_URL}'; exec zsh"
+tmux split-window -t "${SESSION_NAME}:0" -v "cd \"$REPO_ROOT\" && pnpm exec supabase functions serve --workdir product --no-verify-jwt 2>&1 | tee \"$FUNCTIONS_LOG\""
+
+echo "Waiting for edge functions runtime..."
+if ! wait_for_functions; then
+  echo "Stopping session $SESSION_NAME because functions did not start cleanly."
+  tmux kill-session -t "$SESSION_NAME" || true
   exit 1
 fi
 
 echo "Running function smoke-check..."
-bash "${REPO_ROOT}/scripts/mobile-functions-smoke-check.sh"
+bash "${REPO_ROOT}/product/scripts/mobile-functions-smoke-check.sh" --consumer-only
 
-rm -f "$TUNNEL_LOG"
-
-echo "Creating tmux session: $SESSION_NAME"
-tmux new-session -d -s "$SESSION_NAME" -n supabase "cd \"$REPO_ROOT\" && pnpm exec supabase status; echo ''; echo 'Supabase local stack ready on ${SUPABASE_LOCAL_URL}'; exec zsh"
-
-tmux split-window -t "${SESSION_NAME}:0" -v "cd \"$REPO_ROOT\" && bash scripts/start-supabase-https-tunnel.sh 2>&1 | tee \"$TUNNEL_LOG\""
-tmux split-window -t "${SESSION_NAME}:0" -h "cd \"$REPO_ROOT\" && pnpm -C apps/consumer-mobile run start:expogo:tunnel"
-tmux split-window -t "${SESSION_NAME}:0.2" -v "cd \"$REPO_ROOT\" && pnpm -C apps/web dev"
-tmux select-layout -t "${SESSION_NAME}:0" tiled
+tmux split-window -t "${SESSION_NAME}:0" -v "cd \"$REPO_ROOT\" && bash product/scripts/start-supabase-https-tunnel.sh 2>&1 | tee \"$TUNNEL_LOG\""
 
 echo "Waiting for tunnel URL..."
 TUNNEL_URL="$(extract_tunnel_url || true)"
@@ -195,6 +224,11 @@ fi
 
 update_env_supabase_url "$TUNNEL_URL"
 echo "Tunnel URL: $TUNNEL_URL"
+
+tmux split-window -t "${SESSION_NAME}:0" -h "cd \"$REPO_ROOT\" && pnpm -C product/apps/consumer-mobile run start:expogo:tunnel"
+tmux split-window -t "${SESSION_NAME}:0.2" -v "cd \"$REPO_ROOT\" && pnpm -C product/apps/web dev"
+tmux select-layout -t "${SESSION_NAME}:0" tiled
+
 echo "tmux session '$SESSION_NAME' is ready."
 
 if [[ "$ATTACH_SESSION" -eq 1 ]]; then

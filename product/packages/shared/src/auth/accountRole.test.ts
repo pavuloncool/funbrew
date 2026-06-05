@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveAccountRole } from './accountRole';
+import { requiresPasswordChange, resolveAccountRole } from './accountRole';
 
 describe('resolveAccountRole', () => {
   it('returns roaster when a roaster row exists for the user', async () => {
@@ -88,5 +88,12 @@ describe('resolveAccountRole', () => {
     } as never;
 
     await expect(resolveAccountRole(supabase, 'user-error')).rejects.toThrow('lookup failed');
+  });
+
+  it('detects password-change requirement from auth metadata', () => {
+    expect(requiresPasswordChange({ must_change_password: true })).toBe(true);
+    expect(requiresPasswordChange({ must_change_password: false })).toBe(false);
+    expect(requiresPasswordChange({ must_change_password: 'true' })).toBe(false);
+    expect(requiresPasswordChange(null)).toBe(false);
   });
 });

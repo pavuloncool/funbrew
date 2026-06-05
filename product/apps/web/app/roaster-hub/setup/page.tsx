@@ -98,6 +98,7 @@ export default function RoasterSetupPage() {
       body: JSON.stringify({
         user_id: user.id,
         name: trimmed,
+        company_name: trimmed,
       }),
     });
 
@@ -136,7 +137,7 @@ export default function RoasterSetupPage() {
 
   return (
     <main className={hubCrudStyles.main480}>
-      <h1 className={hubCrudStyles.titleSetup}>Utwórz profil palarni</h1>
+      <h1 className={hubCrudStyles.titleSetup}>Create Roaster Profile</h1>
       <p className={hubCrudStyles.lead}>
         Ta nazwa będzie używana w panelu kaw i przy powiązaniu z tagiem kawy. Status weryfikacji może pozostać „oczekujący”
         do późniejszego procesu weryfikacji.
@@ -162,7 +163,7 @@ export default function RoasterSetupPage() {
       {error ? <p className={hubCrudStyles.error}>{error}</p> : null}
       <p className={hubCrudStyles.footerLinks}>
         <Link href="/roaster-hub/batches" className={hubCrudStyles.link}>
-          Wróć do Coffee Bank
+          Wróć do batchy
         </Link>
       </p>
     </main>

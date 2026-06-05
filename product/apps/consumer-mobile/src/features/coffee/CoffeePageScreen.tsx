@@ -183,15 +183,6 @@ export default function CoffeePageScreen() {
           <AppText weight="700">Roaster:</AppText> {publicCoffee.roaster.shortName ?? '—'}
         </AppText>
         <AppText style={styles.row}>
-          <AppText weight="700">Coffee status:</AppText> {fields.coffee.status ?? '—'}
-        </AppText>
-        <AppText style={styles.row}>
-          <AppText weight="700">Batch status:</AppText> {fields.batch.status ?? '—'}
-        </AppText>
-        <AppText style={styles.row}>
-          <AppText weight="700">Lot number:</AppText> {fields.batch.lotNumber ?? '—'}
-        </AppText>
-        <AppText style={styles.row}>
           <AppText weight="700">Roast date:</AppText>{' '}
           {fields.batch.roastDate ? formatRoastDate(fields.batch.roastDate) : '—'}
         </AppText>
@@ -207,7 +198,7 @@ export default function CoffeePageScreen() {
         </AppText>
         {userId ? (
           <AppButton
-            label={favoriteMutation.isPending ? 'Saving favorite…' : isFavorite ? 'Remove from favorites' : 'Save scanned entry'}
+            label={favoriteMutation.isPending ? 'Saving favorite…' : isFavorite ? 'Remove from favorites' : 'Add coffee to favorites'}
             variant={isFavorite ? 'secondary' : 'primary'}
             onPress={() => {
               void favoriteMutation.mutateAsync({
@@ -238,7 +229,7 @@ export default function CoffeePageScreen() {
 
       <CoffeePageProduct
         coffeeName={fields.coffee.name}
-        variety={fields.coffee.variety}
+        varieties={fields.coffee.varieties}
         processingMethod={fields.coffee.processingMethod}
         producerNotes={fields.coffee.producerNotes}
         roasterName={publicCoffee.roaster.name}

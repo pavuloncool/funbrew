@@ -28,7 +28,6 @@ export type CanonicalCoffeeRecord = {
   processing_method: string | null;
   producer_notes: string | null;
   cover_image_url: string | null;
-  status: string;
   origin_id: string | null;
   origins?: {
     country: string | null;
@@ -143,7 +142,6 @@ export function normalizeCoffeePayload(input: {
   roasterId: string;
   originId: string | null;
   values: CanonicalCoffeeFormValues;
-  status?: string | null;
 }) {
   const trimmed = trimCanonicalCoffeeFormValues(input.values);
   if (!trimmed.name) {
@@ -158,7 +156,7 @@ export function normalizeCoffeePayload(input: {
     processing_method: toNullableString(trimmed.processingMethod),
     producer_notes: toNullableString(trimmed.producerNotes),
     cover_image_url: toNullableString(trimmed.coverImageUrl),
-    status: input.status ?? 'active',
+    status: 'active',
   };
 }
 
