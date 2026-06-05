@@ -5,7 +5,8 @@ import { setRoasterFollowState } from './useFollowRoaster';
 function createMockSupabase(params?: {
   followingIds?: string[];
   selectError?: Error | null;
-  updateError?: Error | null;
+  insertError?: Error | null;
+  deleteError?: Error | null;
 }) {
   let storedFollowing = params?.followingIds ?? [];
 
@@ -13,24 +14,33 @@ function createMockSupabase(params?: {
     getFollowing: () => storedFollowing,
     client: {
       from: (table: string) => {
-        if (table !== 'users') throw new Error('Unexpected table');
+        if (table !== 'user_roaster_follows') throw new Error('Unexpected table');
         return {
           select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({
-                data: { following_roaster_ids: storedFollowing },
-                error: params?.selectError ?? null,
-              }),
+            eq: async () => ({
+              data: storedFollowing.map((roaster_id) => ({ roaster_id })),
+              error: params?.selectError ?? null,
             }),
           }),
-          update: (value: { following_roaster_ids: string[] }) => ({
-            eq: async () => {
-              if (params?.updateError) {
-                return { error: params.updateError };
-              }
-              storedFollowing = value.following_roaster_ids;
-              return { error: null };
-            },
+          insert: async (value: { roaster_id: string }) => {
+            if (params?.insertError) {
+              return { error: params.insertError };
+            }
+            if (!storedFollowing.includes(value.roaster_id)) {
+              storedFollowing = [...storedFollowing, value.roaster_id];
+            }
+            return { error: null };
+          },
+          delete: () => ({
+            eq: (_column: string, _value: string) => ({
+              eq: async (_columnInner: string, roasterId: string) => {
+                if (params?.deleteError) {
+                  return { error: params.deleteError };
+                }
+                storedFollowing = storedFollowing.filter((id) => id !== roasterId);
+                return { error: null };
+              },
+            }),
           }),
         };
       },
@@ -46,6 +56,7 @@ describe('setRoasterFollowState', () => {
       userId: 'u-1',
       roasterId: 'r-2',
       follow: true,
+      source: 'roasters-screen',
     });
     expect(result).toEqual(['r-1', 'r-2']);
     expect(mock.getFollowing()).toEqual(['r-1', 'r-2']);
@@ -58,20 +69,22 @@ describe('setRoasterFollowState', () => {
       userId: 'u-1',
       roasterId: 'r-1',
       follow: false,
+      source: 'roasters-screen',
     });
     expect(result).toEqual(['r-2']);
     expect(mock.getFollowing()).toEqual(['r-2']);
   });
 
-  it('throws update errors', async () => {
-    const mock = createMockSupabase({ updateError: new Error('update failed') });
+  it('throws insert errors', async () => {
+    const mock = createMockSupabase({ insertError: new Error('insert failed') });
     await expect(
       setRoasterFollowState({
         supabase: mock.client as never,
         userId: 'u-1',
         roasterId: 'r-9',
         follow: true,
+        source: 'roasters-screen',
       })
-    ).rejects.toThrow('update failed');
+    ).rejects.toThrow('insert failed');
   });
 });

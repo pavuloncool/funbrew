@@ -147,7 +147,11 @@ export default function RoastersScreen() {
                     <AppText>{roaster.description ?? 'No roaster story yet.'}</AppText>
                     <Pressable
                       onPress={() =>
-                        followMutation.mutate({ roasterId: roaster.id, follow: false })
+                        followMutation.mutate({
+                          roasterId: roaster.id,
+                          follow: false,
+                          source: 'roasters-screen',
+                        })
                       }
                       disabled={!userId || followMutation.isPending}
                       style={followPressableStyle(true)}
@@ -197,7 +201,11 @@ export default function RoastersScreen() {
                     <AppText>{roaster.description ?? 'No roaster story yet.'}</AppText>
                     <Pressable
                       onPress={() =>
-                        followMutation.mutate({ roasterId: roaster.id, follow: true })
+                        followMutation.mutate({
+                          roasterId: roaster.id,
+                          follow: true,
+                          source: 'roasters-screen',
+                        })
                       }
                       disabled={!userId || followMutation.isPending}
                       style={followPressableStyle(false)}

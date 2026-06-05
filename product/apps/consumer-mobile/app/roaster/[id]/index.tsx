@@ -3,6 +3,7 @@ import { useFollowRoaster, visualSystemTokens } from '@funcup/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { InlineBackHeader } from '../../../src/components/navigation/InlineBackHeader';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { supabase } from '../../../src/services/supabaseClient';
 import { AppButton, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
@@ -44,14 +45,13 @@ async function fetchRoasterProfile(params: {
 
   let isFollowed = false;
   if (params.userId) {
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('following_roaster_ids')
-      .eq('id', params.userId)
-      .maybeSingle();
+    const { data: followData, error: userError } = await supabase
+      .from('user_roaster_follows')
+      .select('roaster_id')
+      .eq('user_id', params.userId)
+      .eq('roaster_id', params.roasterId);
     if (userError) throw userError;
-    const ids = (userData as { following_roaster_ids?: string[] } | null)?.following_roaster_ids ?? [];
-    isFollowed = ids.includes(params.roasterId);
+    isFollowed = Array.isArray(followData) && followData.length > 0;
   }
 
   return {
@@ -81,6 +81,7 @@ export default function RoasterProfileScreen() {
   if (!roasterId) {
     return (
       <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+        <InlineBackHeader title="Roaster" fallbackHref="/(tabs)/roasters" />
         <AppText>Missing roaster id.</AppText>
       </AppScrollScreen>
     );
@@ -89,6 +90,7 @@ export default function RoasterProfileScreen() {
   if (roasterQuery.isLoading || userLoading) {
     return (
       <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+        <InlineBackHeader title="Roaster" fallbackHref="/(tabs)/roasters" />
         <AppText>Loading roaster profile...</AppText>
       </AppScrollScreen>
     );
@@ -97,6 +99,7 @@ export default function RoasterProfileScreen() {
   if (roasterQuery.isError) {
     return (
       <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+        <InlineBackHeader title="Roaster" fallbackHref="/(tabs)/roasters" />
         <AppText>Could not load roaster profile.</AppText>
       </AppScrollScreen>
     );
@@ -105,6 +108,7 @@ export default function RoasterProfileScreen() {
   if (!roasterQuery.data) {
     return (
       <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
+        <InlineBackHeader title="Roaster" fallbackHref="/(tabs)/roasters" />
         <AppText>Roaster not found.</AppText>
       </AppScrollScreen>
     );
@@ -117,7 +121,10 @@ export default function RoasterProfileScreen() {
 
   return (
     <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
-      <AppText variant="h1" weight="700">{roaster.roaster_short_name ?? roaster.name}</AppText>
+      <InlineBackHeader
+        title={roaster.roaster_short_name ?? roaster.name}
+        fallbackHref="/(tabs)/roasters"
+      />
       <AppText tone="secondary">
         {[roaster.city, roaster.country].filter(Boolean).join(', ') || 'Location unavailable'}
       </AppText>
@@ -126,7 +133,13 @@ export default function RoasterProfileScreen() {
 
       <View style={styles.actionWrap}>
         <AppButton
-          onPress={() => followMutation.mutate({ roasterId: roaster.id, follow: !roaster.isFollowed })}
+          onPress={() =>
+            followMutation.mutate({
+              roasterId: roaster.id,
+              follow: !roaster.isFollowed,
+              source: 'roaster-profile',
+            })
+          }
           disabled={!userId || followMutation.isPending}
           variant={isFollowed ? 'primary' : 'secondary'}
           label={isFollowed ? 'Following' : 'Follow Roaster'}

@@ -13,7 +13,7 @@ Audyt obejmuje dwa równoległe modele obecne w repo:
 - Repo zawiera dwa aktywne, ale niespójne nurty produktu: pełny model `coffee/batch/log/analytics` i uproszczony model `roaster_coffee_tags`.
 - Najlepiej domknięty cross-app flow to dziś: `roaster-profile/setup -> tag -> api/qr -> /q/[hash] -> mobile coffee/[id]`.
 - Największe rozdarcie występuje w legacy flow: `coffees`, `roast_batches`, `qr_codes` są czytane przez mobile i analytics, ale web nie ma pełnego UI do zasilania pól takich jak `origin`, `cover_image_url`, `brewing_notes`, `roaster_story`.
-- Największa luka cross-role po stronie biznesowej to `users.following_roaster_ids`: consumer zapisuje follow, ale web nie pokazuje tego roasterowi w batch managerze, mimo że to jest ważny przyszły use case handlowy.
+- Największa luka cross-role po stronie biznesowej to follow relacja consumer → roaster: consumer zapisuje follow, ale web nie pokazuje tego roasterowi w batch managerze, mimo że to jest ważny przyszły use case handlowy.
 - Część ekranów jest świadomie jednostronna i nie powinna być traktowana jako błąd: auth, biometria, reset hasła, onboarding, edukacja, entry screens.
 
 ## Tabela UML: pary ekranów
@@ -86,7 +86,7 @@ Audyt obejmuje dwa równoległe modele obecne w repo:
 | `app/q/[hash].tsx` | `shared/system` | `bridge` | `hash` | `web app/q/[hash]/page.tsx` | `direct pair` | Redirect do Coffee Page. |
 | `app/coffee/[id]/index.tsx` | `consumer` | `read` | `roaster_coffee_tags` lub legacy `qr_codes` join | `web app/tag/page.tsx`, `web app/roaster-hub/batches/page.tsx`, `web app/roaster-hub/coffees/[id]/page.tsx` | `direct pair` | Publiczny czytnik obu modeli. |
 | `app/coffee/[id]/log.tsx` | `consumer` | `input` | `coffee_logs` | `web app/roaster-hub/analytics/[batchId]/page.tsx` | `direct pair` | Najważniejszy feedback flow. |
-| `app/roaster/[id]/index.tsx` | `consumer` | `read/input` | `roasters`, `users.following_roaster_ids` | `web app/roaster-profile/page.tsx` | `pipeline pair` | Consumer czyta roastera i zapisuje follow. |
+| `app/roaster/[id]/index.tsx` | `consumer` | `read/input` | `roasters`, `user_roaster_follows` | `web app/roaster-profile/page.tsx` | `pipeline pair` | Consumer czyta roastera i zapisuje follow. |
 | `app/learn/[slug].tsx` | `consumer` | `read` | static article content | `—` | `same-side only` | Brak web odpowiednika. |
 | `app/test-select-user.tsx` | `shared/system` | `bridge/mock` | none | `—` | `orphan` | Ekran testowy/mock, nie ma partnera domenowego. |
 
@@ -128,7 +128,7 @@ Poniżej są tylko pola z luką w obiegu. Pola nieujęte w tej tabeli mają dzia
 | `roasters.country` | brak aktywnego UI w web | `mobile discover hooks`, `scan_qr` | `producer gap` | Dodać do profilu roastera albo usunąć z konsumenta. |
 | `roasters.logo_url` | brak aktywnego UI w web | `scan_qr` zwraca, ale UI prawie nie używa | `producer gap` | Dodać upload logo i jawne użycie w mobile. |
 | `roasters.verification_status` | brak UI roastera; tylko schema/filter | `mobile discover roasters` filtruje verified | `operational gap` | Potrzebny admin/backoffice workflow weryfikacji. |
-| `users.following_roaster_ids` | `mobile /roaster/[id]` | brak web roaster view | `orphan cross-role` | Dodać widok followerów/favorites w `batch managerze` lub analytics. |
+| `user_roaster_follows` | `mobile /roaster/[id]`, `mobile /(tabs)/roasters` | brak web roaster view | `orphan cross-role` | Dodać widok followerów/favorites w `batch managerze` lub analytics. |
 | `users.favorite_brew_method_id` | `mobile complete-profile/profile` | brak web | `same-side only` | Zostawić consumer-only albo wykorzystać w ofertach/rekomendacjach roastera. |
 | `user_favorite_flavor_notes.tasting_note_id` | `mobile complete-profile/profile` | brak web | `same-side only` | Jak wyżej. |
 | `users.sensory_score` | backend `update_coffee_stats` | `mobile profile` | `same-side only` | Web może używać do segmentacji feedbacku, dziś nie używa. |
@@ -348,7 +348,7 @@ flowchart TB
    - trzeba zdefiniować, jak z `roaster_coffee_tags` powstają dane do feedback loop i analytics,
    - bo dziś `tag` prowadzi do Coffee Page, ale nie do roaster analytics.
 
-4. `users.following_roaster_ids` powinno dostać webowego konsumenta:
+4. `user_roaster_follows` powinno dostać webowego konsumenta:
    - minimum: licznik followersów / favorites w `batch managerze`,
    - docelowo: segmentacja ofert handlowych zgodnie z założeniem produktu.
 

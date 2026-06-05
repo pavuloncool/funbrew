@@ -20,7 +20,7 @@ type UseRoasterProfileState = {
 };
 
 const PROFILE_SELECT =
-  'id,user_id,company_name,roaster_short_name,country,city,description,website,logo_url,subscription_status,verification_status';
+  'id,user_id,customer_number,company_name,roaster_short_name,country,city,description,website,logo_url,subscription_status,verification_status';
 
 export function useRoasterProfile(): UseRoasterProfileState {
   const [loading, setLoading] = useState(true);

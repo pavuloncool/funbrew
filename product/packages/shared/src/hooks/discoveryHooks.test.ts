@@ -35,14 +35,12 @@ function createMockSupabase(input: {
 }): unknown {
   return {
     from: (table: string) => {
-      if (table === 'users') {
+      if (table === 'user_roaster_follows') {
         return {
           select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({
-                data: { following_roaster_ids: input.follows ?? [] },
-                error: input.error ?? null,
-              }),
+            eq: async () => ({
+              data: (input.follows ?? []).map((roaster_id) => ({ roaster_id })),
+              error: input.error ?? null,
             }),
           }),
         };

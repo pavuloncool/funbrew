@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
+import { InlineBackHeader } from '../../src/components/navigation/InlineBackHeader';
 import { getLearnArticleBySlug } from '../../src/content/learn/articles';
 import { AppScrollScreen, AppText } from '../../src/components/ui/primitives';
 import { pageStyles } from '../../src/theme/pageStyles';
@@ -11,7 +12,7 @@ export default function LearnArticleScreen() {
   if (!article) {
     return (
       <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
-        <AppText variant="h2" weight="700">Article not found</AppText>
+        <InlineBackHeader title="Article not found" fallbackHref="/(tabs)/learn" />
         <AppText>Try opening the article from Learn tab again.</AppText>
       </AppScrollScreen>
     );
@@ -19,7 +20,7 @@ export default function LearnArticleScreen() {
 
   return (
     <AppScrollScreen contentContainerStyle={pageStyles.contentCompact}>
-      <AppText variant="h1" weight="700">{article.title}</AppText>
+      <InlineBackHeader title={article.title} fallbackHref="/(tabs)/learn" />
       <AppText>{article.body}</AppText>
     </AppScrollScreen>
   );

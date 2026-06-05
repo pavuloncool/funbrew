@@ -6,6 +6,15 @@ import type { AuthSession, AuthSnapshot, AuthUser } from './types';
 import { resolveProfileCompletedFromUser } from './profileCompletion';
 import { AUTH_STORAGE_KEYS, type SecureStorageService } from './secureStorage';
 
+export const SESSION_EXPIRED_MOBILE_MESSAGE = 'Twoja sesja wygasła. Zaloguj się w fun•brew.';
+
+export class SessionExpiredAuthError extends Error {
+  constructor() {
+    super(SESSION_EXPIRED_MOBILE_MESSAGE);
+    this.name = 'SessionExpiredAuthError';
+  }
+}
+
 export interface AuthService {
   register(params: { email: string; password: string; displayName: string }): Promise<AuthSnapshot>;
   login(params: { email: string; password: string }): Promise<AuthSnapshot>;
@@ -101,6 +110,9 @@ export class SupabaseAuthService implements AuthService {
   async restoreSession(): Promise<AuthSnapshot> {
     const { data, error } = await this.supabase.auth.getSession();
     if (error) {
+      if (isInvalidRefreshError(error)) {
+        throw new SessionExpiredAuthError();
+      }
       throw new Error(formatAuthError(error, 'session'));
     }
 
@@ -122,6 +134,9 @@ export class SupabaseAuthService implements AuthService {
     const { data, error } = await this.supabase.auth.refreshSession();
 
     if (error) {
+      if (isInvalidRefreshError(error)) {
+        throw new SessionExpiredAuthError();
+      }
       throw new Error(formatAuthError(error, 'session'));
     }
 
@@ -236,6 +251,21 @@ function isAlreadyRegisteredError(error: AuthErrorLike): boolean {
     code === 'email_exists' ||
     message.includes('user already registered') ||
     message.includes('already exists')
+  );
+}
+
+function isInvalidRefreshError(error: AuthErrorLike): boolean {
+  const code = String(error.code ?? '').toLowerCase();
+  const message = String(error.message ?? '').toLowerCase();
+
+  return (
+    code === 'invalid_grant' ||
+    code === 'refresh_token_not_found' ||
+    code === 'refresh_token_already_used' ||
+    message.includes('refresh token') ||
+    message.includes('invalid_grant') ||
+    message.includes('refresh_token_not_found') ||
+    message.includes('refresh_token_already_used')
   );
 }
 

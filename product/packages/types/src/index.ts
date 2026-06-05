@@ -22,7 +22,20 @@ export interface User extends BaseEntity {
   display_name: string;
   avatar_url?: string;
   sensory_level: SensoryLevel;
-  following_roaster_ids: string[];
+}
+
+export type RoasterFollowSource =
+  | 'legacy-backfill'
+  | 'discover-roasters-hub'
+  | 'roaster-profile'
+  | 'roasters-screen';
+
+export interface UserRoasterFollow {
+  user_id: string;
+  roaster_id: string;
+  source: RoasterFollowSource;
+  created_at: string;
+  last_seen_at: string;
 }
 
 export interface Roaster extends BaseEntity {

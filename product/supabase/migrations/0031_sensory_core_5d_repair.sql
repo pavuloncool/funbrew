@@ -1,3 +1,7 @@
+-- Repair 5D sensory telemetry migration on environments that partially applied it.
+-- Version: 0031
+-- Created: 2026-05-31
+
 BEGIN;
 
 ALTER TABLE public.roast_batches

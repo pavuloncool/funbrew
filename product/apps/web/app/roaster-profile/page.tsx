@@ -345,6 +345,10 @@ export default function RoasterProfilePage() {
             <p className={roasterProfileStyles.viewModeHint}>Preview mode</p>
             <dl className={roasterProfileStyles.dlRoot}>
               <div>
+                <dt className={roasterProfileStyles.dlTerm}>Numer klienta</dt>
+                <dd>{profile.customer_number ?? '—'}</dd>
+              </div>
+              <div>
                 <dt className={roasterProfileStyles.dlTerm}>Company Name</dt>
                 <dd>{profile.company_name ?? '—'}</dd>
               </div>

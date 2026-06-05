@@ -234,6 +234,7 @@ export default function RoasterHubPage() {
   ];
 
   const shortName = profile?.roaster_short_name || 'Roaster';
+  const customerNumber = profile?.customer_number ?? '—';
   const logoAlt = `${profile?.company_name ?? shortName} logo`;
   const logoFallback = shortName.slice(0, 2).toUpperCase();
   const coffeeCountLabel = batchCount === null ? '—' : String(batchCount);
@@ -320,6 +321,13 @@ export default function RoasterHubPage() {
             <div className={roasterHubStyles.summaryMeta}>
               <span className={roasterHubStyles.summaryEyebrow}>Roaster Dashboard</span>
               <h1 className={roasterHubStyles.summaryTitle}>{shortName}</h1>
+              <div className={roasterHubStyles.summaryAccountMeta}>
+                <span className={roasterHubStyles.summaryCustomerLabel}>Numer klienta</span>
+                <span className={roasterHubStyles.summaryCustomerDivider} aria-hidden>
+                  --
+                </span>
+                <span className={roasterHubStyles.summaryCustomerValue}>{customerNumber}</span>
+              </div>
             </div>
           </div>
 

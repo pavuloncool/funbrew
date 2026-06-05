@@ -69,7 +69,7 @@ Kryterium wyjścia:
      - świeżości `coffee_stats`
      - filtra po `brew_method_id`
      - anonymized reviews
-   - Na tym etapie można dodać minimalny “followers/favorites insight” dla `users.following_roaster_ids`.
+   - Na tym etapie można dodać minimalny “followers/favorites insight” dla relacji follow consumer -> roaster.
 
 Kryterium wyjścia:
 - roaster widzi prawdziwy feedback wynikający z consumer flow, nie tylko agregaty z testów.

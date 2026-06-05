@@ -926,16 +926,14 @@ BEGIN
       display_name,
       avatar_url,
       sensory_level,
-      sensory_score,
-      following_roaster_ids
+      sensory_score
     )
     VALUES (
       (v_roaster_spec->>'user_id')::uuid,
       v_roaster_spec->>'display_name',
       v_avatar_prefix || 'kai',
       'beginner',
-      0,
-      '{}'
+      0
     )
     ON CONFLICT (id) DO UPDATE
     SET
@@ -1101,8 +1099,7 @@ BEGIN
       avatar_url,
       favorite_brew_method_id,
       sensory_level,
-      sensory_score,
-      following_roaster_ids
+      sensory_score
     )
     VALUES (
       (v_consumer_spec->>'user_id')::uuid,
@@ -1110,8 +1107,7 @@ BEGIN
       v_avatar_prefix || (v_consumer_spec->>'avatar_id'),
       v_brew_method_id,
       'beginner',
-      0,
-      '{}'
+      0
     )
     ON CONFLICT (id) DO UPDATE
     SET
@@ -1594,13 +1590,27 @@ BEGIN
     top_flavor_notes = EXCLUDED.top_flavor_notes,
     updated_at = EXCLUDED.updated_at;
 
-  UPDATE public.users
-  SET following_roaster_ids = ARRAY[
+  DELETE FROM public.user_roaster_follows
+  WHERE user_id = v_kazik_user_id;
+
+  INSERT INTO public.user_roaster_follows (
+    user_id,
+    roaster_id,
+    source,
+    created_at,
+    last_seen_at
+  )
+  SELECT
+    v_kazik_user_id,
+    followed_roaster_id,
+    'roasters-screen',
+    now(),
+    now()
+  FROM unnest(ARRAY[
     (SELECT id FROM public.roasters WHERE user_id = v_bart_user_id),
     (SELECT id FROM public.roasters WHERE user_id = v_new_roaster_ids[1]),
     (SELECT id FROM public.roasters WHERE user_id = v_new_roaster_ids[2])
-  ]
-  WHERE id = v_kazik_user_id;
+  ]::uuid[]) AS followed_roaster_id;
 END $$;
 
 COMMIT;

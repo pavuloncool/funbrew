@@ -1,7 +1,7 @@
 # Data Model: funcup MVP
 
 **Feature**: `002-qr-coffee-platform` | **Date**: 2026-03-25
-**Source**: Canonical schema — Notion Data Model v3 (13 tables). This document maps those tables to entity definitions, field types, relationships, and validation rules. Do not add tables here that are not in the canonical schema.
+**Source**: Canonical schema — Notion Data Model v3 (13 tables) extended in implementation with a junction table for consumer follows. This document maps the implemented schema to entity definitions, field types, relationships, and validation rules.
 
 ---
 
@@ -11,7 +11,9 @@
 auth.users (Supabase managed)
     │
     ├── users (profile extension)
-    │       └── following_roaster_ids → roasters[]
+    │
+    ├── user_roaster_follows
+    │       └── roasters
     │
     └── roasters
             └── coffees
@@ -43,7 +45,6 @@ Extends `auth.users`. One row per authenticated consumer or roaster (roasters al
 | `display_name` | `text` | NOT NULL | Consumer-facing name |
 | `avatar_url` | `text` | NULLABLE | Supabase Storage path: `users/{id}/avatar.jpg` |
 | `sensory_level` | `enum('beginner','advanced','expert')` | NOT NULL DEFAULT `'beginner'` | Updated server-side by `recalculate_user_reputation()` |
-| `following_roaster_ids` | `uuid[]` | NOT NULL DEFAULT `'{}'` | FK references `roasters.id` (array); confirm vs. Notion DM v3 |
 | `created_at` | `timestamptz` | NOT NULL DEFAULT `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL DEFAULT `now()` | Trigger-maintained |
 
@@ -53,6 +54,28 @@ Extends `auth.users`. One row per authenticated consumer or roaster (roasters al
 - SELECT: own row + limited public columns (display_name, avatar_url, sensory_level) for Community section
 - INSERT: on Supabase auth signup via trigger
 - UPDATE: own row only; `sensory_level` updatable by service role only
+
+---
+
+### `user_roaster_follows`
+
+Consumer follow relationship to roasters. Junction table replacing the earlier array-based follow storage approach.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `user_id` | `uuid` | PK(partial), FK → `users.id` ON DELETE CASCADE | Consumer/user who follows |
+| `roaster_id` | `uuid` | PK(partial), FK → `roasters.id` ON DELETE CASCADE | Followed roaster |
+| `source` | `text` | NOT NULL | Follow source, one of `legacy-backfill`, `discover-roasters-hub`, `roaster-profile`, `roasters-screen` |
+| `created_at` | `timestamptz` | NOT NULL DEFAULT `now()` | Follow creation timestamp |
+| `last_seen_at` | `timestamptz` | NOT NULL DEFAULT `now()` | Initialized on follow creation; reserved for future CRM/engagement use |
+
+**Validation**: `(user_id, roaster_id)` unique via composite primary key. Only verified roasters may be followed through client-side insert policies.
+
+**RLS**:
+- SELECT: own follow rows only
+- INSERT: own follow rows only, and only for verified roasters
+- DELETE: own follow rows only
+- UPDATE: not used in runtime
 
 ---
 
@@ -351,7 +374,8 @@ Materialised aggregated statistics per batch. Updated by `update_coffee_stats` E
 
 ```
 auth.users 1 ── 1 users
-users N ── M roasters  (via following_roaster_ids uuid[])
+users 1 ── N user_roaster_follows
+roasters 1 ── N user_roaster_follows
 roasters 1 ── N coffees
 origins 1 ── N coffees
 coffees 1 ── N roast_batches
@@ -370,7 +394,6 @@ users 1 ── N review_votes
 
 ## Data Model Gaps / Open Items
 
-1. **Consumer follows**: `users.following_roaster_ids uuid[]` is proposed. If Notion Data Model v3 defines a separate junction table, update migration accordingly before implementing FR-007.
-2. **`pg_net` extension**: Must be enabled in Supabase project settings before deploying the `coffee_logs` INSERT trigger.
-3. **`updated_at` triggers**: A `set_updated_at()` trigger function must be applied to all tables with an `updated_at` column.
-4. **Sensory level enum**: `CREATE TYPE sensory_level AS ENUM ('beginner', 'advanced', 'expert')` — must be in migration `0001`.
+1. **`pg_net` extension**: Must be enabled in Supabase project settings before deploying the `coffee_logs` INSERT trigger.
+2. **`updated_at` triggers**: A `set_updated_at()` trigger function must be applied to all tables with an `updated_at` column.
+3. **Sensory level enum**: `CREATE TYPE sensory_level AS ENUM ('beginner', 'advanced', 'expert')` — must be in migration `0001`.

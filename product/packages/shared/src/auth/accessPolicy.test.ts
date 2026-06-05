@@ -58,5 +58,6 @@ describe('accessPolicy', () => {
     expect(getWebLoginReasonMessage('roaster_auth_required')).toContain('Zaloguj');
     expect(getWebLoginReasonMessage('consumer_mobile_only')).toContain('mobile app only');
     expect(getMobileLoginReasonMessage('roaster_web_only')).toContain('aplikacji web');
+    expect(getMobileLoginReasonMessage('session_expired')).toContain('Twoja sesja wygasła');
   });
 });

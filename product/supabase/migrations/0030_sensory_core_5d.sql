@@ -1,3 +1,7 @@
+-- Extend telemetry and batch declarations with bitter/aftertaste dimensions.
+-- Version: 0030
+-- Created: 2026-05-31
+
 BEGIN;
 
 ALTER TABLE public.roast_batches

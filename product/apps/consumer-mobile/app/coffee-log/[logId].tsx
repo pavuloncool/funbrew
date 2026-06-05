@@ -13,7 +13,7 @@ import {
   visualSystemTokens,
 } from '@funcup/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrewMethodPicker } from '../../src/coffee/tasting/BrewMethodPicker';
 import { FlavorNoteSelector } from '../../src/coffee/tasting/FlavorNoteSelector';
 import { SensoryCoreScorePicker } from '../../src/coffee/tasting/SensoryCoreScorePicker';
+import { InlineBackHeader } from '../../src/components/navigation/InlineBackHeader';
 import { useViewerUserId } from '../../src/hooks/useViewerUserId';
 import { supabase } from '../../src/services/supabaseClient';
 import { AppButton, AppCard, AppInput, AppScrollScreen, AppText } from '../../src/components/ui/primitives';
@@ -294,6 +295,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
+        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
         <AppText>Missing log id.</AppText>
       </AppScrollScreen>
     );
@@ -304,6 +306,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
+        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
         <AppText>Loading tasting entry...</AppText>
       </AppScrollScreen>
     );
@@ -314,6 +317,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
+        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
         <AppText tone="danger">Could not load tasting details.</AppText>
       </AppScrollScreen>
     );
@@ -324,6 +328,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
+        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
         <AppText>Tasting entry not found.</AppText>
       </AppScrollScreen>
     );
@@ -338,11 +343,7 @@ export default function CoffeeLogDetailsScreen() {
     <AppScrollScreen
       contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
     >
-      <View style={styles.navRow}>
-        <Link href="/(tabs)/coffee">Back to Coffee</Link>
-      </View>
-
-      <AppText variant="h2" weight="700">Rated Coffee Entry</AppText>
+      <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
       <AppCard>
         <AppText variant="h3" weight="700">{title}</AppText>
         <AppText tone="secondary">{subtitle}</AppText>
@@ -547,9 +548,6 @@ export default function CoffeeLogDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  navRow: {
-    paddingBottom: visualSystemTokens.spacing.xxs,
-  },
   cardGap: {
     gap: visualSystemTokens.spacing.xs,
   },

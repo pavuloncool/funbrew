@@ -8,7 +8,7 @@ import { useAuth } from '../../src/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { status, profileCompleted, unlockWithBiometrics } = useAuth();
+  const { loginReason, status, profileCompleted, unlockWithBiometrics } = useAuth();
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,12 +22,12 @@ export default function LoginScreen() {
     }
 
     if (status === 'unauthenticated') {
-      router.replace('/(auth)/login-form');
+      router.replace(loginReason ? `/(auth)/login-form?reason=${loginReason}` : '/(auth)/login-form');
       return;
     }
 
     router.replace(resolveMobileAuthenticatedPath(profileCompleted));
-  }, [profileCompleted, router, status]);
+  }, [loginReason, profileCompleted, router, status]);
 
   const onUnlock = async () => {
     setUnlocking(true);

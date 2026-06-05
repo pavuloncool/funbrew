@@ -12,7 +12,7 @@ import {
   updateCoffeeStats,
   visualSystemTokens,
 } from '@funcup/shared';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -22,8 +22,10 @@ import { BrewMethodPicker } from '../../../src/coffee/tasting/BrewMethodPicker';
 import { FlavorNoteSelector } from '../../../src/coffee/tasting/FlavorNoteSelector';
 import { RatingInput } from '../../../src/coffee/tasting/RatingInput';
 import { SensoryCoreScorePicker } from '../../../src/coffee/tasting/SensoryCoreScorePicker';
+import { InlineBackHeader } from '../../../src/components/navigation/InlineBackHeader';
 import { useOfflineTastingSync } from '../../../src/hooks/useOfflineTastingSync';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
+import { useGoBackOrFallback } from '../../../src/navigation/useGoBackOrFallback';
 import { offlineQueueStorage } from '../../../src/services/offlineQueueStorage';
 import { supabase } from '../../../src/services/supabaseClient';
 import { AppButton, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
@@ -31,13 +33,16 @@ import { pageStyles } from '../../../src/theme/pageStyles';
 
 export default function TastingLogScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { userId } = useViewerUserId();
   const params = useLocalSearchParams<{ hash?: string; batchId?: string }>();
   const hash = typeof params.hash === 'string' && params.hash.length > 0 ? params.hash : null;
   const batchId = typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : null;
+  const coffeeFallbackHref = hash
+    ? ({ pathname: '/coffee/[hash]', params: { hash } } as const)
+    : '/(tabs)/coffee';
   const { isOnline, pendingCount, failedCount, refreshPendingCount } = useOfflineTastingSync();
   const unlocksQuery = useUnlockedTastingNotes({ supabase, userId });
+  const goBackToCoffee = useGoBackOrFallback(coffeeFallbackHref);
   const [rating, setRating] = useState<number | null>(null);
   const [brewMethodId, setBrewMethodId] = useState<string | null>(null);
   const [tastingNoteIds, setTastingNoteIds] = useState<string[]>([]);
@@ -173,7 +178,7 @@ export default function TastingLogScreen() {
 
   return (
     <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content, { paddingBottom: 96 + insets.bottom }]}>
-      <AppText variant="h2" weight="700">Tasting Log</AppText>
+      <InlineBackHeader title="Tasting Log" fallbackHref={coffeeFallbackHref} />
       <AppText>Batch id: {batchId ?? '(missing)'}</AppText>
       <AppText tone={isOnline ? 'success' : 'danger'}>
         {isOnline ? 'Online' : 'Offline'} | Pending queue: {pendingCount}
@@ -193,11 +198,7 @@ export default function TastingLogScreen() {
           />
           <AppButton
             label="Back to coffee"
-            onPress={() => {
-              if (!hash) return;
-              router.replace({ pathname: '/coffee/[hash]', params: { hash } });
-            }}
-            disabled={!hash}
+            onPress={goBackToCoffee}
           />
         </View>
       ) : (

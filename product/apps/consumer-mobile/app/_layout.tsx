@@ -9,6 +9,12 @@ import { AuthProvider } from '../src/auth';
 import { MobileAccountRoleGate } from '../src/auth/MobileAccountRoleGate';
 
 const queryClient = new QueryClient();
+const rootStackScreenOptions = {
+  headerShown: false,
+  animation: 'slide_from_right' as const,
+  gestureEnabled: true,
+  fullScreenGestureEnabled: true,
+};
 
 function OfflineSyncBootstrap() {
   useOfflineTastingSync();
@@ -40,7 +46,7 @@ function AppShellStack() {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: true }}>
+        <Stack screenOptions={rootStackScreenOptions}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

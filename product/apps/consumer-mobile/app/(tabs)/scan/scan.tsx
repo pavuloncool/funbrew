@@ -23,7 +23,7 @@ export default function ScanScreen() {
       setParseError(null);
       const hash = parseFuncupQrScanPayload(data);
       if (hash) {
-        router.replace({ pathname: '/q/[hash]', params: { hash } });
+        router.push({ pathname: '/q/[hash]', params: { hash } });
         return;
       }
       setParseError(

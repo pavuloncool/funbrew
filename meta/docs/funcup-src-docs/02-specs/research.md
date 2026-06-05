@@ -228,15 +228,13 @@ content/learn/
 
 ---
 
-## 11. Consumer Follows (Data Model Gap)
+## 11. Consumer Follows
 
-**Finding**: The 13-table canonical schema (`users, roasters, origins, coffees, roast_batches, qr_codes, coffee_logs, reviews, flavor_notes, tasting_notes, brew_methods, review_votes, coffee_stats`) does not include an explicit follows/followers table. FR-007 requires "consumers follow roasters."
+**Finding**: FR-007 requires consumers to follow roasters, and the array-based MVP shortcut does not scale well for analytics, RLS clarity, or future roaster-facing follower insights.
 
-**Resolution**: Two options:
-- **Option A** (preferred): Add `users.following_roaster_ids uuid[]` — simple array column, no join table needed at MVP scale (consumers follow ≤ ~50 roasters).
-- **Option B**: Add a `user_follows` table not yet in the schema — requires a new migration.
+**Resolution**: Use a dedicated junction table `user_roaster_follows` with `(user_id, roaster_id)` as the composite primary key plus `source`, `created_at`, and `last_seen_at`.
 
-**Recommendation**: Use Option A (`uuid[]` column on `users`) for MVP. If follow counts grow > 100 per user or follow-back social features are added post-MVP, migrate to a junction table. This avoids adding a 14th table outside the canonical spec. **Confirm with Notion Data Model v3 before migration.**
+**Recommendation**: Prefer the junction table as the implemented model. It is the better long-term fit for growth, analytics, and product extensions while preserving a single auth/user root.
 
 ---
 
@@ -254,4 +252,4 @@ content/learn/
 | Auth | Supabase Auth + expo-auth-session + @supabase/ssr | Apple: `expo-apple-authentication` |
 | Learn Coffee | MDX files in repo | `@expo/mdx`, `@next/mdx` |
 | Images | `expo-image` / `next/image` + Supabase Storage CDN | 4 Storage buckets |
-| Consumer follows | `users.following_roaster_ids uuid[]` | Confirm vs. Notion DM v3 |
+| Consumer follows | `user_roaster_follows` junction table | Runtime source of truth |

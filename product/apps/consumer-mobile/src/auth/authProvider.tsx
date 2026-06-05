@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { MobileLoginReason } from '@funcup/shared';
 import type { Session } from '@supabase/supabase-js';
 
 import { getSupabase } from '../services/supabaseClient';
-import { type AuthService, SupabaseAuthService } from './authService';
+import { type AuthService, SessionExpiredAuthError, SupabaseAuthService } from './authService';
 import { resolveProfileCompletedFromUser } from './profileCompletion';
 import { ExpoSecureStorageService } from './secureStorage';
 import type { AuthSession, AuthSnapshot, AuthStatus, AuthUser } from './types';
@@ -13,6 +14,7 @@ const REFRESH_RETRY_DELAYS_MS = [500, 1500, 3500] as const;
 type AuthContextValue = {
   status: AuthStatus;
   isLoading: boolean;
+  loginReason: MobileLoginReason | null;
   user: AuthUser | null;
   profileCompleted: boolean;
   session: AuthSession | null;
@@ -49,17 +51,6 @@ function isNetworkLikeError(error: unknown): boolean {
   );
 }
 
-function isInvalidRefreshError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
-  return (
-    message.includes('refresh token') ||
-    message.includes('invalid_grant') ||
-    message.includes('refresh_token_not_found') ||
-    message.includes('refresh_token_already_used')
-  );
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -93,6 +84,7 @@ export function AuthProvider(props: { children: ReactNode }) {
   const authService = useMemo(() => createAuthService(), []);
   const statusRef = useRef<AuthStatus>('bootstrapping');
   const [status, setStatus] = useState<AuthStatus>('bootstrapping');
+  const [loginReason, setLoginReason] = useState<MobileLoginReason | null>(null);
   const [snapshot, setSnapshot] = useState<AuthSnapshot>({
     user: null,
     session: null,
@@ -101,6 +93,7 @@ export function AuthProvider(props: { children: ReactNode }) {
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
 
   const setAuthenticated = useCallback((nextSnapshot: AuthSnapshot) => {
+    setLoginReason(null);
     setSnapshot(nextSnapshot);
     statusRef.current = 'authenticated';
     setStatus('authenticated');
@@ -151,8 +144,13 @@ export function AuthProvider(props: { children: ReactNode }) {
           try {
             restored = await retryRefreshSession();
           } catch (error) {
-            if (isInvalidRefreshError(error)) {
-              await authService.logout();
+            if (error instanceof SessionExpiredAuthError) {
+              setLoginReason('session_expired');
+              try {
+                await authService.logout();
+              } catch {
+                // Local cleanup already runs in logout() finally.
+              }
               if (mounted) {
                 setUnauthenticated();
               }
@@ -170,9 +168,20 @@ export function AuthProvider(props: { children: ReactNode }) {
           return;
         }
 
+        setLoginReason(null);
         setUnauthenticated();
-      } catch {
+      } catch (error) {
         if (!mounted) return;
+        if (error instanceof SessionExpiredAuthError) {
+          setLoginReason('session_expired');
+          try {
+            await authService.logout();
+          } catch {
+            // Local cleanup already runs in logout() finally.
+          }
+        } else {
+          setLoginReason(null);
+        }
         setUnauthenticated();
       }
     };
@@ -218,6 +227,7 @@ export function AuthProvider(props: { children: ReactNode }) {
         return { hasSession: true };
       }
 
+      setLoginReason(null);
       setUnauthenticated();
       return { hasSession: false };
     },
@@ -225,6 +235,7 @@ export function AuthProvider(props: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    setLoginReason(null);
     await authService.logout();
     setBiometricsEnabled(false);
     setUnauthenticated();
@@ -261,6 +272,7 @@ export function AuthProvider(props: { children: ReactNode }) {
     () => ({
       status,
       isLoading: status === 'bootstrapping',
+      loginReason,
       user: snapshot.user,
       profileCompleted: snapshot.profileCompleted,
       session: snapshot.session,
@@ -278,6 +290,7 @@ export function AuthProvider(props: { children: ReactNode }) {
       biometricsEnabled,
       disableBiometrics,
       enableBiometrics,
+      loginReason,
       lockWithBiometrics,
       login,
       logout,

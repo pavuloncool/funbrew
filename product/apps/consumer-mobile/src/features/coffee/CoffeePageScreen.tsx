@@ -11,7 +11,7 @@ import {
   useCoffeePage,
   visualSystemTokens,
 } from '@funcup/shared';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams, useSegments } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
@@ -20,13 +20,14 @@ import { CoffeePageCommunity } from '../../coffee/CoffeePageCommunity';
 import { CoffeePageProduct } from '../../coffee/CoffeePageProduct';
 import { CoffeePageStory } from '../../coffee/CoffeePageStory';
 import { EmptyState } from '../../components/EmptyState';
+import { InlineBackHeader } from '../../components/navigation/InlineBackHeader';
 import { ScreenError } from '../../components/ScreenError';
 import { AppButton, AppCard, AppScrollScreen, AppText } from '../../components/ui/primitives';
 import { CoffeePageSkeleton } from '../../components/ui/Skeleton';
 import { useViewerUserId } from '../../hooks/useViewerUserId';
 import { getResolvedSupabasePublicUrl, supabase } from '../../services/supabaseClient';
 
-const NO_BOTTOM_SAFE_AREA = { edges: ['right', 'left'] as const };
+const NO_BOTTOM_SAFE_AREA = { edges: ['top', 'right', 'left'] as const };
 const { colors, spacing, radius } = visualSystemTokens;
 
 function formatRoastDate(iso: string): string {
@@ -71,7 +72,9 @@ function resolveImageUri(rawUri: string): string {
 
 export default function CoffeePageScreen() {
   const params = useLocalSearchParams<{ hash?: string }>();
+  const segments = useSegments() as string[];
   const hash = params.hash ?? null;
+  const topSegment = segments[0] ?? null;
   const { userId } = useViewerUserId();
   const coffeeQuery = useCoffeePage({ supabase, hash });
   const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
@@ -87,6 +90,9 @@ export default function CoffeePageScreen() {
   });
   const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
   const favoriteMutation = useToggleFavoriteScannedEntry({ supabase, userId });
+  const fallbackHref = topSegment === 'q'
+    ? '/(tabs)/scan/scan'
+    : '/(tabs)/coffee';
   const coffeeImageUri = useMemo(() => {
     const d = coffeeQuery.data;
     if (!d) return null;
@@ -100,6 +106,7 @@ export default function CoffeePageScreen() {
   if (!hash) {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
+        <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
         <ScreenError
           title="Missing QR"
           message="Open this page from a scanned QR code or a valid link."
@@ -111,6 +118,11 @@ export default function CoffeePageScreen() {
   if (coffeeQuery.isLoading) {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA}>
+        <InlineBackHeader
+          title="Coffee Page"
+          fallbackHref={fallbackHref}
+          style={styles.loadingHeader}
+        />
         <CoffeePageSkeleton />
       </AppScrollScreen>
     );
@@ -121,6 +133,7 @@ export default function CoffeePageScreen() {
     const copy = flowErrorUiCopy(flowError);
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
+        <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
         <ScreenError
           title={copy.title}
           message="Data not fetched. Try again or contact fun•brew."
@@ -135,6 +148,7 @@ export default function CoffeePageScreen() {
   if (!data) {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.paddedContent}>
+        <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
         <ScreenError title="No data" message="Unexpected empty response from scan." />
       </AppScrollScreen>
     );
@@ -154,6 +168,7 @@ export default function CoffeePageScreen() {
 
   return (
     <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
+      <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
       {publicCoffee.archived ? (
         <AppCard style={styles.archived}>
           <AppText weight="600">Archived batch</AppText>
@@ -161,7 +176,6 @@ export default function CoffeePageScreen() {
         </AppCard>
       ) : null}
 
-      <AppText variant="h2" weight="700" accessibilityRole="header">Coffee Page</AppText>
       <View style={styles.imageWrap}>
         {!coffeeImageFailed && coffeeImageUri ? (
           <Image
@@ -318,6 +332,10 @@ const styles = StyleSheet.create({
   },
   archivedInfo: {
     marginTop: spacing.xs,
+  },
+  loadingHeader: {
+    marginTop: spacing.xl,
+    marginHorizontal: spacing.xl,
   },
   imageWrap: {
     marginTop: spacing.sm,

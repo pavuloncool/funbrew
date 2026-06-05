@@ -20,7 +20,6 @@ export type Database = {
           favorite_brew_method_id: string | null;
           sensory_level: 'beginner' | 'advanced' | 'expert';
           sensory_score: number;
-          following_roaster_ids: string[];
           created_at: string;
           updated_at: string;
         };
@@ -31,7 +30,6 @@ export type Database = {
           favorite_brew_method_id?: string | null;
           sensory_level?: 'beginner' | 'advanced' | 'expert';
           sensory_score?: number;
-          following_roaster_ids?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -41,7 +39,6 @@ export type Database = {
           favorite_brew_method_id?: string | null;
           sensory_level?: 'beginner' | 'advanced' | 'expert';
           sensory_score?: number;
-          following_roaster_ids?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -52,6 +49,7 @@ export type Database = {
           id: string;
           user_id: string;
           name: string;
+          customer_number: string;
           company_name: string | null;
           roaster_short_name: string | null;
           country: string | null;
@@ -74,6 +72,7 @@ export type Database = {
           id?: string;
           user_id: string;
           name: string;
+          customer_number?: string;
           company_name?: string | null;
           roaster_short_name?: string | null;
           country?: string | null;
@@ -95,6 +94,7 @@ export type Database = {
         Update: {
           user_id?: string;
           name?: string;
+          customer_number?: string;
           company_name?: string | null;
           roaster_short_name?: string | null;
           country?: string | null;
@@ -112,6 +112,48 @@ export type Database = {
           verification_status?: 'pending' | 'verified' | 'revoked';
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_roaster_follows: {
+        Row: {
+          user_id: string;
+          roaster_id: string;
+          source: 'legacy-backfill' | 'discover-roasters-hub' | 'roaster-profile' | 'roasters-screen';
+          created_at: string;
+          last_seen_at: string;
+        };
+        Insert: {
+          user_id: string;
+          roaster_id: string;
+          source: 'legacy-backfill' | 'discover-roasters-hub' | 'roaster-profile' | 'roasters-screen';
+          created_at?: string;
+          last_seen_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          roaster_id?: string;
+          source?: 'legacy-backfill' | 'discover-roasters-hub' | 'roaster-profile' | 'roasters-screen';
+          created_at?: string;
+          last_seen_at?: string;
+        };
+        Relationships: [];
+      };
+      roaster_customer_number_registry: {
+        Row: {
+          customer_number: string;
+          roaster_id: string;
+          assigned_at: string;
+        };
+        Insert: {
+          customer_number: string;
+          roaster_id: string;
+          assigned_at?: string;
+        };
+        Update: {
+          customer_number?: string;
+          roaster_id?: string;
+          assigned_at?: string;
         };
         Relationships: [];
       };

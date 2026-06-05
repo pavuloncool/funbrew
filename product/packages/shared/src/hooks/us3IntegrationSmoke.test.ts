@@ -13,7 +13,7 @@ function createUs3FlowMock(params?: {
     description: string | null;
     website: string | null;
   }>;
-  shouldFailUpdate?: boolean;
+  shouldFailInsert?: boolean;
 }) {
   const state = {
     following: params?.initialFollowing ?? [],
@@ -48,24 +48,30 @@ function createUs3FlowMock(params?: {
           };
         }
 
-        if (table === 'users') {
+        if (table === 'user_roaster_follows') {
           return {
             select: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({
-                  data: { following_roaster_ids: state.following },
-                  error: null,
-                }),
+              eq: async () => ({
+                data: state.following.map((roaster_id) => ({ roaster_id })),
+                error: null,
               }),
             }),
-            update: (value: { following_roaster_ids: string[] }) => ({
-              eq: async () => {
-                if (params?.shouldFailUpdate) {
-                  return { error: new Error('update failed') };
+            insert: async (value: { roaster_id: string }) => {
+              if (params?.shouldFailInsert) {
+                return { error: new Error('insert failed') };
+              }
+              if (!state.following.includes(value.roaster_id)) {
+                state.following = [...state.following, value.roaster_id];
+              }
+              return { error: null };
+            },
+            delete: () => ({
+              eq: (_column: string, _userId: string) => ({
+                eq: async (_innerColumn: string, roasterId: string) => {
+                  state.following = state.following.filter((id) => id !== roasterId);
+                  return { error: null };
                 }
-                state.following = value.following_roaster_ids;
-                return { error: null };
-              },
+              }),
             }),
           };
         }
@@ -93,6 +99,7 @@ describe('US3 integration smoke: Hub -> RoasterProfile -> Follow', () => {
       userId,
       roasterId: 'roaster-1',
       follow: true,
+      source: 'roaster-profile',
     });
 
     // Re-fetch reflects follow state (as after profile return/navigation)
@@ -102,7 +109,7 @@ describe('US3 integration smoke: Hub -> RoasterProfile -> Follow', () => {
   });
 
   it('keeps previous state when follow update fails', async () => {
-    const mock = createUs3FlowMock({ initialFollowing: [], shouldFailUpdate: true });
+    const mock = createUs3FlowMock({ initialFollowing: [], shouldFailInsert: true });
     const userId = 'user-1';
 
     await expect(
@@ -111,8 +118,9 @@ describe('US3 integration smoke: Hub -> RoasterProfile -> Follow', () => {
         userId,
         roasterId: 'roaster-1',
         follow: true,
+        source: 'roaster-profile',
       })
-    ).rejects.toThrow('update failed');
+    ).rejects.toThrow('insert failed');
 
     const refreshed = await fetchDiscoverRoasters(mock.client as never, { userId, limit: 8 });
     expect(refreshed[0]?.isFollowed).toBe(false);

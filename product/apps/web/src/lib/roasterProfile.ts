@@ -1,6 +1,7 @@
 export type RoasterProfile = {
   id: string;
   user_id: string;
+  customer_number: string | null;
   company_name: string | null;
   roaster_short_name: string | null;
   country: string | null;
@@ -70,6 +71,7 @@ export function normalizeRoasterProfileRow(row: unknown): RoasterProfile | null 
   return {
     id: value.id,
     user_id: value.user_id,
+    customer_number: normalizeNullableString(value.customer_number),
     company_name: normalizeNullableString(value.company_name),
     roaster_short_name: normalizeNullableString(value.roaster_short_name),
     country: normalizeNullableString(value.country),

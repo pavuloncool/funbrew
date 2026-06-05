@@ -59,7 +59,11 @@ export function DiscoverRoastersTab() {
           <AppText>{roaster.description ?? 'No roaster story yet.'}</AppText>
           <Pressable
             onPress={() =>
-              followMutation.mutate({ roasterId: roaster.id, follow: !roaster.isFollowed })
+              followMutation.mutate({
+                roasterId: roaster.id,
+                follow: !roaster.isFollowed,
+                source: 'discover-roasters-hub',
+              })
             }
             disabled={!userId || followMutation.isPending}
             style={followPressableStyle(roaster.isFollowed)}

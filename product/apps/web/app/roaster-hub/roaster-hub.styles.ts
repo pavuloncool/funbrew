@@ -44,14 +44,18 @@ export const roasterHubStyles = {
     'grid gap-6 border-2 border-vs-border-strong bg-vs-surface p-6 shadow-vs-md lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center lg:p-8',
   summaryIntro: 'flex items-center gap-4 lg:gap-5',
   summaryLogoFrame:
-    'flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated shadow-vs-sm lg:h-24 lg:w-24',
+    'flex h-[6.5rem] w-[6.5rem] shrink-0 items-center justify-center overflow-hidden rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated shadow-vs-sm lg:h-32 lg:w-32',
   summaryLogoImage: 'h-full w-full object-contain',
   summaryLogoFallback:
-    'flex h-20 w-20 shrink-0 items-center justify-center rounded-vs-md border-2 border-vs-border-strong bg-vs-accent-secondary font-display text-3xl uppercase tracking-[-0.03em] text-vs-text-primary shadow-vs-sm lg:h-24 lg:w-24 lg:text-4xl',
+    'flex h-[6.5rem] w-[6.5rem] shrink-0 items-center justify-center rounded-vs-md border-2 border-vs-border-strong bg-vs-accent-secondary font-display text-3xl uppercase tracking-[-0.03em] text-vs-text-primary shadow-vs-sm lg:h-32 lg:w-32 lg:text-5xl',
   summaryMeta: 'min-w-0',
   summaryEyebrow:
     'inline-flex w-fit items-center rounded-full border-2 border-vs-border-strong bg-vs-elevated px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-vs-text-secondary',
   summaryTitle: 'mt-3 font-display text-4xl uppercase tracking-[-0.03em] text-vs-text-primary lg:text-5xl',
+  summaryAccountMeta: 'mt-3 flex flex-wrap items-center gap-2 lg:gap-3',
+  summaryCustomerLabel: 'text-sm font-semibold uppercase tracking-[0.14em] text-vs-text-muted',
+  summaryCustomerDivider: 'text-sm font-semibold uppercase tracking-[0.14em] text-vs-text-muted',
+  summaryCustomerValue: 'text-sm font-semibold uppercase tracking-[0.14em] text-vs-text-muted',
   summaryStatGrid: 'grid gap-3 sm:grid-cols-3',
   summaryStatCard:
     'rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-4 shadow-vs-sm',

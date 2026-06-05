@@ -8,6 +8,7 @@ export type TestActor = {
   accessToken: string;
   roasterId: string;
   roasterName: string;
+  customerNumber: string;
 };
 
 export type ConsumerTestActor = {
@@ -90,7 +91,7 @@ async function createRoaster(
   serviceRoleKey: string,
   supabaseUrl: string
 ) {
-  const response = await request.post(`${supabaseUrl}/rest/v1/roasters?select=id`, {
+  const response = await request.post(`${supabaseUrl}/rest/v1/roasters?select=id,customer_number`, {
     headers: {
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
@@ -108,8 +109,9 @@ async function createRoaster(
     },
   });
   expect(response.ok()).toBeTruthy();
-  const body = (await response.json()) as Array<{ id: string }>;
-  return body[0].id;
+  const body = (await response.json()) as Array<{ id: string; customer_number: string }>;
+  expect(body[0]?.customer_number).toMatch(/^\d{6}$/);
+  return body[0];
 }
 
 export async function provisionVerifiedRoaster(
@@ -124,9 +126,17 @@ export async function provisionVerifiedRoaster(
   const userId = await createUser(request, email, password, serviceRoleKey, url);
   const accessToken = await signIn(request, email, password, anonKey, url);
   const roasterName = `Phase4 ${label}`;
-  const roasterId = await createRoaster(request, userId, roasterName, serviceRoleKey, url);
+  const roaster = await createRoaster(request, userId, roasterName, serviceRoleKey, url);
 
-  return { email, password, userId, accessToken, roasterId, roasterName };
+  return {
+    email,
+    password,
+    userId,
+    accessToken,
+    roasterId: roaster.id,
+    roasterName,
+    customerNumber: roaster.customer_number,
+  };
 }
 
 export async function provisionConsumer(

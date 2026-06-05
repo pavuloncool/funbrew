@@ -4,7 +4,7 @@ import { requiresPasswordChange } from './accountRole';
 export type AuthSurface = 'web_roaster' | 'consumer_mobile';
 
 export type WebLoginReason = 'roaster_auth_required' | 'consumer_mobile_only';
-export type MobileLoginReason = 'roaster_web_only';
+export type MobileLoginReason = 'roaster_web_only' | 'session_expired';
 export type AuthReason = WebLoginReason | MobileLoginReason;
 
 export const DEFAULT_WEB_POST_LOGIN_PATH = '/roaster-hub';
@@ -94,6 +94,9 @@ export function getWebLoginReasonMessage(reason: string | null | undefined): str
 export function getMobileLoginReasonMessage(reason: string | null | undefined): string | null {
   if (reason === 'roaster_web_only') {
     return 'To konto palarni działa tylko w aplikacji web.';
+  }
+  if (reason === 'session_expired') {
+    return 'Twoja sesja wygasła. Zaloguj się w fun•brew.';
   }
   return null;
 }

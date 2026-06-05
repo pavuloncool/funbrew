@@ -21,6 +21,10 @@ type RoasterRow = {
   website: string | null;
 };
 
+type FollowRow = {
+  roaster_id: string;
+};
+
 export async function fetchDiscoverRoasters(
   supabase: TypedSupabaseClient,
   options?: { userId?: string | null; limit?: number }
@@ -38,14 +42,12 @@ export async function fetchDiscoverRoasters(
 
   let followingIds = new Set<string>();
   if (userId) {
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('following_roaster_ids')
-      .eq('id', userId)
-      .maybeSingle();
+    const { data: followData, error: userError } = await supabase
+      .from('user_roaster_follows')
+      .select('roaster_id')
+      .eq('user_id', userId);
     if (userError) throw userError;
-    const userRow = userData as { following_roaster_ids?: string[] } | null;
-    followingIds = new Set(userRow?.following_roaster_ids ?? []);
+    followingIds = new Set(((followData ?? []) as FollowRow[]).map((row) => row.roaster_id));
   }
 
   return ((data ?? []) as RoasterRow[]).map((roaster) => ({

@@ -2,6 +2,7 @@ import { useCoffeeGeographySummary, visualSystemTokens } from '@funcup/shared';
 import { StyleSheet, View } from 'react-native';
 
 import { EmptyState } from '../../src/components/EmptyState';
+import { InlineBackHeader } from '../../src/components/navigation/InlineBackHeader';
 import { AppCard, AppScrollScreen, AppText } from '../../src/components/ui/primitives';
 import { useViewerUserId } from '../../src/hooks/useViewerUserId';
 import { supabase } from '../../src/services/supabaseClient';
@@ -23,7 +24,7 @@ export default function AtlasScreen() {
   return (
     <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content]}>
       <View style={styles.header}>
-        <AppText variant="h1" weight="700">Coffee Atlas</AppText>
+        <InlineBackHeader title="Coffee Atlas" fallbackHref="/(tabs)/hub" />
         <AppText tone="secondary">
           A static geography layer for beta demos: origin countries first, region detail second, no game board mechanics.
         </AppText>
