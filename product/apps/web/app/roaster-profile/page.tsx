@@ -342,31 +342,37 @@ export default function RoasterProfilePage() {
 
         {mode === 'view' && profile ? (
           <div className={roasterProfileStyles.viewCard}>
-            <p className={roasterProfileStyles.viewModeHint}>Preview mode</p>
+            <p className={roasterProfileStyles.viewModeHint}>Account info</p>
             <dl className={roasterProfileStyles.dlRoot}>
               <div>
-                <dt className={roasterProfileStyles.dlTerm}>Numer klienta</dt>
-                <dd>{profile.customer_number ?? '—'}</dd>
+                <dt className={roasterProfileStyles.dlTerm}>Account No.</dt>
+                <dd className={roasterProfileStyles.definitionValue}>
+                  {profile.customer_number ?? '—'}
+                </dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Company Name</dt>
-                <dd>{profile.company_name ?? '—'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>
+                  {profile.company_name ?? '—'}
+                </dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Short Name</dt>
-                <dd>{profile.roaster_short_name ?? '—'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>
+                  {profile.roaster_short_name ?? '—'}
+                </dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>City</dt>
-                <dd>{profile.city ?? '—'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>{profile.city ?? '—'}</dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Country</dt>
-                <dd>{profile.country ?? '—'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>{profile.country ?? '—'}</dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Website</dt>
-                <dd>{profile.website ?? '—'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>{profile.website ?? '—'}</dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Logo</dt>
@@ -393,15 +399,21 @@ export default function RoasterProfilePage() {
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Description</dt>
-                <dd>{profile.description ?? '—'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>
+                  {profile.description ?? '—'}
+                </dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Verification</dt>
-                <dd>{profile.verification_status ?? '—'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>
+                  {profile.verification_status ?? '—'}
+                </dd>
               </div>
               <div>
                 <dt className={roasterProfileStyles.dlTerm}>Subscription</dt>
-                <dd>{profile.subscription_status ?? 'placeholder'}</dd>
+                <dd className={roasterProfileStyles.definitionValue}>
+                  {profile.subscription_status ?? 'placeholder'}
+                </dd>
               </div>
             </dl>
 
