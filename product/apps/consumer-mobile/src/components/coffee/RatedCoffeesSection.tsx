@@ -78,7 +78,6 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
   if (authLoading) {
     return (
       <View style={styles.section}>
-        <AppText variant="h3" weight="700">Rated Coffees</AppText>
         <DiscoverListSkeleton rows={3} />
       </View>
     );
@@ -87,7 +86,6 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
   if (!userId) {
     return (
       <View style={styles.section}>
-        <AppText variant="h3" weight="700">Rated Coffees</AppText>
         <EmptyState
           title="Sign in to see rated coffees"
           description="Your tastings will show up here after you log a coffee."
@@ -104,7 +102,6 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
   if (journalQuery.isLoading) {
     return (
       <View style={styles.section}>
-        <AppText variant="h3" weight="700">Rated Coffees</AppText>
         <DiscoverListSkeleton rows={4} />
       </View>
     );
@@ -113,7 +110,6 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
   if (journalQuery.isError) {
     return (
       <View style={styles.section}>
-        <AppText variant="h3" weight="700">Rated Coffees</AppText>
         <ScreenError message={formatError(journalQuery.error)} onRetry={() => void journalQuery.refetch()} />
       </View>
     );
@@ -126,7 +122,6 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
   if (rows.length === 0) {
     return (
       <View style={styles.section}>
-        <AppText variant="h3" weight="700">Rated Coffees</AppText>
         {hasQueueWarnings ? (
           <AppCard style={styles.syncInfoCard}>
             <AppText weight="600">Sync status</AppText>
@@ -153,7 +148,6 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
 
   return (
     <View style={styles.section}>
-      <AppText variant="h3" weight="700">Rated Coffees</AppText>
       {hasQueueWarnings ? (
         <AppCard style={styles.syncInfoCard}>
           <AppText weight="600">Sync status</AppText>

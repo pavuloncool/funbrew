@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
+import { normalizeOptionalReputationLevel, normalizeReputationLevel } from '@funcup/shared';
 
 import {
   DEFAULT_AVATAR_SEED,
@@ -11,6 +12,7 @@ type UserRow = {
   avatar_url: string | null;
   favorite_brew_method_id?: string | null;
   sensory_level?: 'beginner' | 'advanced' | 'expert' | null;
+  sensory_level_override?: 'beginner' | 'advanced' | 'expert' | null;
   sensory_score?: number | null;
 };
 
@@ -28,6 +30,7 @@ export type EditableProfile = {
   favoriteBrewMethodId: string | null;
   favoriteTastingNoteIds: string[];
   sensoryLevel: 'beginner' | 'advanced' | 'expert';
+  sensoryLevelOverride: 'beginner' | 'advanced' | 'expert' | null;
   sensoryScore: number;
   profileCompleted: boolean;
 };
@@ -85,7 +88,8 @@ export async function loadEditableProfile(
     avatarUrl: row?.avatar_url ?? metadataAvatar ?? serializeAvatar(DEFAULT_AVATAR_SEED),
     favoriteBrewMethodId: row?.favorite_brew_method_id ?? null,
     favoriteTastingNoteIds: (favoriteRows ?? []).map((item) => item.tasting_note_id),
-    sensoryLevel: normalizeSensoryLevel(row?.sensory_level),
+    sensoryLevel: normalizeReputationLevel(row?.sensory_level),
+    sensoryLevelOverride: normalizeOptionalReputationLevel(row?.sensory_level_override),
     sensoryScore: normalizeSensoryScore(row?.sensory_score),
     profileCompleted: isProfileCompleted(user),
   };
@@ -197,7 +201,7 @@ function buildSchemaMissingError(details: string): Error {
 async function loadUsersRow(supabase: SupabaseClient, userId: string): Promise<{ row: UserRow | null }> {
   const withFavorite = await supabase
     .from('users')
-    .select('display_name,avatar_url,favorite_brew_method_id,sensory_level,sensory_score')
+    .select('display_name,avatar_url,favorite_brew_method_id,sensory_level,sensory_level_override,sensory_score')
     .eq('id', userId)
     .maybeSingle<UserRow>();
 
@@ -206,16 +210,28 @@ async function loadUsersRow(supabase: SupabaseClient, userId: string): Promise<{
   }
 
   // Graceful fallback for older schemas: preserve as many fields as possible.
-  if (isMissingFavoriteBrewMethodColumn(withFavorite.error) || isMissingSensoryScoreColumn(withFavorite.error)) {
-    const legacySelect = isMissingFavoriteBrewMethodColumn(withFavorite.error)
-      ? 'display_name,avatar_url,sensory_level'
-      : 'display_name,avatar_url,favorite_brew_method_id,sensory_level';
+  if (
+    isMissingFavoriteBrewMethodColumn(withFavorite.error) ||
+    isMissingSensoryScoreColumn(withFavorite.error) ||
+    isMissingSensoryLevelOverrideColumn(withFavorite.error)
+  ) {
+    const legacySelect = [
+      'display_name',
+      'avatar_url',
+      isMissingFavoriteBrewMethodColumn(withFavorite.error) ? null : 'favorite_brew_method_id',
+      'sensory_level',
+      isMissingSensoryLevelOverrideColumn(withFavorite.error) ? null : 'sensory_level_override',
+    ]
+      .filter(Boolean)
+      .join(',');
 
     const legacy = await supabase
       .from('users')
       .select(legacySelect)
       .eq('id', userId)
-      .maybeSingle<Pick<UserRow, 'display_name' | 'avatar_url' | 'favorite_brew_method_id' | 'sensory_level'>>();
+      .maybeSingle<
+        Pick<UserRow, 'display_name' | 'avatar_url' | 'favorite_brew_method_id' | 'sensory_level' | 'sensory_level_override'>
+      >();
 
     if (!legacy.error) {
       return {
@@ -223,6 +239,7 @@ async function loadUsersRow(supabase: SupabaseClient, userId: string): Promise<{
           ? {
               ...legacy.data,
               favorite_brew_method_id: legacy.data.favorite_brew_method_id ?? null,
+              sensory_level_override: legacy.data.sensory_level_override ?? null,
               sensory_score: 0,
             }
           : null,
@@ -255,11 +272,6 @@ async function loadUsersRow(supabase: SupabaseClient, userId: string): Promise<{
   }
 
   throw new Error(withFavorite.error.message);
-}
-
-function normalizeSensoryLevel(raw: UserRow['sensory_level']): 'beginner' | 'advanced' | 'expert' {
-  if (raw === 'advanced' || raw === 'expert') return raw;
-  return 'beginner';
 }
 
 function normalizeSensoryScore(raw: UserRow['sensory_score']): number {
@@ -406,6 +418,15 @@ function isMissingSensoryScoreColumn(error: QueryErrorLike): boolean {
   const message = String(error.message ?? '').toLowerCase();
   const code = String(error.code ?? '').toLowerCase();
   return message.includes('sensory_score') && (message.includes('does not exist') || code === '42703' || code === 'pgrst204');
+}
+
+function isMissingSensoryLevelOverrideColumn(error: QueryErrorLike): boolean {
+  const message = String(error.message ?? '').toLowerCase();
+  const code = String(error.code ?? '').toLowerCase();
+  return (
+    message.includes('sensory_level_override') &&
+    (message.includes('does not exist') || code === '42703' || code === 'pgrst204')
+  );
 }
 
 export async function requestEmailChange(params: {

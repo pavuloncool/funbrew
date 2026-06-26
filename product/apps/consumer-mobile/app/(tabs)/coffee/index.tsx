@@ -7,6 +7,7 @@ import { RatedCoffeesSection } from '../../../src/components/coffee/RatedCoffees
 import { DiscoverCoffeesTab } from '../../../src/components/hub/DiscoverCoffeesTab';
 import { EmptyState } from '../../../src/components/EmptyState';
 import { AppCard, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
+import { usePendingTastingDiscoverCoffeeIds } from '../../../src/hooks/usePendingTastingDiscoverCoffeeIds';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { supabase } from '../../../src/services/supabaseClient';
 import { pageStyles } from '../../../src/theme/pageStyles';
@@ -46,6 +47,9 @@ export default function CoffeeScreen() {
   const [activeSection, setActiveSection] = useState<CoffeeSection>('rated');
   const [searchQuery, setSearchQuery] = useState('');
   const { userId } = useViewerUserId();
+  const pendingDiscoverCoffeeIds = usePendingTastingDiscoverCoffeeIds({
+    enabled: Boolean(userId),
+  });
   const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
   const normalizedQuery = normalizeSearchValue(searchQuery);
   const favorites = favoritesQuery.data ?? [];
@@ -56,9 +60,9 @@ export default function CoffeeScreen() {
   return (
     <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content]}>
       <View style={styles.header}>
-        <AppText variant="h2" weight="700">Coffee</AppText>
+        <AppText variant="h2" weight="700">Coffee Log</AppText>
         <AppText tone="secondary">
-          Rated coffees, discover feed and saved scan entries in one place.
+          Discover and log your coffee journey.
         </AppText>
         <AppInput
           value={searchQuery}
@@ -101,7 +105,11 @@ export default function CoffeeScreen() {
           <AppText tone="secondary">
             Recommendation ranking evolves later. MVP shows latest active coffees tied to current QR flows.
           </AppText>
-          <DiscoverCoffeesTab searchQuery={searchQuery} />
+          <DiscoverCoffeesTab
+            searchQuery={searchQuery}
+            userId={userId}
+            excludeCoffeeIds={pendingDiscoverCoffeeIds.coffeeIds}
+          />
         </View>
       ) : null}
 

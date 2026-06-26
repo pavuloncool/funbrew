@@ -59,9 +59,9 @@ export default function HubIndexScreen() {
           <View style={[styles.grid, { width: availableWidth, height: availableGridHeight }]}>
             <View style={styles.row}>
               <HubTile
-                title="Coffee"
+                title="Coffee Log"
                 caption="LOG & DISCOVER"
-                description="Log your coffee experiences, discover new blends and manage your saved entries."
+                description="Log your coffee experiences, discover new batches and manage your favourites."
                 onPress={() => router.push('/(tabs)/coffee')}
                 tileWidth={tileWidth}
                 tileHeight={tileHeight}
@@ -70,7 +70,7 @@ export default function HubIndexScreen() {
               <HubTile
                 title="Roasters"
                 caption="FOLLOW & EXPLORE"
-                description="Visit your favourite roasters and discover new ones for more coffee to try."
+                description="Visit your favourite roasters and meet new coffee houses to find your next coffee bag."
                 onPress={() => router.push('/(tabs)/roasters')}
                 tileWidth={tileWidth}
                 tileHeight={tileHeight}

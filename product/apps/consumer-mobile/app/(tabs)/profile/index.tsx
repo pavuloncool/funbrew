@@ -1,4 +1,4 @@
-import { getReputationLevel, getReputationLevelLabel, useCommunityReputationSummary, visualSystemTokens } from '@funcup/shared';
+import { getReputationLevelLabel, resolveSensoryReputation, useCommunityReputationSummary, visualSystemTokens } from '@funcup/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -51,7 +51,8 @@ export default function ProfileScreen() {
   const [favoriteBrewMethodId, setFavoriteBrewMethodId] = useState<string | null>(null);
   const [favoriteTastingNoteIds, setFavoriteFlavorNoteIds] = useState<string[]>([]);
   const [sensoryScore, setSensoryScore] = useState(0);
-  const [sensoryLevelStored, setSensoryLevelStored] = useState<'beginner' | 'advanced' | 'expert'>('beginner');
+  const [sensoryLevel, setSensoryLevel] = useState<'beginner' | 'advanced' | 'expert'>('beginner');
+  const [sensoryLevelOverride, setSensoryLevelOverride] = useState<'beginner' | 'advanced' | 'expert' | null>(null);
   const [brewMethodOptions, setBrewMethodOptions] = useState<BrewMethodOption[]>([]);
   const [flavorNoteOptions, setFlavorNoteOptions] = useState<TastingNoteOption[]>([]);
 
@@ -64,7 +65,15 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const communitySummaryQuery = useCommunityReputationSummary({ supabase, userId: userId || null });
-  const reputationLevel = useMemo(() => getReputationLevel(sensoryScore), [sensoryScore]);
+  const reputation = useMemo(
+    () =>
+      resolveSensoryReputation({
+        sensoryScore,
+        sensoryLevel,
+        sensoryLevelOverride,
+      }),
+    [sensoryLevel, sensoryLevelOverride, sensoryScore]
+  );
 
   const selectedAvatar = useMemo(() => resolveAvatarOption(avatarValue), [avatarValue]);
   const selectedAvatarSvg = useMemo(
@@ -119,7 +128,8 @@ export default function ProfileScreen() {
         const prunedNotes = profile.favoriteTastingNoteIds.filter((id) => allowedIds.has(id));
         setFavoriteFlavorNoteIds(prunedNotes);
         setSensoryScore(profile.sensoryScore);
-        setSensoryLevelStored(profile.sensoryLevel);
+        setSensoryLevel(profile.sensoryLevel);
+        setSensoryLevelOverride(profile.sensoryLevelOverride);
         setBrewMethodOptions(brewMethods);
         setFlavorNoteOptions(flavorNotes);
         if (prunedNotes.length !== profile.favoriteTastingNoteIds.length) {
@@ -209,7 +219,8 @@ export default function ProfileScreen() {
 
       const refreshed = await loadEditableProfile(supabase);
       setSensoryScore(refreshed.sensoryScore);
-      setSensoryLevelStored(refreshed.sensoryLevel);
+      setSensoryLevel(refreshed.sensoryLevel);
+      setSensoryLevelOverride(refreshed.sensoryLevelOverride);
       setEditMode(false);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Nie udało się zapisać profilu.');
@@ -337,13 +348,8 @@ export default function ProfileScreen() {
 
         <AppCard>
           <AppText variant="body" weight="600">Sensory reputation</AppText>
-          <AppText variant="h2" weight="700">{getReputationLevelLabel(reputationLevel)}</AppText>
+          <AppText variant="h2" weight="700">{getReputationLevelLabel(reputation.effectiveLevel)}</AppText>
           <AppText tone="secondary">Score: {sensoryScore}</AppText>
-          {sensoryLevelStored !== reputationLevel ? (
-            <AppText tone="secondary">
-              Stored level: {getReputationLevelLabel(sensoryLevelStored)}
-            </AppText>
-          ) : null}
           <AppText tone="secondary">Fav brew method: {favoriteBrewMethodLabel}</AppText>
           <AppText tone="secondary">Fav tasting notes: {favoriteTastingNotesLabel}</AppText>
           <AppText tone="secondary">

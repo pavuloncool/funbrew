@@ -13,7 +13,7 @@ import {
 } from '@funcup/shared';
 import { Link, useLocalSearchParams, useSegments } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { CoffeePageBrewing } from '../../coffee/CoffeePageBrewing';
 import { CoffeePageCommunity } from '../../coffee/CoffeePageCommunity';
@@ -75,6 +75,7 @@ export default function CoffeePageScreen() {
   const segments = useSegments() as string[];
   const hash = params.hash ?? null;
   const topSegment = segments[0] ?? null;
+  const isScanContext = topSegment === 'q';
   const { userId } = useViewerUserId();
   const coffeeQuery = useCoffeePage({ supabase, hash });
   const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
@@ -90,7 +91,7 @@ export default function CoffeePageScreen() {
   });
   const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
   const favoriteMutation = useToggleFavoriteScannedEntry({ supabase, userId });
-  const fallbackHref = topSegment === 'q'
+  const fallbackHref = isScanContext
     ? '/(tabs)/scan/scan'
     : '/(tabs)/coffee';
   const coffeeImageUri = useMemo(() => {
@@ -106,7 +107,7 @@ export default function CoffeePageScreen() {
   if (!hash) {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
-        <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
+        <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
         <ScreenError
           title="Missing QR"
           message="Open this page from a scanned QR code or a valid link."
@@ -119,7 +120,7 @@ export default function CoffeePageScreen() {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA}>
         <InlineBackHeader
-          title="Coffee Page"
+          title="Discover Coffee"
           fallbackHref={fallbackHref}
           style={styles.loadingHeader}
         />
@@ -133,7 +134,7 @@ export default function CoffeePageScreen() {
     const copy = flowErrorUiCopy(flowError);
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
-        <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
+        <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
         <ScreenError
           title={copy.title}
           message="Data not fetched. Try again or contact fun•brew."
@@ -148,7 +149,7 @@ export default function CoffeePageScreen() {
   if (!data) {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.paddedContent}>
-        <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
+        <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
         <ScreenError title="No data" message="Unexpected empty response from scan." />
       </AppScrollScreen>
     );
@@ -168,7 +169,7 @@ export default function CoffeePageScreen() {
 
   return (
     <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
-      <InlineBackHeader title="Coffee Page" fallbackHref={fallbackHref} />
+      <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
       {publicCoffee.archived ? (
         <AppCard style={styles.archived}>
           <AppText weight="600">Archived batch</AppText>
@@ -211,33 +212,44 @@ export default function CoffeePageScreen() {
           <AppText weight="700">Altitude:</AppText> {fields.origin.altitudeLabel ?? '—'}
         </AppText>
         {userId ? (
-          <AppButton
-            label={favoriteMutation.isPending ? 'Saving favorite…' : isFavorite ? 'Remove from favorites' : 'Add coffee to favorites'}
-            variant={isFavorite ? 'secondary' : 'primary'}
-            onPress={() => {
-              void favoriteMutation.mutateAsync({
-                qrHash: hash,
-                batchId: publicCoffee.logBatchId ?? data.batch.id,
-                coffeeId: data.coffee.id,
-                shouldFavorite: !isFavorite,
-                optimisticEntry: {
-                  id: `optimistic-${hash}`,
+          <>
+            <AppButton
+              label={favoriteMutation.isPending ? 'Saving favorite…' : isFavorite ? 'Remove from favorites' : 'Add coffee to favorites'}
+              variant={isFavorite ? 'secondary' : 'primary'}
+              onPress={() => {
+                void favoriteMutation.mutateAsync({
                   qrHash: hash,
                   batchId: publicCoffee.logBatchId ?? data.batch.id,
                   coffeeId: data.coffee.id,
-                  createdAt: new Date().toISOString(),
-                  coffeeName: fields.coffee.name,
-                  processingMethod: fields.coffee.processingMethod,
-                  roastDate: fields.batch.roastDate ?? null,
-                  lotNumber: fields.batch.lotNumber ?? null,
-                  roasterName: publicCoffee.roaster.name,
-                  roasterCountry: publicCoffee.roaster.country,
-                  originCountry: fields.origin.country,
-                },
-              });
-            }}
-            disabled={favoriteMutation.isPending}
-          />
+                  shouldFavorite: !isFavorite,
+                  optimisticEntry: {
+                    id: `optimistic-${hash}`,
+                    qrHash: hash,
+                    batchId: publicCoffee.logBatchId ?? data.batch.id,
+                    coffeeId: data.coffee.id,
+                    createdAt: new Date().toISOString(),
+                    coffeeName: fields.coffee.name,
+                    processingMethod: fields.coffee.processingMethod,
+                    roastDate: fields.batch.roastDate ?? null,
+                    lotNumber: fields.batch.lotNumber ?? null,
+                    roasterName: publicCoffee.roaster.name,
+                    roasterCountry: publicCoffee.roaster.country,
+                    originCountry: fields.origin.country,
+                  },
+                });
+              }}
+              disabled={favoriteMutation.isPending}
+            />
+            {fields.coffee.storeUrl ? (
+              <AppButton
+                label="Buy this coffee"
+                variant="secondary"
+                onPress={() => {
+                  void Linking.openURL(fields.coffee.storeUrl as string);
+                }}
+              />
+            ) : null}
+          </>
         ) : null}
       </AppCard>
 
@@ -303,7 +315,7 @@ export default function CoffeePageScreen() {
         )}
       </AppCard>
 
-      {publicCoffee.logBatchId ? (
+      {isScanContext && publicCoffee.logBatchId ? (
         <View style={styles.logAction}>
           <Link href={logHref} asChild>
             <Pressable accessibilityRole="button" style={styles.logCta}>

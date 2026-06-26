@@ -15,7 +15,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrewMethodPicker } from '../../src/coffee/tasting/BrewMethodPicker';
@@ -23,7 +23,7 @@ import { FlavorNoteSelector } from '../../src/coffee/tasting/FlavorNoteSelector'
 import { SensoryCoreScorePicker } from '../../src/coffee/tasting/SensoryCoreScorePicker';
 import { InlineBackHeader } from '../../src/components/navigation/InlineBackHeader';
 import { useViewerUserId } from '../../src/hooks/useViewerUserId';
-import { supabase } from '../../src/services/supabaseClient';
+import { getResolvedSupabasePublicUrl, supabase } from '../../src/services/supabaseClient';
 import { AppButton, AppCard, AppInput, AppScrollScreen, AppText } from '../../src/components/ui/primitives';
 import { pageStyles } from '../../src/theme/pageStyles';
 
@@ -58,6 +58,38 @@ const INTENT_OPTIONS: Array<{ value: RepurchaseIntent; label: string }> = [
   { value: 'unsure', label: 'Not sure' },
 ];
 const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
+
+function resolveImageUri(rawUri: string | null | undefined): string | null {
+  const value = rawUri?.trim() ?? '';
+  if (!value) return null;
+
+  let supabaseBase: URL | null = null;
+  try {
+    supabaseBase = new URL(getResolvedSupabasePublicUrl());
+  } catch {
+    supabaseBase = null;
+  }
+
+  if (value.startsWith('/')) {
+    return supabaseBase ? `${supabaseBase.origin}${value}` : value;
+  }
+
+  try {
+    const imageUrl = new URL(value);
+    if (
+      supabaseBase &&
+      (imageUrl.hostname === '127.0.0.1' || imageUrl.hostname === 'localhost')
+    ) {
+      imageUrl.protocol = supabaseBase.protocol;
+      imageUrl.hostname = supabaseBase.hostname;
+      imageUrl.port = supabaseBase.port;
+      return imageUrl.toString();
+    }
+    return imageUrl.toString();
+  } catch {
+    return value;
+  }
+}
 
 export default function CoffeeLogDetailsScreen() {
   const params = useLocalSearchParams<{ logId?: string }>();
@@ -104,6 +136,7 @@ export default function CoffeeLogDetailsScreen() {
   const [sensoryBitter, setSensoryBitter] = useState(3);
   const [sensoryAftertaste, setSensoryAftertaste] = useState(3);
   const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
+  const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
 
   useEffect(() => {
     const details = detailsQuery.data;
@@ -128,6 +161,11 @@ export default function CoffeeLogDetailsScreen() {
   }, [telemetryQuery.data, isEditing]);
 
   const details = detailsQuery.data ?? null;
+  const coffeeImageUri = resolveImageUri(details?.coverImageUrl);
+
+  useEffect(() => {
+    setCoffeeImageFailed(false);
+  }, [coffeeImageUri]);
 
   const validate = (): string | null => {
     if (rating < 1 || rating > 5) {
@@ -295,7 +333,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
-        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
+        <InlineBackHeader title="Rated Coffee" fallbackHref="/(tabs)/coffee" />
         <AppText>Missing log id.</AppText>
       </AppScrollScreen>
     );
@@ -306,7 +344,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
-        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
+        <InlineBackHeader title="Rated Coffee" fallbackHref="/(tabs)/coffee" />
         <AppText>Loading tasting entry...</AppText>
       </AppScrollScreen>
     );
@@ -317,7 +355,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
-        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
+        <InlineBackHeader title="Rated Coffee" fallbackHref="/(tabs)/coffee" />
         <AppText tone="danger">Could not load tasting details.</AppText>
       </AppScrollScreen>
     );
@@ -328,7 +366,7 @@ export default function CoffeeLogDetailsScreen() {
       <AppScrollScreen
         contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
       >
-        <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
+        <InlineBackHeader title="Rated Coffee" fallbackHref="/(tabs)/coffee" />
         <AppText>Tasting entry not found.</AppText>
       </AppScrollScreen>
     );
@@ -343,10 +381,27 @@ export default function CoffeeLogDetailsScreen() {
     <AppScrollScreen
       contentContainerStyle={[pageStyles.contentCompact, { paddingBottom: contentBottomPadding }]}
     >
-      <InlineBackHeader title="Rated Coffee Entry" fallbackHref="/(tabs)/coffee" />
-      <AppCard>
-        <AppText variant="h3" weight="700">{title}</AppText>
-        <AppText tone="secondary">{subtitle}</AppText>
+      <InlineBackHeader title="Rated Coffee" fallbackHref="/(tabs)/coffee" />
+      <AppCard style={styles.heroCard}>
+        <View style={styles.heroMedia}>
+          {!coffeeImageFailed && coffeeImageUri ? (
+            <Image
+              source={{ uri: coffeeImageUri }}
+              style={styles.heroImage}
+              resizeMode="contain"
+              accessibilityLabel={`Etykieta kawy ${title}`}
+              onError={() => setCoffeeImageFailed(true)}
+            />
+          ) : (
+            <View style={styles.heroFallback}>
+              <AppText tone="muted">Brak podglądu etykiety</AppText>
+            </View>
+          )}
+        </View>
+        <View style={styles.heroText}>
+          <AppText variant="h3" weight="700">{title}</AppText>
+          <AppText tone="secondary">{subtitle}</AppText>
+        </View>
       </AppCard>
 
       <AppCard style={styles.cardGap}>
@@ -405,7 +460,7 @@ export default function CoffeeLogDetailsScreen() {
           value={freeTextNotes}
           onChangeText={setFreeTextNotes}
           editable={isEditing}
-          placeholder="Acidity, sweetness, balance, aftertaste..."
+          placeholder="Acidity, sweetness, balance, finish..."
           multiline
           style={styles.multilineInput}
         />
@@ -548,6 +603,33 @@ export default function CoffeeLogDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
+  heroCard: {
+    gap: visualSystemTokens.spacing.sm,
+  },
+  heroMedia: {
+    minHeight: 180,
+    borderRadius: visualSystemTokens.radius.lg,
+    borderWidth: 1,
+    borderColor: visualSystemTokens.colors.borderSubtle,
+    backgroundColor: visualSystemTokens.colors.surfaceElevated,
+    padding: visualSystemTokens.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  heroImage: {
+    width: '100%',
+    height: 180,
+  },
+  heroFallback: {
+    width: '100%',
+    height: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroText: {
+    gap: visualSystemTokens.spacing.xxs,
+  },
   cardGap: {
     gap: visualSystemTokens.spacing.xs,
   },

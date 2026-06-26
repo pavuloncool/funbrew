@@ -5,6 +5,8 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTastingLogExitGuardNavigation } from '../../navigation/TastingLogExitGuard';
+
 const { recipes, spacing, radius, colors, motion } = visualSystemTokens;
 export const TAB_BAR_HEIGHT = 56;
 export const TAB_BAR_FAB_OVERLAP = 54;
@@ -66,6 +68,7 @@ type StandaloneTabBarTab = 'home' | 'profile' | null;
 export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
   const active = props.active ?? null;
   const insets = useSafeAreaInsets();
+  const requestGuardedNavigation = useTastingLogExitGuardNavigation();
 
   return (
     <View style={[standaloneStyles.shell, { paddingBottom: insets.bottom }]}> 
@@ -73,7 +76,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go to Home"
-          onPress={() => router.replace('/(tabs)/hub')}
+          onPress={() => requestGuardedNavigation(() => router.replace('/(tabs)/hub'))}
           style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
         >
           <TabDotIcon active={active === 'home'} label="H" />
@@ -83,7 +86,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go to Scan Coffee"
-          onPress={() => router.replace(appShellRules.centralActionRoute)}
+          onPress={() => requestGuardedNavigation(() => router.replace(appShellRules.centralActionRoute))}
           style={({ pressed }) => [standaloneStyles.centerItem, pressed && { opacity: motion.press.opacity }]}
         >
           <TabCentralScanFab />
@@ -93,7 +96,7 @@ export function AppChromeTabBar(props: { active?: StandaloneTabBarTab }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go to Profile"
-          onPress={() => router.replace('/(tabs)/profile')}
+          onPress={() => requestGuardedNavigation(() => router.replace('/(tabs)/profile'))}
           style={({ pressed }) => [standaloneStyles.item, pressed && { opacity: motion.press.opacity }]}
         >
           <TabDotIcon active={active === 'profile'} label="P" />

@@ -44,8 +44,17 @@ function matchesSearch(
   return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
 }
 
-export function DiscoverCoffeesTab(props: { searchQuery?: string }) {
-  const coffeesQuery = useDiscoverCoffees({ supabase, limit: 8 });
+export function DiscoverCoffeesTab(props: {
+  searchQuery?: string;
+  userId?: string | null;
+  excludeCoffeeIds?: string[];
+}) {
+  const coffeesQuery = useDiscoverCoffees({
+    supabase,
+    userId: props.userId,
+    limit: 8,
+    excludeCoffeeIds: props.excludeCoffeeIds,
+  });
 
   if (coffeesQuery.isLoading) {
     return <DiscoverListSkeleton rows={4} />;

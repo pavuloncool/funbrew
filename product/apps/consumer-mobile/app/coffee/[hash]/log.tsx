@@ -1,4 +1,6 @@
 import {
+  type ScanQrResult,
+  type RepurchaseIntent,
   enqueuePendingTasting,
   flowErrorUiCopy,
   logTasting,
@@ -6,15 +8,16 @@ import {
   normalizeFlowError,
   normalizeTastingSyncError,
   SENSORY_CORE_METRICS,
-  type RepurchaseIntent,
   upsertRoasterTelemetryCore,
+  useCoffeePage,
   useUnlockedTastingNotes,
   updateCoffeeStats,
   visualSystemTokens,
 } from '@funcup/shared';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,23 +28,62 @@ import { SensoryCoreScorePicker } from '../../../src/coffee/tasting/SensoryCoreS
 import { InlineBackHeader } from '../../../src/components/navigation/InlineBackHeader';
 import { useOfflineTastingSync } from '../../../src/hooks/useOfflineTastingSync';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
+import { useTastingLogExitGuardRegistration } from '../../../src/navigation/TastingLogExitGuard';
 import { useGoBackOrFallback } from '../../../src/navigation/useGoBackOrFallback';
 import { offlineQueueStorage } from '../../../src/services/offlineQueueStorage';
-import { supabase } from '../../../src/services/supabaseClient';
-import { AppButton, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
+import {
+  addPendingTastingDiscoverCoffeeId,
+  refreshPendingTastingDiscoverCoffeeIds,
+} from '../../../src/services/pendingTastingDiscoverExclusions';
+import { getResolvedSupabasePublicUrl, supabase } from '../../../src/services/supabaseClient';
+import { AppButton, AppCard, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
 import { pageStyles } from '../../../src/theme/pageStyles';
+
+function resolveImageUri(rawUri: string | null | undefined): string | null {
+  const value = rawUri?.trim() ?? '';
+  if (!value) return null;
+
+  let supabaseBase: URL | null = null;
+  try {
+    supabaseBase = new URL(getResolvedSupabasePublicUrl());
+  } catch {
+    supabaseBase = null;
+  }
+
+  if (value.startsWith('/')) {
+    return supabaseBase ? `${supabaseBase.origin}${value}` : value;
+  }
+
+  try {
+    const imageUrl = new URL(value);
+    if (
+      supabaseBase &&
+      (imageUrl.hostname === '127.0.0.1' || imageUrl.hostname === 'localhost')
+    ) {
+      imageUrl.protocol = supabaseBase.protocol;
+      imageUrl.hostname = supabaseBase.hostname;
+      imageUrl.port = supabaseBase.port;
+      return imageUrl.toString();
+    }
+    return imageUrl.toString();
+  } catch {
+    return value;
+  }
+}
 
 export default function TastingLogScreen() {
   const insets = useSafeAreaInsets();
   const { userId } = useViewerUserId();
+  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ hash?: string; batchId?: string }>();
   const hash = typeof params.hash === 'string' && params.hash.length > 0 ? params.hash : null;
   const batchId = typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : null;
   const coffeeFallbackHref = hash
     ? ({ pathname: '/coffee/[hash]', params: { hash } } as const)
     : '/(tabs)/coffee';
-  const { isOnline, pendingCount, failedCount, refreshPendingCount } = useOfflineTastingSync();
+  const { refreshPendingCount } = useOfflineTastingSync();
   const unlocksQuery = useUnlockedTastingNotes({ supabase, userId });
+  const coffeeQuery = useCoffeePage({ supabase, hash });
   const goBackToCoffee = useGoBackOrFallback(coffeeFallbackHref);
   const [rating, setRating] = useState<number | null>(null);
   const [brewMethodId, setBrewMethodId] = useState<string | null>(null);
@@ -59,6 +101,48 @@ export default function TastingLogScreen() {
   const [sensoryBitter, setSensoryBitter] = useState(3);
   const [sensoryAftertaste, setSensoryAftertaste] = useState(3);
   const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
+  const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
+
+  const getCachedCoffeeId = () => {
+    if (!hash) return null;
+    return queryClient.getQueryData<ScanQrResult>(['coffeePage', hash])?.coffee.id ?? null;
+  };
+
+  const coffeeName = coffeeQuery.data?.coffee.name ?? 'Coffee';
+  const coffeeRoasterName = coffeeQuery.data?.roaster.roaster_short_name ?? coffeeQuery.data?.roaster.name ?? null;
+  const coffeeImageUri = resolveImageUri(coffeeQuery.data?.coffee.cover_image_url ?? null);
+
+  useEffect(() => {
+    setCoffeeImageFailed(false);
+  }, [coffeeImageUri]);
+
+  const hasUnsavedDraft = useMemo(() => (
+    rating != null ||
+    brewMethodId != null ||
+    tastingNoteIds.length > 0 ||
+    freeTextNotes.trim().length > 0 ||
+    review.trim().length > 0 ||
+    sensoryAcidity !== 3 ||
+    sensorySweetness !== 3 ||
+    sensoryBody !== 3 ||
+    sensoryBitter !== 3 ||
+    sensoryAftertaste !== 3 ||
+    repurchaseIntent !== 'unsure'
+  ), [
+    brewMethodId,
+    freeTextNotes,
+    rating,
+    repurchaseIntent,
+    review,
+    sensoryAcidity,
+    sensoryAftertaste,
+    sensoryBitter,
+    sensoryBody,
+    sensorySweetness,
+    tastingNoteIds.length,
+  ]);
+
+  useTastingLogExitGuardRegistration(viewMode === 'form' && hasUnsavedDraft);
 
   const validate = (): string | null => {
     if (!batchId) return 'Missing batch id';
@@ -99,6 +183,10 @@ export default function TastingLogScreen() {
     try {
       if (!online) {
         await enqueuePendingTasting(offlineQueueStorage, payload);
+        const cachedCoffeeId = getCachedCoffeeId();
+        if (cachedCoffeeId) {
+          addPendingTastingDiscoverCoffeeId(cachedCoffeeId);
+        }
         await refreshPendingCount();
         setSavedMessage('Queued offline. It will sync after reconnect.');
         setViewMode('saved');
@@ -157,6 +245,11 @@ export default function TastingLogScreen() {
       } else {
         setSavedMessage('Rating saved.');
       }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['journal', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['discoverCoffees'] }),
+      ]);
+      await refreshPendingTastingDiscoverCoffeeIds().catch(() => undefined);
       setViewMode('saved');
     } catch (error) {
       const syncError = normalizeTastingSyncError(error);
@@ -164,6 +257,10 @@ export default function TastingLogScreen() {
       const copy = flowErrorUiCopy(syncError);
       if (syncError.retryable) {
         await enqueuePendingTasting(offlineQueueStorage, payload);
+        const cachedCoffeeId = getCachedCoffeeId();
+        if (cachedCoffeeId) {
+          addPendingTastingDiscoverCoffeeId(cachedCoffeeId);
+        }
         await refreshPendingCount();
         setStatus(copy.message);
       } else if (syncError.kind === 'validation') {
@@ -179,11 +276,27 @@ export default function TastingLogScreen() {
   return (
     <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content, { paddingBottom: 96 + insets.bottom }]}>
       <InlineBackHeader title="Tasting Log" fallbackHref={coffeeFallbackHref} />
-      <AppText>Batch id: {batchId ?? '(missing)'}</AppText>
-      <AppText tone={isOnline ? 'success' : 'danger'}>
-        {isOnline ? 'Online' : 'Offline'} | Pending queue: {pendingCount}
-        {failedCount > 0 ? ` | Failed sync: ${failedCount}` : ''}
-      </AppText>
+      <AppCard style={styles.coffeeHeroCard}>
+        <View style={styles.coffeeHeroMedia}>
+          {!coffeeImageFailed && coffeeImageUri ? (
+            <Image
+              source={{ uri: coffeeImageUri }}
+              style={styles.coffeeHeroImage}
+              resizeMode="contain"
+              accessibilityLabel={`Etykieta kawy ${coffeeName}`}
+              onError={() => setCoffeeImageFailed(true)}
+            />
+          ) : (
+            <View style={styles.coffeeHeroFallback}>
+              <AppText tone="muted">Brak podglądu etykiety</AppText>
+            </View>
+          )}
+        </View>
+        <View style={styles.coffeeHeroText}>
+          <AppText variant="h3" weight="700">{coffeeName}</AppText>
+          {coffeeRoasterName ? <AppText tone="secondary">{coffeeRoasterName}</AppText> : null}
+        </View>
+      </AppCard>
 
       {viewMode === 'saved' ? (
         <View style={styles.submit}>
@@ -290,7 +403,7 @@ export default function TastingLogScreen() {
             <AppInput
               value={freeTextNotes}
               onChangeText={setFreeTextNotes}
-              placeholder="Acidity, sweetness, balance, aftertaste..."
+              placeholder="Acidity, sweetness, balance, finish..."
               multiline
               style={styles.multilineInput}
             />
@@ -332,6 +445,33 @@ export default function TastingLogScreen() {
 const styles = StyleSheet.create({
   content: {
     width: '100%',
+  },
+  coffeeHeroCard: {
+    gap: visualSystemTokens.spacing.sm,
+  },
+  coffeeHeroMedia: {
+    minHeight: 180,
+    borderRadius: visualSystemTokens.radius.lg,
+    borderWidth: 1,
+    borderColor: visualSystemTokens.colors.borderSubtle,
+    backgroundColor: visualSystemTokens.colors.surfaceElevated,
+    padding: visualSystemTokens.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  coffeeHeroImage: {
+    width: '100%',
+    height: 180,
+  },
+  coffeeHeroFallback: {
+    width: '100%',
+    height: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coffeeHeroText: {
+    gap: visualSystemTokens.spacing.xxs,
   },
   fieldBlock: { gap: visualSystemTokens.spacing.xs },
   selectorMeta: { gap: visualSystemTokens.spacing.xxs },

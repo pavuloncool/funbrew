@@ -21,7 +21,7 @@ Smell dry grounds, then wet grounds. Note what changes.
 Acidity should feel lively, sweetness should feel natural.
 
 ## 3) Finish with texture
-Body and aftertaste are where many coffees reveal quality.
+Body and finish are where many coffees reveal quality.
 
 > Tip: keep notes short, specific, and repeatable.`,
   },

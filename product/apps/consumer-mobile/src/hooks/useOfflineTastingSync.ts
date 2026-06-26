@@ -5,6 +5,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { onlineManager } from '@tanstack/react-query';
 
 import { offlineQueueStorage } from '../services/offlineQueueStorage';
+import { refreshPendingTastingDiscoverCoffeeIds } from '../services/pendingTastingDiscoverExclusions';
 import { supabase } from '../services/supabaseClient';
 
 export function useOfflineTastingSync() {
@@ -53,6 +54,11 @@ export function useOfflineTastingSync() {
         // Keep the sync loop alive; queue state is still refreshed below.
       }
       await refreshPendingCount();
+      try {
+        await refreshPendingTastingDiscoverCoffeeIds();
+      } catch {
+        // Keep discover filtering best-effort; queue state still refreshes separately.
+      }
     };
 
     void flush();
