@@ -295,7 +295,7 @@ export function RoasterBatchCollection(props: RoasterBatchCollectionProps) {
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex flex-wrap items-start gap-5">
-                    {variant === 'manage' && record.coverImageUrl ? (
+                    {record.coverImageUrl ? (
                       <div className={hubCrudStyles.assetPreviewFrame}>
                         <img
                           src={record.coverImageUrl}
@@ -344,6 +344,11 @@ export function RoasterBatchCollection(props: RoasterBatchCollectionProps) {
                   <Link href={copy.secondaryHref(record.batchId)} className={hubCrudStyles.actionLink}>
                     {copy.secondaryLabel}
                   </Link>
+                  {record.storeUrl ? (
+                    <Link href={record.storeUrl} className={hubCrudStyles.actionLink} target="_blank">
+                      Coffee Store URL
+                    </Link>
+                  ) : null}
                   {record.qrHash ? (
                     <Link href={`/q/${record.qrHash}`} className={hubCrudStyles.actionLink} target="_blank">
                       Open mobile handoff
