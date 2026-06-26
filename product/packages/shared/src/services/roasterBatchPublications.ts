@@ -23,6 +23,7 @@ export type BatchPublicationCoffee = {
   processingMethod: string | null;
   producerNotes: string | null;
   coverImageUrl: string | null;
+  storeUrl: string | null;
 };
 
 export type BatchPublicationBatch = {
@@ -56,6 +57,7 @@ export type BatchPublicationSummary = {
   coffeeId: string;
   coffeeName: string;
   coverImageUrl: string | null;
+  storeUrl: string | null;
   coffeeVariety: string | null;
   coffeeVarieties: CoffeeVarietyOption[];
   coffeeProcessingMethod: string | null;
@@ -84,6 +86,7 @@ export type BatchPublicationPayload = {
     processingMethod: string | null;
     producerNotes: string | null;
     coverImageUrl: string | null;
+    storeUrl: string | null;
   };
   origin: BatchPublicationOrigin | null;
   batch: {

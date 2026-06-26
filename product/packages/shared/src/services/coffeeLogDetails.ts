@@ -5,6 +5,7 @@ export type CoffeeLogDetails = {
   batchId: string;
   brewMethodId: string | null;
   coffeeName: string;
+  coverImageUrl: string | null;
   roasterName: string | null;
   loggedAt: string;
   rating: number;
@@ -42,6 +43,7 @@ export function parseCoffeeLogDetails(raw: unknown): CoffeeLogDetails | null {
     roast_batches?: {
       coffees?: {
         name?: string;
+        cover_image_url?: string | null;
         roasters?: { name?: string | null } | null;
       } | null;
     } | null;
@@ -54,6 +56,7 @@ export function parseCoffeeLogDetails(raw: unknown): CoffeeLogDetails | null {
     batchId: row.batch_id,
     brewMethodId: row.brew_method_id,
     coffeeName: row.roast_batches?.coffees?.name ?? 'Coffee',
+    coverImageUrl: row.roast_batches?.coffees?.cover_image_url ?? null,
     roasterName: row.roast_batches?.coffees?.roasters?.name ?? null,
     loggedAt: row.logged_at,
     rating: row.rating,
@@ -80,6 +83,7 @@ export async function fetchCoffeeLogDetails(
       roast_batches (
         coffees (
           name,
+          cover_image_url,
           roasters ( name )
         )
       ),

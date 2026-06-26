@@ -4,6 +4,7 @@ import {
   getFlavorNotesForReputation,
   getReputationLevel,
   hasExpertBadge,
+  resolveSensoryReputation,
   silentReputationUi,
 } from '../constants/reputation';
 import { reputationThresholds } from '../constants/reputationThresholds';
@@ -30,6 +31,26 @@ describe('reputation progression', () => {
   it('marks expert badge only for expert level', () => {
     expect(hasExpertBadge(reputationThresholds.advancedToExpert - 1)).toBe(false);
     expect(hasExpertBadge(reputationThresholds.advancedToExpert)).toBe(true);
+  });
+
+  it('uses fair sensory reputation boundaries', () => {
+    expect(getReputationLevel(29)).toBe('beginner');
+    expect(getReputationLevel(30)).toBe('advanced');
+    expect(getReputationLevel(54)).toBe('advanced');
+    expect(getReputationLevel(55)).toBe('expert');
+  });
+
+  it('resolves manual override without changing score-derived level', () => {
+    const reputation = resolveSensoryReputation({
+      sensoryScore: 3,
+      sensoryLevel: 'beginner',
+      sensoryLevelOverride: 'advanced',
+    });
+
+    expect(reputation.score).toBe(3);
+    expect(reputation.computedLevel).toBe('beginner');
+    expect(reputation.effectiveLevel).toBe('advanced');
+    expect(reputation.isOverridden).toBe(true);
   });
 });
 

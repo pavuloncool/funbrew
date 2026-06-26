@@ -23,6 +23,7 @@ describe('normalizeCoffeePageData', () => {
           processing_method: 'washed',
           producer_notes: 'Stone fruit and sugarcane.',
           cover_image_url: 'https://example.com/cover.png',
+          store_url: 'https://shop.example.com/demo-coffee',
         },
         origin: {
           country: 'Colombia',
@@ -52,6 +53,7 @@ describe('normalizeCoffeePageData', () => {
 
     expect(result.source).toBe('canonical');
     expect(result.product.name).toBe('Demo Coffee');
+    expect(result.product.storeUrl).toBe('https://shop.example.com/demo-coffee');
     expect(result.product.varieties).toEqual([{ id: 'var-1', name: 'Bourbon' }]);
     expect(result.origin.altitudeLabel).toBe('1700-1900 m');
     expect(result.logBatchId).toBe('batch-1');
@@ -83,6 +85,7 @@ describe('normalizeCoffeePageData', () => {
           processing_method: 'washed',
           producer_notes: 'Stone fruit and sugarcane.',
           cover_image_url: 'https://example.com/cover.png',
+          store_url: 'https://shop.example.com/demo-coffee',
         },
         origin: {
           country: 'Colombia',
@@ -112,6 +115,7 @@ describe('normalizeCoffeePageData', () => {
 
     const fields = toCanonicalPublicationFields(normalized);
     expect(fields.coffee.name).toBe('Demo Coffee');
+    expect(fields.coffee.storeUrl).toBe('https://shop.example.com/demo-coffee');
     expect(fields.coffee.varieties.map((entry) => entry.name)).toEqual(['Bourbon', 'Caturra']);
     expect(fields.origin.country).toBe('Colombia');
     expect(fields.origin.altitudeLabel).toBe('1700-1900 m');

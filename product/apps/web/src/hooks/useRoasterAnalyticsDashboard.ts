@@ -46,7 +46,7 @@ export type AnalyticsExportDataset = {
 };
 
 export type RadarMetricRow = {
-  metric: 'Acidity' | 'Sweet' | 'Body' | 'Bitter' | 'Aftertaste';
+  metric: 'Acidity' | 'Sweet' | 'Body' | 'Bitter' | 'Finish';
   declared: number | null;
   perceived: number | null;
   delta: number | null;

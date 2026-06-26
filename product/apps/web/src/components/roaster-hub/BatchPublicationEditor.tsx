@@ -39,6 +39,7 @@ type BatchPublicationEditorProps = {
 
 type FormValues = {
   name: string;
+  storeUrl: string;
   varietyIds: string[];
   processingMethod: string;
   producerNotes: string;
@@ -105,6 +106,7 @@ function buildQrEntryPath(hash: string): string {
 function emptyFormValues(): FormValues {
   return {
     name: '',
+    storeUrl: '',
     varietyIds: [],
     processingMethod: '',
     producerNotes: '',
@@ -141,9 +143,21 @@ function toNullableNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isValidAbsoluteHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function validateForm(values: FormValues): FormErrors {
   const errors: FormErrors = {};
   if (!values.name.trim()) errors.name = 'Coffee name is required.';
+  if (values.storeUrl.trim() && !isValidAbsoluteHttpUrl(values.storeUrl.trim())) {
+    errors.storeUrl = 'Store URL must be a valid absolute http:// or https:// URL.';
+  }
   if (!values.lotNumber.trim()) errors.lotNumber = 'Lot number is required.';
   if (!values.roastDate.trim()) errors.roastDate = 'Roast date is required.';
 
@@ -191,6 +205,7 @@ function mapDetailToFormValues(detail: Awaited<ReturnType<typeof getRoasterBatch
 
   return {
     name: detail.coffee.name,
+    storeUrl: detail.coffee.storeUrl ?? '',
     varietyIds: detail.coffee.varieties.map((entry) => entry.id),
     processingMethod: detail.coffee.processingMethod ?? '',
     producerNotes: detail.coffee.producerNotes ?? '',
@@ -508,6 +523,7 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
       const payloadBase = {
         coffee: {
           name: values.name.trim(),
+          storeUrl: trimNullable(values.storeUrl),
           varietyIds: values.varietyIds,
           processingMethod: trimNullable(values.processingMethod),
           producerNotes: trimNullable(values.producerNotes),
@@ -650,6 +666,14 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
           value={values.name}
           onChange={(value) => setValues((prev) => ({ ...prev, name: value }))}
           error={errors.name}
+        />
+        <Field
+          label="Store URL"
+          value={values.storeUrl}
+          onChange={(value) => setValues((prev) => ({ ...prev, storeUrl: value }))}
+          error={errors.storeUrl}
+          placeholder="https://your-store.example.com/products/coffee"
+          inputMode="url"
         />
         <label className={hubCrudStyles.formGrid}>
           <span className={hubCrudStyles.label}>Package label (shelf package label (jpg, png))</span>

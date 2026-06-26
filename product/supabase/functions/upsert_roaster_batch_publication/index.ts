@@ -49,6 +49,24 @@ function asNullableScore(value: unknown): number | null {
   return rounded
 }
 
+function asNullableHttpUrl(value: unknown): string | null {
+  const url = asNullableString(value)
+  if (!url) return null
+
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error('Store URL must be a valid absolute http:// or https:// URL.')
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Store URL must be a valid absolute http:// or https:// URL.')
+  }
+
+  return url
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   const seen = new Set<string>()
@@ -299,6 +317,7 @@ Deno.serve(async (req) => {
           processing_method: asNullableString(coffeeInput.processingMethod),
           producer_notes: asNullableString(coffeeInput.producerNotes),
           cover_image_url: asNullableString(coffeeInput.coverImageUrl),
+          store_url: asNullableHttpUrl(coffeeInput.storeUrl),
           status: 'active',
         })
         .select('id')
@@ -427,6 +446,7 @@ Deno.serve(async (req) => {
         processing_method: asNullableString(coffeeInput.processingMethod),
         producer_notes: asNullableString(coffeeInput.producerNotes),
         cover_image_url: asNullableString(coffeeInput.coverImageUrl),
+        store_url: asNullableHttpUrl(coffeeInput.storeUrl),
         status: 'active',
       })
       .eq('id', coffeeId)

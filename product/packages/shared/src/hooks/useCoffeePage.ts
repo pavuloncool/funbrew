@@ -21,6 +21,7 @@ export type ScanQrBatchResponse = {
     processing_method: string | null;
     producer_notes: string | null;
     cover_image_url: string | null;
+    store_url: string | null;
   };
   origin: Record<string, unknown> | null;
   roaster: {

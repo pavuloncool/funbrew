@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import type { TypedSupabaseClient } from '../services/supabaseClientFactory';
+import { resolveSensoryReputation } from '../constants/reputation';
 import { buildSensoryUnlockState, getRequiredUnlockLevelForTastingNote } from '../sensoryProgression';
 
 export type UnlockedTastingNoteOption = {
@@ -58,17 +59,31 @@ export function useUnlockedTastingNotes(params: {
       const [userResult, noteRows] = await Promise.all([
         params.supabase
           .from('users')
-          .select('sensory_score,sensory_level')
+          .select('sensory_score,sensory_level,sensory_level_override')
           .eq('id', params.userId)
-          .returns<Array<{ sensory_score: number; sensory_level: 'beginner' | 'advanced' | 'expert' }>>(),
+          .returns<
+            Array<{
+              sensory_score: number;
+              sensory_level: 'beginner' | 'advanced' | 'expert';
+              sensory_level_override: 'beginner' | 'advanced' | 'expert' | null;
+            }>
+          >(),
         fetchTastingNoteRows(params.supabase),
       ]);
 
       if (userResult.error) throw userResult.error;
       const userRow = userResult.data?.[0];
 
-      const score = typeof userRow?.sensory_score === 'number' ? userRow.sensory_score : 0;
-      const unlockState = buildSensoryUnlockState(score, noteRows.map((row) => row.name));
+      const reputation = resolveSensoryReputation({
+        sensoryScore: userRow?.sensory_score,
+        sensoryLevel: userRow?.sensory_level,
+        sensoryLevelOverride: userRow?.sensory_level_override,
+      });
+      const unlockState = buildSensoryUnlockState(
+        reputation.score,
+        noteRows.map((row) => row.name),
+        reputation.effectiveLevel
+      );
       const unlockedSet = new Set(unlockState.unlockedNames);
       const options: UnlockedTastingNoteOption[] = noteRows.map((row) => ({
         id: row.id,
@@ -81,7 +96,12 @@ export function useUnlockedTastingNotes(params: {
       }));
 
       return {
-        score,
+        score: reputation.score,
+        computedLevel: reputation.computedLevel,
+        storedLevel: reputation.storedLevel,
+        overrideLevel: reputation.overrideLevel,
+        effectiveLevel: reputation.effectiveLevel,
+        isOverridden: reputation.isOverridden,
         level: unlockState.level,
         levelLabel: unlockState.levelLabel,
         unlockHint: unlockState.unlockHint,

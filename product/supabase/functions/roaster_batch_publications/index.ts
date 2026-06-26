@@ -18,6 +18,7 @@ type CoffeeRow = {
   processing_method: string | null
   producer_notes: string | null
   cover_image_url: string | null
+  store_url: string | null
   origin_id: string | null
 }
 
@@ -186,7 +187,7 @@ Deno.serve(async (req) => {
 
     const coffeesResult = await admin
       .from('coffees')
-      .select('id, name, variety, processing_method, producer_notes, cover_image_url, origin_id')
+      .select('id, name, variety, processing_method, producer_notes, cover_image_url, store_url, origin_id')
       .eq('roaster_id', roasterId)
       .order('created_at', { ascending: false })
 
@@ -278,6 +279,7 @@ Deno.serve(async (req) => {
           coffeeId: coffee.id,
           coffeeName: coffee.name,
           coverImageUrl: coffee.cover_image_url,
+          storeUrl: coffee.store_url,
           coffeeVariety: formatVarietyLabel(coffeeVarieties, coffee.variety),
           coffeeVarieties,
           coffeeProcessingMethod: coffee.processing_method,
@@ -410,6 +412,7 @@ Deno.serve(async (req) => {
         processingMethod: coffee.processing_method,
         producerNotes: coffee.producer_notes,
         coverImageUrl: coffee.cover_image_url,
+        storeUrl: coffee.store_url,
       },
       origin,
       batch: {

@@ -1,5 +1,4 @@
 export const reputationThresholds = {
-  beginnerToAdvanced: 20,
-  advancedToExpert: 50
+  beginnerToAdvanced: 30,
+  advancedToExpert: 55,
 } as const;
-

@@ -2,7 +2,7 @@ export const SENSORY_CORE_SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
 
 export type SensoryCoreMetric = {
   id: 'acidity' | 'sweetness' | 'body' | 'bitter' | 'aftertaste';
-  label: 'Acidity' | 'Sweet' | 'Body' | 'Bitter' | 'Aftertaste';
+  label: 'Acidity' | 'Sweet' | 'Body' | 'Bitter' | 'Finish';
   leftLabel: string;
   rightLabel: string;
   telemetryKey:
@@ -64,7 +64,7 @@ export const SENSORY_CORE_METRICS: readonly SensoryCoreMetric[] = [
   },
   {
     id: 'aftertaste',
-    label: 'Aftertaste',
+    label: 'Finish',
     leftLabel: 'faint and elusive',
     rightLabel: 'long and pleasant',
     telemetryKey: 'sensoryAftertaste',

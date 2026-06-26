@@ -158,40 +158,35 @@ async function recalculateUserReputation(
   supabase: ReturnType<typeof createClient>,
   userId: string
 ) {
-  const { data: userLogs } = await supabase
-    .from('coffee_logs')
-    .select('id, rating')
-    .eq('user_id', userId);
-
-  const logCount = userLogs?.length || 0;
-
-  const { data: user } = await supabase
+  const { data: currentUser } = await supabase
     .from('users')
     .select('sensory_level,sensory_score')
     .eq('id', userId)
     .single();
 
-  const currentLevel = user?.sensory_level || 'beginner';
-  const currentScore = typeof user?.sensory_score === 'number' ? user.sensory_score : 0;
-  let newLevel = currentLevel;
-  const newScore = logCount;
+  const currentLevel = currentUser?.sensory_level || 'beginner';
+  const currentScore = typeof currentUser?.sensory_score === 'number' ? currentUser.sensory_score : 0;
 
-  if (logCount >= 50 && currentLevel !== 'expert') {
-    newLevel = 'expert';
-  } else if (logCount >= 20 && currentLevel === 'beginner') {
-    newLevel = 'advanced';
+  const { error: recalculateError } = await supabase.rpc('recalculate_user_reputation', {
+    p_user_id: userId,
+  });
+
+  if (recalculateError) {
+    throw new Error(recalculateError.message);
   }
 
-  if (newLevel !== currentLevel || newScore !== currentScore) {
-    await supabase
-      .from('users')
-      .update({ sensory_level: newLevel, sensory_score: newScore })
-      .eq('id', userId);
-  }
+  const { data: updatedUser } = await supabase
+    .from('users')
+    .select('sensory_level,sensory_score')
+    .eq('id', userId)
+    .single();
+
+  const nextLevel = updatedUser?.sensory_level || currentLevel;
+  const nextScore = typeof updatedUser?.sensory_score === 'number' ? updatedUser.sensory_score : currentScore;
 
   return {
-    updated: newLevel !== currentLevel || newScore !== currentScore,
-    newLevel: newLevel !== currentLevel ? newLevel : null,
-    newScore,
+    updated: nextLevel !== currentLevel || nextScore !== currentScore,
+    newLevel: nextLevel !== currentLevel ? nextLevel : null,
+    newScore: nextScore,
   };
 }

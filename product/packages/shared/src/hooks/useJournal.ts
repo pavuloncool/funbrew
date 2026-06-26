@@ -24,6 +24,7 @@ export function useJournal(params: { supabase: TypedSupabaseClient; userId: stri
             coffees (
               id,
               name,
+              store_url,
               origin:origins ( country ),
               roasters ( id, name, country, city )
             )

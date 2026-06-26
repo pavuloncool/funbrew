@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from '../services/supabaseClientFactory';
+import { resolveSensoryReputation } from '../constants/reputation';
 import {
   isRoasterExperienceLevel,
   normalizeRoasterTelemetryCoreInput,
@@ -46,14 +47,18 @@ async function resolveExperienceLevel(params: {
 }): Promise<RoasterExperienceLevel> {
   const { data, error } = await params.supabase
     .from('users')
-    .select('sensory_level')
+    .select('sensory_score,sensory_level,sensory_level_override')
     .eq('id', params.userId)
     .maybeSingle();
 
   if (error) return params.fallback;
 
-  const level = (data as { sensory_level?: unknown } | null)?.sensory_level;
-  return isRoasterExperienceLevel(level) ? level : params.fallback;
+  const reputation = resolveSensoryReputation({
+    sensoryScore: (data as { sensory_score?: unknown } | null)?.sensory_score,
+    sensoryLevel: (data as { sensory_level?: unknown } | null)?.sensory_level,
+    sensoryLevelOverride: (data as { sensory_level_override?: unknown } | null)?.sensory_level_override,
+  });
+  return isRoasterExperienceLevel(reputation.effectiveLevel) ? reputation.effectiveLevel : params.fallback;
 }
 
 export async function upsertRoasterTelemetryCore(params: {

@@ -19,6 +19,7 @@ export type Database = {
           avatar_url: string | null;
           favorite_brew_method_id: string | null;
           sensory_level: 'beginner' | 'advanced' | 'expert';
+          sensory_level_override: 'beginner' | 'advanced' | 'expert' | null;
           sensory_score: number;
           created_at: string;
           updated_at: string;
@@ -29,6 +30,7 @@ export type Database = {
           avatar_url?: string | null;
           favorite_brew_method_id?: string | null;
           sensory_level?: 'beginner' | 'advanced' | 'expert';
+          sensory_level_override?: 'beginner' | 'advanced' | 'expert' | null;
           sensory_score?: number;
           created_at?: string;
           updated_at?: string;
@@ -38,6 +40,7 @@ export type Database = {
           avatar_url?: string | null;
           favorite_brew_method_id?: string | null;
           sensory_level?: 'beginner' | 'advanced' | 'expert';
+          sensory_level_override?: 'beginner' | 'advanced' | 'expert' | null;
           sensory_score?: number;
           created_at?: string;
           updated_at?: string;
@@ -175,6 +178,7 @@ export type Database = {
           producer_notes: string | null;
           status: 'draft' | 'active' | 'archived';
           cover_image_url: string | null;
+          store_url: string | null;
           created_at: string;
           updated_at: string;
         };

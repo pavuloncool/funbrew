@@ -40,7 +40,7 @@ describe('TelemetrySummary', () => {
     expect(screen.queryByText('Avg sweet')).not.toBeInTheDocument();
     expect(screen.queryByText('Avg body')).not.toBeInTheDocument();
     expect(screen.queryByText('Avg bitter')).not.toBeInTheDocument();
-    expect(screen.queryByText('Avg aftertaste')).not.toBeInTheDocument();
+    expect(screen.queryByText('Avg finish')).not.toBeInTheDocument();
   });
 
   it('uses row bar colors that match the stacked distribution colors', () => {

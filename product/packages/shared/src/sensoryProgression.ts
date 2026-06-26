@@ -53,9 +53,13 @@ export function getRequiredUnlockLevelForTastingNote(name: string): SensoryUnloc
   return 'expert';
 }
 
-export function buildSensoryUnlockState(score: number, allTastingNoteNames: string[]): SensoryUnlockState {
+export function buildSensoryUnlockState(
+  score: number,
+  allTastingNoteNames: string[],
+  effectiveLevel?: ReputationLevel
+): SensoryUnlockState {
   const safeScore = Number.isFinite(score) ? Math.max(0, Math.floor(score)) : 0;
-  const level = getReputationLevel(safeScore);
+  const level = effectiveLevel ?? getReputationLevel(safeScore);
   const unlockedSet = new Set(getUnlockedTastingNoteNames(level));
   const normalizedNames = Array.from(new Set(allTastingNoteNames.map(normalizeTastingNoteName)));
   const unlockedNames = normalizedNames.filter((name) => unlockedSet.has(name));

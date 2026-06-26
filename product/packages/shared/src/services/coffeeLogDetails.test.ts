@@ -15,6 +15,7 @@ describe('coffeeLogDetails', () => {
         roast_batches: {
           coffees: {
             name: 'Washed Ethiopia',
+            cover_image_url: 'https://example.com/washed-ethiopia.png',
             roasters: { name: 'Bean Lab' },
           },
         },
@@ -26,6 +27,7 @@ describe('coffeeLogDetails', () => {
       batchId: 'batch-1',
       brewMethodId: 'v60',
       coffeeName: 'Washed Ethiopia',
+      coverImageUrl: 'https://example.com/washed-ethiopia.png',
       roasterName: 'Bean Lab',
       loggedAt: '2026-01-01T00:00:00.000Z',
       rating: 4,
@@ -44,7 +46,7 @@ describe('coffeeLogDetails', () => {
         rating: 5,
         free_text_notes: null,
         logged_at: '2026-01-02T00:00:00.000Z',
-        roast_batches: { coffees: { name: 'Kenya AA', roasters: null } },
+        roast_batches: { coffees: { name: 'Kenya AA', cover_image_url: null, roasters: null } },
         coffee_log_tasting_notes: [],
         reviews: { body: null },
       },
@@ -64,5 +66,6 @@ describe('coffeeLogDetails', () => {
     expect(eqLog).toHaveBeenCalledWith('id', 'log-2');
     expect(eqUser).toHaveBeenCalledWith('user_id', 'user-2');
     expect(result?.coffeeName).toBe('Kenya AA');
+    expect(result?.coverImageUrl).toBeNull();
   });
 });

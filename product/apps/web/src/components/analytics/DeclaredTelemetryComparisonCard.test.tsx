@@ -37,7 +37,7 @@ describe('DeclaredTelemetryComparisonCard', () => {
     expect(screen.getByText('Avg sweet')).toBeInTheDocument();
     expect(screen.getByText('Avg body')).toBeInTheDocument();
     expect(screen.getByText('Avg bitter')).toBeInTheDocument();
-    expect(screen.getByText('Avg aftertaste')).toBeInTheDocument();
+    expect(screen.getByText('Avg finish')).toBeInTheDocument();
     expect(screen.getByText('/ 2')).toBeInTheDocument();
     expect(screen.getAllByText('4.25').length).toBeGreaterThan(0);
     expect(screen.queryByText('Delta table')).not.toBeInTheDocument();

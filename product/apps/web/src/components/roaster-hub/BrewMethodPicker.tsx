@@ -13,14 +13,46 @@ type Props = {
   error?: string | null;
 };
 
+function normalizeBrewMethodName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function canonicalBrewMethodLabel(name: string): string {
+  if (normalizeBrewMethodName(name) === 'aeropress') {
+    return 'AeroPress';
+  }
+
+  return name;
+}
+
 export function BrewMethodPicker(props: Props) {
+  const options = props.options.reduce<Array<{ id: string; label: string }>>((acc, option) => {
+    const label = canonicalBrewMethodLabel(option.name);
+    const normalizedLabel = normalizeBrewMethodName(label);
+    const existingIndex = acc.findIndex((item) => normalizeBrewMethodName(item.label) === normalizedLabel);
+
+    if (existingIndex === -1) {
+      acc.push({
+        id: option.id,
+        label,
+      });
+      return acc;
+    }
+
+    if (label === 'AeroPress') {
+      acc[existingIndex] = {
+        id: option.id,
+        label,
+      };
+    }
+
+    return acc;
+  }, []);
+
   return (
     <SelectionMultiPickField
       label="Suggested brew methods"
-      options={props.options.map((option) => ({
-        id: option.id,
-        label: option.name,
-      }))}
+      options={options}
       selectedIds={props.selectedIds}
       onChange={props.onChange}
       placeholder="Pick one or more methods"

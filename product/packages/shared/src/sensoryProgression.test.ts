@@ -15,10 +15,17 @@ describe('sensory progression unlocks', () => {
   });
 
   it('unlocks advanced descriptors at advanced level', () => {
-    const state = buildSensoryUnlockState(20, ['chocolate', 'stone-fruit', 'floral']);
+    const state = buildSensoryUnlockState(30, ['chocolate', 'stone-fruit', 'floral']);
     expect(state.level).toBe('advanced');
     expect(state.unlockedNames).toContain('stone-fruit');
     expect(state.lockedNames).toContain('floral');
+  });
+
+  it('uses effective level override for unlocks without changing score', () => {
+    const state = buildSensoryUnlockState(2, ['chocolate', 'stone-fruit', 'floral'], 'advanced');
+    expect(state.score).toBe(2);
+    expect(state.level).toBe('advanced');
+    expect(state.unlockedNames).toContain('stone-fruit');
   });
 
   it('marks floral descriptors as expert only', () => {

@@ -15,6 +15,7 @@ export * from './constants/reputationThresholds';
 export * from './constants/reputation';
 export * from './constants/sensoryCore';
 export * from './sensoryProgression';
+export * from './sensoryReputationScoring';
 export * from './services/supabaseClientFactory';
 export * from './services/coffeeLogDetails';
 export * from './services/tastingService';

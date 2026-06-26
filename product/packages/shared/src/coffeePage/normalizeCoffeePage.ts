@@ -8,6 +8,7 @@ export type CanonicalPublicationFields = {
     processingMethod: string | null;
     producerNotes: string | null;
     imageUrl: string | null;
+    storeUrl: string | null;
   };
   origin: {
     country: string | null;
@@ -49,6 +50,7 @@ export type NormalizedCoffeePageData = {
     processingMethod: string | null;
     producerNotes: string | null;
     imageUrl: string | null;
+    storeUrl: string | null;
   };
   origin: {
     country: string | null;
@@ -140,6 +142,7 @@ export function normalizeCoffeePageData(
       processingMethod: input.coffee.processing_method,
       producerNotes: input.coffee.producer_notes,
       imageUrl: input.coffee.cover_image_url,
+      storeUrl: input.coffee.store_url,
     },
     origin: {
       country: origin.country ?? null,
@@ -186,6 +189,7 @@ export function toCanonicalPublicationFields(
       processingMethod: input.product.processingMethod,
       producerNotes: input.product.producerNotes,
       imageUrl: input.product.imageUrl,
+      storeUrl: input.product.storeUrl,
     },
     origin: {
       country: input.origin.country,

@@ -97,6 +97,7 @@ Deno.serve(async req => {
             processing_method,
             producer_notes,
             cover_image_url,
+            store_url,
             status,
             origin_id,
             roasters!inner (
@@ -159,6 +160,7 @@ Deno.serve(async req => {
             processing_method: coffee.processing_method,
             producer_notes: coffee.producer_notes,
             cover_image_url: coffee.cover_image_url,
+            store_url: coffee.store_url,
           },
           origin,
           roaster: {
