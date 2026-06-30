@@ -9,6 +9,7 @@
     "scan:preflight": "bash ../../scripts/mobile-functions-smoke-check.sh --consumer-only",
     "start": "pnpm run start:lan",
     "start:lan": "LAN_IP=\"$(node ./scripts/get-lan-ip.cjs)\" && EXPO_PUBLIC_SUPABASE_URL=\"${EXPO_PUBLIC_SUPABASE_URL:-http://$LAN_IP:54321}\" EXPO_PUBLIC_APP_URL=\"${EXPO_PUBLIC_APP_URL:-http://$LAN_IP:8081}\" EXPO_PUBLIC_ROASTER_WEB_URL=\"${EXPO_PUBLIC_ROASTER_WEB_URL:-http://$LAN_IP:3000}\" REACT_NATIVE_PACKAGER_HOSTNAME=\"$LAN_IP\" expo start --host lan",
+    "start:sim": "pnpm run scan:preflight && pnpm run start:lan -- --ios",
     "start:checked": "pnpm run scan:preflight && pnpm run start",
     "start:expogo:tunnel": "pnpm run scan:preflight && bash ./scripts/start-expogo-cloudflare-tunnel.sh",
     "prebuild": "expo prebuild",

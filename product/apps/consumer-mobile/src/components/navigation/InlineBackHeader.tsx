@@ -12,8 +12,11 @@ export function InlineBackHeader(props: {
   fallbackHref: Href;
   titleVariant?: TitleVariant;
   style?: StyleProp<ViewStyle>;
+  preferHistory?: boolean;
 }) {
-  const goBackOrFallback = useGoBackOrFallback(props.fallbackHref);
+  const goBackOrFallback = useGoBackOrFallback(props.fallbackHref, 'replace', {
+    preferHistory: props.preferHistory,
+  });
   const titleVariant = props.titleVariant === 'h3' ? 'h3' : 'h2';
 
   return (

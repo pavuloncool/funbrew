@@ -2,9 +2,11 @@ const PUBLIC_MARKETING_ROUTES = new Set([
   '/',
   '/home',
   '/about',
+  '/support',
+  '/contact',
+  '/business',
   '/pricing',
   '/features',
-  '/contact',
   '/market',
   '/login',
   '/register',
@@ -18,3 +20,9 @@ export function isPublicRoute(pathname: string): boolean {
 
   return pathname.startsWith('/q/');
 }
+
+export function isMarketingRoute(pathname: string): boolean {
+  return MARKETING_ROUTES.has(pathname);
+}
+
+const MARKETING_ROUTES = new Set(['/home', '/register', '/about', '/support', '/contact', '/business']);

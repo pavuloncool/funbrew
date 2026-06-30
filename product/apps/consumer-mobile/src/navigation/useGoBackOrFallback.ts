@@ -4,12 +4,21 @@ import { useCallback } from 'react';
 
 type FallbackMethod = 'push' | 'replace';
 
-export function useGoBackOrFallback(fallbackHref: Href, fallbackMethod: FallbackMethod = 'replace') {
+type GoBackOrFallbackOptions = {
+  preferHistory?: boolean;
+};
+
+export function useGoBackOrFallback(
+  fallbackHref: Href,
+  fallbackMethod: FallbackMethod = 'replace',
+  options: GoBackOrFallbackOptions = {}
+) {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const router = useRouter();
+  const preferHistory = options.preferHistory ?? true;
 
   return useCallback(() => {
-    if (navigation.canGoBack()) {
+    if (preferHistory && navigation.canGoBack()) {
       router.back();
       return;
     }
@@ -20,5 +29,5 @@ export function useGoBackOrFallback(fallbackHref: Href, fallbackMethod: Fallback
     }
 
     router.replace(fallbackHref);
-  }, [fallbackHref, fallbackMethod, navigation, router]);
+  }, [fallbackHref, fallbackMethod, navigation, preferHistory, router]);
 }

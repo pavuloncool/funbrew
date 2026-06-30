@@ -1,0 +1,4 @@
+interface:
+  display_name: "DB Backup Safety"
+  short_description: "Safe DB ops with validated backup rotation"
+  default_prompt: "Use $database-backup-safety before this database task to enforce backup discovery, validation, and safe previous-backup removal."

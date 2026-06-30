@@ -1,234 +1,93 @@
 # app run commands
 
-## goal
-Uruchomić na czysto:
-- local Supabase
-- local Edge Functions
-- Cloudflare tunnel do local Supabase API
-- web app (`product/apps/web`)
-- consumer-mobile (`product/apps/consumer-mobile`)
+## aktualny zakres
+Ten dokument opisuje tylko aktualne komendy uruchomienia:
+- `product/apps/web` na `http://localhost:3000`
+- `product/apps/consumer-mobile` w `Simulator.app`
 
-Repo root: `/Users/pa/projects/funcup`
-
-## toolchain baseline
-Uruchom raz przed pierwszym startem:
+## komenda dla web
 
 ```bash
-pnpm install
-supabase --version
-docker version
-cloudflared --version
-tmux -V
+pnpm run dev
 ```
+Efekt:
+- startuje lokalny backend Supabase
+- synchronizuje lokalne env
+- uruchamia local Edge Functions
+- robi smoke-check funkcji
+- uruchamia `apps/web` na `http://localhost:3000`
+- otwiera albo wznawia sesję `tmux` `funcup-web`
 
-Oczekiwane:
-- `supabase >= 2.98.2`
-- Docker działa
-- `cloudflared` jest zainstalowany
-- `tmux` jest zainstalowany, jeśli chcesz używać trybu all-in-one
-
-## fastest clean start: all-in-one
-To jest teraz najprostszy i najbardziej powtarzalny start całego stacku.
+## komenda dla web + simulator
 
 ```bash
-pnpm run dev:mobile-stack -- --restart
+pnpm run dev:sim
 ```
 
-Co zrobi ten command:
-- odpali `supabase:local:ensure`
-- w razie driftu zrobi reset lokalnej bazy
-- odpali local Edge Functions (`supabase functions serve --no-verify-jwt`)
-- zrobi smoke-check funkcji
-- uruchomi Cloudflare tunnel do `http://127.0.0.1:54321`
-- zaktualizuje `product/apps/consumer-mobile/.env.local` o nowy `EXPO_PUBLIC_SUPABASE_URL`
-- odpali web app
-- odpali Expo Metro dla mobile przez Cloudflare tunnel, bez ścieżki ngrok z `expo start --tunnel`
+Efekt:
+- robi wszystko z `pnpm run dev`
+- uruchamia `apps/consumer-mobile` w `Simulator.app` przez Expo
+- otwiera albo wznawia sesję `tmux` `funcup-sim`
 
-Po starcie:
-- pojawi się sesja `tmux` o nazwie `funcup-dev`
-- możesz się do niej podpiąć ponownie:
+## zalecana kolejność
+
+### a) tylko web
 
 ```bash
-tmux attach -t funcup-dev
+pnpm run dev
 ```
 
-Zatrzymanie:
-
-```bash
-tmux kill-session -t funcup-dev
-pnpm exec supabase stop --project-id funcup --workdir product
-pnpm exec supabase stop --project-id supabase --workdir product
-```
-
-## clean manual start: 5 terminals
-Użyj tego wariantu, jeśli chcesz mieć pełną kontrolę nad każdym procesem.
-
-### terminal 1: local Supabase
-Standardowy start, zachowujący lokalne ratingi, batche i uploady:
-
-```bash
-pnpm run supabase:local:ensure
-```
-
-Jeśli po rolloutach Sensory Core mobilka zgłasza brak kolumny `sensory_aftertaste` albo `sensory_bitter`, oznacza to drift lokalnej bazy i trzeba ponownie uruchomić:
-
-```bash
-pnpm run supabase:local:ensure
-```
-
-Lub, gdy drift nie znika:
-
-```bash
-pnpm exec supabase db reset --local --workdir product
-```
-
-Wymuszony reset tylko wtedy, gdy świadomie chcesz skasować lokalne dane i odtworzyć seed:
-
-```bash
-pnpm run supabase:local:ensure --force-reset
-```
-
-Kontrola statusu:
-
-```bash
-pnpm exec supabase status --workdir product
-```
-
-### terminal 2: local Edge Functions
-
-```bash
-pnpm exec supabase functions serve --workdir product --no-verify-jwt
-```
-
-Ten proces zostaw uruchomiony.
-
-### terminal 3: smoke-check + tunnel
-Najpierw sprawdź lokalne funkcje:
-
-```bash
-bash product/scripts/mobile-functions-smoke-check.sh
-```
-
-Jeśli smoke-check jest zielony, uruchom tunel:
-
-```bash
-bash product/scripts/start-supabase-https-tunnel.sh
-```
-
-Skopiuj wygenerowany URL:
+Potem otwórz:
 
 ```txt
-https://<random>.trycloudflare.com
+http://localhost:3000
 ```
 
-### update mobile env
-Wpisz ten URL do:
-
-`product/apps/consumer-mobile/.env.local`
-
-Minimalny zestaw:
-
-```dotenv
-EXPO_PUBLIC_SUPABASE_URL=https://<random>.trycloudflare.com
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<local-anon-key>
-```
-
-Opcjonalnie:
-
-```dotenv
-EXPO_PUBLIC_APP_URL=http://<your-lan-ip>:8081
-EXPO_PUBLIC_ROASTER_WEB_URL=http://<your-lan-ip>:3000
-```
-
-Local anon key pobierzesz z:
+### b) web + consumer-mobile w Simulatorze
 
 ```bash
-pnpm exec supabase status --workdir product
+pnpm run dev:sim
 ```
 
-### terminal 4: web app
+Potem przejdź do `Simulator.app`.
+
+## ważne zachowanie
+- `pnpm run dev:sim` jest aktualną komendą do codziennej pracy z mobile na Simulatorze.
+- jeśli sesja `funcup-sim` już istnieje, command ją wznawia i odtwarza mobile pane, jeśli go brakuje.
+- mobile start używa skryptu `pnpm -C product/apps/consumer-mobile run start:sim`.
+
+## ponowne podpięcie do sesji
 
 ```bash
-pnpm -C product/apps/web dev
+tmux attach -t funcup-web
+tmux attach -t funcup-sim
 ```
 
-Jeśli chcesz jawnie przypiąć host i port:
+## zatrzymanie
+
+Jedną komendą:
 
 ```bash
-pnpm -C product/apps/web dev --hostname 127.0.0.1 --port 3000
+tmux kill-session -t funcup-web 2>/dev/null; tmux kill-session -t funcup-sim 2>/dev/null; pnpm exec supabase stop --project-id funcup --workdir product; pnpm exec supabase stop --project-id supabase --workdir product
 ```
-
-### terminal 5: consumer-mobile
-Tryb zalecany dla Expo Go / telefonu:
-
+Poszczególnymi komendami:
 ```bash
-pnpm -C product/apps/consumer-mobile run start:expogo:tunnel
-```
-
-Ten command robi smoke-check funkcji, uruchamia Cloudflare tunnel do Metro (`127.0.0.1:8081`) i startuje Expo z `EXPO_PACKAGER_PROXY_URL`. Nie używa ngrok.
-
-Alias z repo root:
-
-```bash
-pnpm run consumer:start:expogo:tunnel
-```
-
-Jeśli urządzenie i Mac są w tej samej LAN i nie potrzebujesz Expo tunnel:
-
-```bash
-pnpm -C product/apps/consumer-mobile run start:lan
-```
-
-## canonical order
-Jeśli odpalasz ręcznie, trzymaj tę kolejność:
-
-1. `pnpm run supabase:local:ensure`
-2. `pnpm exec supabase functions serve --workdir product --no-verify-jwt`
-3. `bash product/scripts/mobile-functions-smoke-check.sh`
-4. `bash product/scripts/start-supabase-https-tunnel.sh`
-5. update `product/apps/consumer-mobile/.env.local`
-6. `pnpm -C product/apps/web dev`
-7. `pnpm -C product/apps/consumer-mobile run start:expogo:tunnel`
-
-## root aliases
-
-```bash
-pnpm run supabase:local:ensure
-pnpm run supabase:tunnel
-pnpm run consumer:start:expogo:tunnel
-pnpm run consumer:ios
-pnpm run consumer:web
-```
-
-## recovery
-Jeśli lokalny stack się rozjedzie:
-
-```bash
+tmux kill-session -t funcup-web
+tmux kill-session -t funcup-sim
 pnpm exec supabase stop --project-id funcup --workdir product
 pnpm exec supabase stop --project-id supabase --workdir product
-pnpm exec supabase start --workdir product --debug
-pnpm exec supabase status --workdir product
 ```
-
+## Uruchom Metro na Expo Go
 ```bash
-pnpm exec supabase functions serve --workdir product --no-verify-jwt
-bash product/scripts/mobile-functions-smoke-check.sh
-bash product/scripts/start-supabase-https-tunnel.sh
+EXPO_METRO_PORT=8081 pnpm run dev:phone
 ```
+Zoom panelu z kodem QR:
+tmux resize-pane -Z -t funcup-phone:0.3
 
-## quick checks
+Potem to w Safari na iPhone, jeśli nie widzisz kodu QR w terminalu:
+exp://[nowy-adfes-tunelu].trycloudflare.com
 
+To kill Metro na Expo Go:
 ```bash
-lsof -nP -iTCP:54321 -sTCP:LISTEN
-lsof -nP -iTCP:54322 -sTCP:LISTEN
-curl -I http://127.0.0.1:3000
-curl -X OPTIONS http://127.0.0.1:54321/functions/v1/scan_qr -i
-pnpm exec supabase db query "select count(*) as variety_count from public.coffee_varieties;" --db-url postgresql://postgres:postgres@127.0.0.1:54322/postgres
+tmux kill-session -t funcup-phone
 ```
-
-## notes
-- `pnpm run supabase:local:ensure` synchronizuje `product/apps/web/.env.local`, ale nie wpisuje tunelu do mobile. Mobile tunnel URL trafia do `product/apps/consumer-mobile/.env.local` ręcznie albo automatycznie przez `dev:mobile-stack`.
-- Po każdej zmianie w `product/apps/consumer-mobile/.env.local` zrestartuj Metro.
-- `--force-reset` oraz `supabase db reset --local` usuwają lokalne dane runtime: tasting logs, ratingi, roaster-created batche, `coffees.cover_image_url` i metadane Storage. Używaj ich tylko do świadomego powrotu do seed state.
-- `start-supabase-https-tunnel.sh` tuneluje local Supabase API pod `127.0.0.1:54321`, nie web app.
-- Dla pełnego QR / scan QA patrz: `meta/docs/scan-qr-local-runbook.md`

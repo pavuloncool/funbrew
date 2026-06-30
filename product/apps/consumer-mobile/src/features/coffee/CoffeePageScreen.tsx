@@ -11,8 +11,9 @@ import {
   useCoffeePage,
   visualSystemTokens,
 } from '@funcup/shared';
-import { Link, useLocalSearchParams, useSegments } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useNavigation, type NavigationProp, type ParamListBase } from '@react-navigation/native';
+import { Link, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { CoffeePageBrewing } from '../../coffee/CoffeePageBrewing';
@@ -73,9 +74,12 @@ function resolveImageUri(rawUri: string): string {
 export default function CoffeePageScreen() {
   const params = useLocalSearchParams<{ hash?: string }>();
   const segments = useSegments() as string[];
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const router = useRouter();
   const hash = params.hash ?? null;
   const topSegment = segments[0] ?? null;
   const isScanContext = topSegment === 'q';
+  const scanExitInProgressRef = useRef(false);
   const { userId } = useViewerUserId();
   const coffeeQuery = useCoffeePage({ supabase, hash });
   const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
@@ -91,9 +95,7 @@ export default function CoffeePageScreen() {
   });
   const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
   const favoriteMutation = useToggleFavoriteScannedEntry({ supabase, userId });
-  const fallbackHref = isScanContext
-    ? '/(tabs)/scan/scan'
-    : '/(tabs)/coffee';
+  const fallbackHref = '/(tabs)/coffee';
   const coffeeImageUri = useMemo(() => {
     const d = coffeeQuery.data;
     if (!d) return null;
@@ -104,10 +106,29 @@ export default function CoffeePageScreen() {
     setCoffeeImageFailed(false);
   }, [coffeeImageUri]);
 
+  useEffect(() => {
+    if (!isScanContext) return;
+
+    scanExitInProgressRef.current = false;
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
+      if (scanExitInProgressRef.current) return;
+
+      event.preventDefault();
+      scanExitInProgressRef.current = true;
+      router.replace('/(tabs)/coffee');
+    });
+
+    return unsubscribe;
+  }, [isScanContext, navigation, router]);
+
   if (!hash) {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
-        <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
+        <InlineBackHeader
+          title="Discover Coffee"
+          fallbackHref={fallbackHref}
+          preferHistory={!isScanContext}
+        />
         <ScreenError
           title="Missing QR"
           message="Open this page from a scanned QR code or a valid link."
@@ -122,6 +143,7 @@ export default function CoffeePageScreen() {
         <InlineBackHeader
           title="Discover Coffee"
           fallbackHref={fallbackHref}
+          preferHistory={!isScanContext}
           style={styles.loadingHeader}
         />
         <CoffeePageSkeleton />
@@ -134,7 +156,11 @@ export default function CoffeePageScreen() {
     const copy = flowErrorUiCopy(flowError);
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
-        <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
+        <InlineBackHeader
+          title="Discover Coffee"
+          fallbackHref={fallbackHref}
+          preferHistory={!isScanContext}
+        />
         <ScreenError
           title={copy.title}
           message="Data not fetched. Try again or contact fun•brew."
@@ -149,7 +175,11 @@ export default function CoffeePageScreen() {
   if (!data) {
     return (
       <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.paddedContent}>
-        <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
+        <InlineBackHeader
+          title="Discover Coffee"
+          fallbackHref={fallbackHref}
+          preferHistory={!isScanContext}
+        />
         <ScreenError title="No data" message="Unexpected empty response from scan." />
       </AppScrollScreen>
     );
@@ -169,7 +199,11 @@ export default function CoffeePageScreen() {
 
   return (
     <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
-      <InlineBackHeader title="Discover Coffee" fallbackHref={fallbackHref} />
+      <InlineBackHeader
+        title="Discover Coffee"
+        fallbackHref={fallbackHref}
+        preferHistory={!isScanContext}
+      />
       {publicCoffee.archived ? (
         <AppCard style={styles.archived}>
           <AppText weight="600">Archived batch</AppText>

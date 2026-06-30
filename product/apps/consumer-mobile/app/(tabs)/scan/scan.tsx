@@ -1,4 +1,5 @@
 import { parseFuncupQrScanPayload } from '@funcup/shared';
+import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Link, router } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -15,6 +16,13 @@ export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      setScanned(false);
+      setParseError(null);
+    }, [])
+  );
 
   const handleBarcodeScanned = useCallback(
     ({ data }: { data: string }) => {

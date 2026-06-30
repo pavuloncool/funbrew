@@ -9,6 +9,8 @@ BASE_URL="${1:-http://127.0.0.1:54321/functions/v1}"
 API_URL="${BASE_URL%/functions/v1}"
 FAILED=0
 CHECK_MODE="${MOBILE_SMOKE_CHECK_MODE:-full}"
+HTTP_RETRY_COUNT="${MOBILE_SMOKE_CHECK_RETRIES:-5}"
+HTTP_RETRY_DELAY_SECONDS="${MOBILE_SMOKE_CHECK_RETRY_DELAY_SECONDS:-2}"
 
 if [[ "${1:-}" == "--consumer-only" ]]; then
   CHECK_MODE="consumer-only"
@@ -28,24 +30,59 @@ get_status_env_value() {
   printf '%s' "$value"
 }
 
+curl_with_retries() {
+  local output_file="$1"
+  shift
+
+  local attempt=1
+  local code=""
+
+  while (( attempt <= HTTP_RETRY_COUNT )); do
+    code="$(curl -s -o "$output_file" -w "%{http_code}" "$@" || true)"
+    if [[ "$code" =~ ^[23] ]]; then
+      printf '%s' "$code"
+      return 0
+    fi
+
+    if (( attempt == HTTP_RETRY_COUNT )); then
+      printf '%s' "$code"
+      return 0
+    fi
+
+    sleep "$HTTP_RETRY_DELAY_SECONDS"
+    attempt=$((attempt + 1))
+  done
+}
+
 check_endpoint() {
   local fn_name="$1"
   local code
-  code="$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "${BASE_URL}/${fn_name}" || true)"
-  if [[ "$code" == "404" ]]; then
-    echo "FAIL: ${fn_name} not found at ${BASE_URL}/${fn_name}"
-    return 1
-  fi
-  if [[ "$code" == "000" ]]; then
-    echo "FAIL: ${fn_name} unreachable at ${BASE_URL}/${fn_name} (connection failed)"
-    return 1
-  fi
-  if [[ ! "$code" =~ ^[23] ]]; then
-    echo "FAIL: ${fn_name} returned HTTP ${code} at ${BASE_URL}/${fn_name}"
-    return 1
-  fi
-  echo "PASS: ${fn_name} reachable (HTTP ${code})"
-  return 0
+  local attempt=1
+
+  while (( attempt <= HTTP_RETRY_COUNT )); do
+    code="$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "${BASE_URL}/${fn_name}" || true)"
+    if [[ "$code" =~ ^[23] ]]; then
+      echo "PASS: ${fn_name} reachable (HTTP ${code})"
+      return 0
+    fi
+
+    if [[ "$code" == "404" ]]; then
+      echo "FAIL: ${fn_name} not found at ${BASE_URL}/${fn_name}"
+      return 1
+    fi
+
+    if (( attempt == HTTP_RETRY_COUNT )); then
+      if [[ "$code" == "000" ]]; then
+        echo "FAIL: ${fn_name} unreachable at ${BASE_URL}/${fn_name} (connection failed)"
+      else
+        echo "FAIL: ${fn_name} returned HTTP ${code} at ${BASE_URL}/${fn_name}"
+      fi
+      return 1
+    fi
+
+    sleep "$HTTP_RETRY_DELAY_SECONDS"
+    attempt=$((attempt + 1))
+  done
 }
 
 check_roaster_batch_publications() {
@@ -57,13 +94,11 @@ check_roaster_batch_publications() {
   fi
 
   body_file="$(mktemp)"
-  code="$(
-    curl -s -o "$body_file" -w "%{http_code}" \
-      -X POST "${API_URL}/auth/v1/token?grant_type=password" \
-      -H "apikey: ${anon_key}" \
-      -H "Content-Type: application/json" \
-      -d '{"email":"bart@ex.com","password":"swetry"}' || true
-  )"
+  code="$(curl_with_retries "$body_file" \
+    -X POST "${API_URL}/auth/v1/token?grant_type=password" \
+    -H "apikey: ${anon_key}" \
+    -H "Content-Type: application/json" \
+    -d '{"email":"bart@ex.com","password":"swetry"}')"
 
   if [[ ! "$code" =~ ^2 ]]; then
     echo "FAIL: seeded roaster auth returned HTTP ${code}"
@@ -81,14 +116,12 @@ check_roaster_batch_publications() {
   fi
 
   body_file="$(mktemp)"
-  code="$(
-    curl -s -o "$body_file" -w "%{http_code}" \
-      -X POST "${BASE_URL}/roaster_batch_publications" \
-      -H "apikey: ${anon_key}" \
-      -H "Authorization: Bearer ${token}" \
-      -H "Content-Type: application/json" \
-      -d '{"mode":"list"}' || true
-  )"
+  code="$(curl_with_retries "$body_file" \
+    -X POST "${BASE_URL}/roaster_batch_publications" \
+    -H "apikey: ${anon_key}" \
+    -H "Authorization: Bearer ${token}" \
+    -H "Content-Type: application/json" \
+    -d '{"mode":"list"}')"
 
   if [[ ! "$code" =~ ^2 ]]; then
     echo "FAIL: roaster_batch_publications returned HTTP ${code}"
@@ -111,13 +144,11 @@ check_consumer_auth() {
   fi
 
   body_file="$(mktemp)"
-  code="$(
-    curl -s -o "$body_file" -w "%{http_code}" \
-      -X POST "${API_URL}/auth/v1/token?grant_type=password" \
-      -H "apikey: ${anon_key}" \
-      -H "Content-Type: application/json" \
-      -d '{"email":"kazik@neoneon.online","password":"swetry"}' || true
-  )"
+  code="$(curl_with_retries "$body_file" \
+    -X POST "${API_URL}/auth/v1/token?grant_type=password" \
+    -H "apikey: ${anon_key}" \
+    -H "Content-Type: application/json" \
+    -d '{"email":"kazik@neoneon.online","password":"swetry"}')"
 
   if [[ ! "$code" =~ ^2 ]]; then
     echo "FAIL: seeded consumer auth returned HTTP ${code}"

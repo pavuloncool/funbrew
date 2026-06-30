@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest';
 import RegisterPage from './page';
 
 describe('RegisterPage', () => {
-  it('renders the public contact variant instead of a signup form', () => {
+  it('renders the roaster landing page instead of a signup form', () => {
     render(<RegisterPage />);
 
-    expect(screen.getByRole('heading', { name: /contact/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Turn coffee batches into structured product data' })
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Full name')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Company')).toBeInTheDocument();
