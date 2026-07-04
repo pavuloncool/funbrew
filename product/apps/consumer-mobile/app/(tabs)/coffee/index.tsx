@@ -1,12 +1,17 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useState } from 'react';
-import { useFavoriteScannedEntries, visualSystemTokens } from '@funcup/shared';
+import { useMemo, useState } from 'react';
+import {
+  useFavoriteRatedCoffeeLogs,
+  useToggleFavoriteRatedCoffeeLog,
+  visualSystemTokens,
+} from '@funcup/shared';
 
 import { RatedCoffeesSection } from '../../../src/components/coffee/RatedCoffeesSection';
+import { RatedCoffeeLogCard, matchesRatedCoffeeSearch } from '../../../src/components/coffee/RatedCoffeeLogCard';
 import { DiscoverCoffeesTab } from '../../../src/components/hub/DiscoverCoffeesTab';
 import { EmptyState } from '../../../src/components/EmptyState';
-import { AppCard, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
+import { AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
 import { usePendingTastingDiscoverCoffeeIds } from '../../../src/hooks/usePendingTastingDiscoverCoffeeIds';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { supabase } from '../../../src/services/supabaseClient';
@@ -18,43 +23,21 @@ function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function matchesFavoriteSearch(
-  entry: {
-    coffeeName: string;
-    roasterName: string | null;
-    processingMethod: string | null;
-    lotNumber: string | null;
-    roastDate: string | null;
-    roasterCountry: string | null;
-    originCountry: string | null;
-  },
-  normalizedQuery: string
-): boolean {
-  if (!normalizedQuery) return true;
-  const values = [
-    entry.coffeeName,
-    entry.roasterName,
-    entry.processingMethod,
-    entry.lotNumber,
-    entry.roastDate,
-    entry.roasterCountry,
-    entry.originCountry,
-  ];
-  return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
-}
-
 export default function CoffeeScreen() {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState<CoffeeSection>('rated');
   const [searchQuery, setSearchQuery] = useState('');
-  const { userId } = useViewerUserId();
+  const { userId, isLoading: authLoading } = useViewerUserId();
   const pendingDiscoverCoffeeIds = usePendingTastingDiscoverCoffeeIds({
     enabled: Boolean(userId),
   });
-  const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
+  const favoritesQuery = useFavoriteRatedCoffeeLogs({ supabase, userId });
+  const favoriteToggleMutation = useToggleFavoriteRatedCoffeeLog({ supabase, userId });
   const normalizedQuery = normalizeSearchValue(searchQuery);
   const favorites = favoritesQuery.data ?? [];
-  const filteredFavorites = favorites.filter((entry) =>
-    matchesFavoriteSearch(entry, normalizedQuery)
+  const filteredFavorites = useMemo(
+    () => favorites.filter((entry) => matchesRatedCoffeeSearch(entry, normalizedQuery)),
+    [favorites, normalizedQuery]
   );
 
   return (
@@ -115,48 +98,51 @@ export default function CoffeeScreen() {
 
       {activeSection === 'favorites' ? (
         <View style={styles.section}>
-          <AppText variant="h3" weight="700">Favorite scanned entries</AppText>
+          {/*<AppText variant="h3" weight="700">Favourite rated coffees</AppText>
           <AppText tone="secondary">
-            This beta list stores exact scanned entries so you can reopen a coffee page without scanning again.
-          </AppText>
-          {favoritesQuery.isLoading ? (
-            <AppText tone="secondary">Loading favorites…</AppText>
-          ) : (favoritesQuery.data?.length ?? 0) === 0 ? (
+            These are rated coffees you marked with the star. Tap a card to open the tasting log.
+          </AppText>*/}
+          {authLoading || favoritesQuery.isLoading ? (
+            <AppText tone="secondary">Loading favourites…</AppText>
+          ) : !userId ? (
             <EmptyState
-              title="No favorite scans yet"
-              description="Save a coffee from the Coffee Page to keep that exact scanned entry close."
+              title="Sign in to save favourites"
+              description="Star a rated coffee to keep it here."
+              footer={
+                <Link href="/(auth)/login" accessibilityRole="link">
+                  Go to sign in
+                </Link>
+              }
+            />
+          ) : favorites.length === 0 ? (
+            <EmptyState
+              title="No favourite rated coffees yet"
+              description="Open a rated coffee and tap the star to keep it here."
             />
           ) : filteredFavorites.length === 0 ? (
             <EmptyState
-              title="No matching favorite scans"
-              description="Try coffee name, lot, roaster, processing, or country."
+              title="No matching favourite coffees"
+              description="Try coffee name, roaster, lot, notes, rating, or country."
             />
           ) : (
             filteredFavorites.map((entry) => (
-              <Link
-                key={entry.id}
-                href={{ pathname: '/coffee/[hash]', params: { hash: entry.qrHash } }}
-                asChild
-              >
-                <Pressable accessibilityRole="button">
-                  <AppCard>
-                    <AppText variant="h3" weight="700">{entry.coffeeName}</AppText>
-                    {entry.roasterName ? <AppText tone="secondary">{entry.roasterName}</AppText> : null}
-                    <AppText tone="secondary">
-                      {[entry.processingMethod, entry.lotNumber].filter(Boolean).join(' · ') || 'Saved scanned entry'}
-                    </AppText>
-                    {(entry.roasterCountry || entry.originCountry) ? (
-                      <AppText tone="secondary">
-                        {[entry.roasterCountry && `Roaster: ${entry.roasterCountry}`, entry.originCountry && `Origin: ${entry.originCountry}`]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </AppText>
-                    ) : null}
-                    {entry.roastDate ? <AppText tone="muted">Roast date: {entry.roastDate}</AppText> : null}
-                    <AppText style={styles.openLabel}>Open Coffee Page</AppText>
-                  </AppCard>
-                </Pressable>
-              </Link>
+              <RatedCoffeeLogCard
+                key={entry.coffeeLogId}
+                entry={entry}
+                isFavorite
+                favoriteToggleLabel="Remove favourite from rated coffee"
+                favoriteToggleDisabled={favoriteToggleMutation.isPending}
+                onPress={() => {
+                  router.push(`/coffee-log/${entry.coffeeLogId}`);
+                }}
+                onToggleFavorite={() => {
+                  void favoriteToggleMutation.mutateAsync({
+                    coffeeLogId: entry.coffeeLogId,
+                    shouldFavorite: false,
+                    optimisticEntry: entry,
+                  });
+                }}
+              />
             ))
           )}
         </View>
@@ -193,9 +179,5 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: visualSystemTokens.spacing.sm,
-  },
-  openLabel: {
-    marginTop: visualSystemTokens.spacing.xs,
-    textDecorationLine: 'underline',
   },
 });

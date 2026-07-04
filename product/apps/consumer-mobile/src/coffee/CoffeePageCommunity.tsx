@@ -1,32 +1,39 @@
-import { hasExpertBadge } from '@funcup/shared';
-import { StyleSheet } from 'react-native';
-import { AppPanel, AppText } from '../components/ui/primitives';
+import { formatFavoriteUsersCopy, hasExpertBadge } from '@funcup/shared';
+import { StyleSheet, View } from 'react-native';
+
+import { AppText } from '../components/ui/primitives';
 
 export function CoffeePageCommunity(props: {
   reputationScore?: number;
   totalTastings?: number;
   avgRating?: number;
+  favoriteUsersCount?: number;
 }) {
   const showExpertBadge = hasExpertBadge(props.reputationScore ?? 0);
   const tastings = props.totalTastings ?? 0;
   const avg = props.avgRating ?? 0;
+  const favoriteUsersCopy = formatFavoriteUsersCopy(props.favoriteUsersCount ?? 0);
 
   return (
-    <AppPanel style={styles.section}>
-      <AppText variant="h3" weight="600">Community</AppText>
+    <View style={styles.section}>
       <AppText tone="secondary">
         {tastings > 0
           ? `${tastings} tasting${tastings === 1 ? '' : 's'} · avg ${avg.toFixed(1)} / 5`
           : 'Be the first to log a tasting for this batch.'}
       </AppText>
+      <AppText tone="secondary">
+        {favoriteUsersCopy ?? 'Favourite this coffee to surface community interest.'}
+      </AppText>
       {showExpertBadge ? (
         <AppText variant="caption" tone="muted" style={styles.badge}>Expert taster</AppText>
       ) : null}
-    </AppPanel>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { paddingVertical: 12 },
+  section: {
+    gap: 6,
+  },
   badge: { marginTop: 6 },
 });

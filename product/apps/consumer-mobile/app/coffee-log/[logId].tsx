@@ -9,6 +9,8 @@ import {
   SENSORY_CORE_METRICS,
   type RepurchaseIntent,
   updateTasting,
+  useFavoriteRatedCoffeeLogs,
+  useToggleFavoriteRatedCoffeeLog,
   useUnlockedTastingNotes,
   visualSystemTokens,
 } from '@funcup/shared';
@@ -21,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrewMethodPicker } from '../../src/coffee/tasting/BrewMethodPicker';
 import { FlavorNoteSelector } from '../../src/coffee/tasting/FlavorNoteSelector';
 import { SensoryCoreScorePicker } from '../../src/coffee/tasting/SensoryCoreScorePicker';
+import { FavoriteToggleButton } from '../../src/components/coffee/FavoriteToggleButton';
 import { InlineBackHeader } from '../../src/components/navigation/InlineBackHeader';
 import { useViewerUserId } from '../../src/hooks/useViewerUserId';
 import { getResolvedSupabasePublicUrl, supabase } from '../../src/services/supabaseClient';
@@ -100,6 +103,8 @@ export default function CoffeeLogDetailsScreen() {
   const insets = useSafeAreaInsets();
   const contentBottomPadding = insets.bottom + 124;
   const unlocksQuery = useUnlockedTastingNotes({ supabase, userId });
+  const favoriteLogsQuery = useFavoriteRatedCoffeeLogs({ supabase, userId });
+  const favoriteToggleMutation = useToggleFavoriteRatedCoffeeLog({ supabase, userId });
 
   const detailsQuery = useQuery({
     queryKey: ['coffeeLogDetails', logId, userId ?? null],
@@ -161,6 +166,9 @@ export default function CoffeeLogDetailsScreen() {
   }, [telemetryQuery.data, isEditing]);
 
   const details = detailsQuery.data ?? null;
+  const isFavorite = Boolean(
+    favoriteLogsQuery.data?.some((entry) => entry.coffeeLogId === logId)
+  );
   const coffeeImageUri = resolveImageUri(details?.coverImageUrl);
 
   useEffect(() => {
@@ -401,6 +409,31 @@ export default function CoffeeLogDetailsScreen() {
         <View style={styles.heroText}>
           <AppText variant="h3" weight="700">{title}</AppText>
           <AppText tone="secondary">{subtitle}</AppText>
+          {userId ? (
+            <FavoriteToggleButton
+              active={isFavorite}
+              onPress={() => {
+                void favoriteToggleMutation.mutateAsync({
+                  coffeeLogId: logId,
+                  shouldFavorite: !isFavorite,
+                  optimisticEntry: {
+                    coffeeLogId: logId,
+                    coffeeName: title,
+                    roasterName: details.roasterName,
+                    roasterCountry: null,
+                    originCountry: null,
+                    processingMethod: null,
+                    lotNumber: null,
+                    rating: details.rating,
+                    loggedAt: details.loggedAt,
+                    freeTextNotes: details.freeTextNotes,
+                  },
+                });
+              }}
+              disabled={favoriteLogsQuery.isLoading || favoriteToggleMutation.isPending}
+              label={isFavorite ? 'Remove favourite' : 'Add favourite'}
+            />
+          ) : null}
         </View>
       </AppCard>
 

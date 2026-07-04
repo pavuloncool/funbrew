@@ -46,6 +46,7 @@ describe('normalizeCoffeePageData', () => {
           avg_rating: 4.5,
           rating_distribution: { '5': 9 },
           top_flavor_notes: [],
+          favorite_user_count: 7,
         },
       },
       { hash: 'hash-1' }
@@ -60,6 +61,7 @@ describe('normalizeCoffeePageData', () => {
     expect(result.roaster.shortName).toBe('R1');
     expect(result.origin.altitudeMin).toBe(1700);
     expect(result.origin.altitudeMax).toBe(1900);
+    expect(result.stats.favoriteUsersCount).toBe(7);
   });
 
   it('builds canonical publication fields from normalized data', () => {
@@ -108,6 +110,7 @@ describe('normalizeCoffeePageData', () => {
           avg_rating: 4.5,
           rating_distribution: { '5': 9 },
           top_flavor_notes: [],
+          favorite_user_count: 7,
         },
       },
       { hash: 'hash-1' }

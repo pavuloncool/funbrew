@@ -99,7 +99,7 @@ export default function RoastersScreen() {
             weight="700"
             tone={activeSection === 'followed' ? 'onPrimary' : 'secondary'}
           >
-            Followed Roasters
+            Followed
           </AppText>
         </Pressable>
 
@@ -113,7 +113,7 @@ export default function RoastersScreen() {
             weight="700"
             tone={activeSection === 'discover' ? 'onPrimary' : 'secondary'}
           >
-            Discover Roasters
+            Discover
           </AppText>
         </Pressable>
       </View>

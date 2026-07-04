@@ -49,6 +49,7 @@ export type BatchPublicationQr = {
 export type BatchPublicationStats = {
   totalCount: number;
   avgRating: number;
+  favoriteUsersCount: number;
   updatedAt: string | null;
 };
 

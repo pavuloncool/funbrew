@@ -1,29 +1,24 @@
 import {
   getReputationLevelLabel,
   useBatchCommunityReviews,
-  useFavoriteScannedEntries,
   flowErrorUiCopy,
   normalizeCoffeePageData,
   normalizeFlowError,
   toCanonicalPublicationFields,
-  useToggleFavoriteScannedEntry,
   useToggleReviewHelpful,
   useCoffeePage,
   visualSystemTokens,
 } from '@funcup/shared';
 import { useNavigation, type NavigationProp, type ParamListBase } from '@react-navigation/native';
-import { Link, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
+import { useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
-import { CoffeePageBrewing } from '../../coffee/CoffeePageBrewing';
 import { CoffeePageCommunity } from '../../coffee/CoffeePageCommunity';
-import { CoffeePageProduct } from '../../coffee/CoffeePageProduct';
-import { CoffeePageStory } from '../../coffee/CoffeePageStory';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineBackHeader } from '../../components/navigation/InlineBackHeader';
 import { ScreenError } from '../../components/ScreenError';
-import { AppButton, AppCard, AppScrollScreen, AppText } from '../../components/ui/primitives';
+import { AppCard, AppScrollScreen, AppText } from '../../components/ui/primitives';
 import { CoffeePageSkeleton } from '../../components/ui/Skeleton';
 import { useViewerUserId } from '../../hooks/useViewerUserId';
 import { getResolvedSupabasePublicUrl, supabase } from '../../services/supabaseClient';
@@ -71,6 +66,30 @@ function resolveImageUri(rawUri: string): string {
   }
 }
 
+function formatDisplayValue(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : '—';
+}
+
+function formatVarietyLabel(
+  varieties: Array<{ id: string; name: string }> | undefined,
+  legacyVariety: string | null | undefined
+): string {
+  const varietyNames = (varieties ?? [])
+    .map((entry) => entry.name.trim())
+    .filter((entry) => entry.length > 0);
+  if (varietyNames.length > 0) return varietyNames.join(', ');
+  return formatDisplayValue(legacyVariety);
+}
+
+function MetaRow(props: { label: string; value: string | null | undefined }) {
+  return (
+    <AppText style={styles.row}>
+      <AppText weight="700">{props.label}:</AppText> {formatDisplayValue(props.value)}
+    </AppText>
+  );
+}
+
 export default function CoffeePageScreen() {
   const params = useLocalSearchParams<{ hash?: string }>();
   const segments = useSegments() as string[];
@@ -82,7 +101,6 @@ export default function CoffeePageScreen() {
   const scanExitInProgressRef = useRef(false);
   const { userId } = useViewerUserId();
   const coffeeQuery = useCoffeePage({ supabase, hash });
-  const favoritesQuery = useFavoriteScannedEntries({ supabase, userId });
   const communityBatchId = coffeeQuery.data?.batch.id ?? null;
   const communityQuery = useBatchCommunityReviews({
     supabase,
@@ -94,7 +112,6 @@ export default function CoffeePageScreen() {
     batchId: communityBatchId,
   });
   const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
-  const favoriteMutation = useToggleFavoriteScannedEntry({ supabase, userId });
   const fallbackHref = '/(tabs)/coffee';
   const coffeeImageUri = useMemo(() => {
     const d = coffeeQuery.data;
@@ -187,15 +204,6 @@ export default function CoffeePageScreen() {
 
   const publicCoffee = normalizeCoffeePageData(data, { hash });
   const fields = toCanonicalPublicationFields(publicCoffee);
-  const isFavorite = Boolean(favoritesQuery.data?.some((entry) => entry.qrHash === hash));
-
-  const logHref = {
-    pathname: '/coffee/[hash]/log' as const,
-    params: {
-      hash,
-      batchId: publicCoffee.logBatchId ?? data.batch.id,
-    },
-  };
 
   return (
     <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
@@ -204,12 +212,6 @@ export default function CoffeePageScreen() {
         fallbackHref={fallbackHref}
         preferHistory={!isScanContext}
       />
-      {publicCoffee.archived ? (
-        <AppCard style={styles.archived}>
-          <AppText weight="600">Archived batch</AppText>
-          <AppText tone="secondary" style={styles.archivedInfo}>Tasting may be limited for this roast.</AppText>
-        </AppCard>
-      ) : null}
 
       <View style={styles.imageWrap}>
         {!coffeeImageFailed && coffeeImageUri ? (
@@ -227,137 +229,81 @@ export default function CoffeePageScreen() {
         )}
       </View>
 
-      <AppCard style={styles.card}>
-        <AppText style={styles.row}>
-          <AppText weight="700">Roaster:</AppText> {publicCoffee.roaster.shortName ?? '—'}
-        </AppText>
-        <AppText style={styles.row}>
-          <AppText weight="700">Roast date:</AppText>{' '}
-          {fields.batch.roastDate ? formatRoastDate(fields.batch.roastDate) : '—'}
-        </AppText>
-        <AppText style={styles.row}>
-          <AppText weight="700">Origin:</AppText>{' '}
-          {[fields.origin.country, fields.origin.region, fields.origin.farm].filter(Boolean).join(' · ') || '—'}
-        </AppText>
-        <AppText style={styles.row}>
-          <AppText weight="700">Producer:</AppText> {fields.origin.producer ?? '—'}
-        </AppText>
-        <AppText style={styles.row}>
-          <AppText weight="700">Altitude:</AppText> {fields.origin.altitudeLabel ?? '—'}
-        </AppText>
-        {userId ? (
-          <>
-            <AppButton
-              label={favoriteMutation.isPending ? 'Saving favorite…' : isFavorite ? 'Remove from favorites' : 'Add coffee to favorites'}
-              variant={isFavorite ? 'secondary' : 'primary'}
-              onPress={() => {
-                void favoriteMutation.mutateAsync({
-                  qrHash: hash,
-                  batchId: publicCoffee.logBatchId ?? data.batch.id,
-                  coffeeId: data.coffee.id,
-                  shouldFavorite: !isFavorite,
-                  optimisticEntry: {
-                    id: `optimistic-${hash}`,
-                    qrHash: hash,
-                    batchId: publicCoffee.logBatchId ?? data.batch.id,
-                    coffeeId: data.coffee.id,
-                    createdAt: new Date().toISOString(),
-                    coffeeName: fields.coffee.name,
-                    processingMethod: fields.coffee.processingMethod,
-                    roastDate: fields.batch.roastDate ?? null,
-                    lotNumber: fields.batch.lotNumber ?? null,
-                    roasterName: publicCoffee.roaster.name,
-                    roasterCountry: publicCoffee.roaster.country,
-                    originCountry: fields.origin.country,
-                  },
-                });
-              }}
-              disabled={favoriteMutation.isPending}
+      <AppCard style={styles.roasterCard}>
+        {/*<AppText variant="h3" weight="700">Roaster data</AppText>*/}
+        <MetaRow label="Coffee Name" value={fields.coffee.name} />
+        <MetaRow label="Roaster short name" value={publicCoffee.roaster.shortName} />
+        <MetaRow
+          label="Variety"
+          value={formatVarietyLabel(fields.coffee.varieties, fields.coffee.variety)}
+        />
+        <MetaRow label="Country of Origin" value={fields.origin.country} />
+        <MetaRow label="Region of Origin" value={fields.origin.region} />
+        <MetaRow label="Farm" value={fields.origin.farm} />
+        <MetaRow label="Altitude" value={fields.origin.altitudeLabel} />
+        <MetaRow
+          label="Roast date"
+          value={fields.batch.roastDate ? formatRoastDate(fields.batch.roastDate) : null}
+        />
+        <MetaRow label="Brewing suggestions" value={fields.batch.brewingNotes} />
+        <MetaRow label="Roaster story" value={fields.batch.roasterStory} />
+      </AppCard>
+
+      <AppCard style={styles.communityCard}>
+        <AppText variant="h3" weight="700">Community feedback</AppText>
+        <CoffeePageCommunity
+          totalTastings={publicCoffee.stats.totalTastings}
+          avgRating={publicCoffee.stats.avgRating}
+          favoriteUsersCount={publicCoffee.stats.favoriteUsersCount}
+        />
+        <View style={styles.communityReviewsSection}>
+          <AppText variant="body" weight="700">Community reviews</AppText>
+          <AppText tone="secondary" style={styles.communityReviewsIntro}>
+            Public tasting notes for this batch. Helpful votes are lightweight quality signals only.
+          </AppText>
+          {communityQuery.isLoading ? (
+            <AppText tone="secondary">Loading reviews…</AppText>
+          ) : (communityQuery.data?.length ?? 0) === 0 ? (
+            <EmptyState
+              title="No public reviews yet"
+              description="Be the first to publish a short review from the tasting log."
             />
-            {fields.coffee.storeUrl ? (
-              <AppButton
-                label="Buy this coffee"
-                variant="secondary"
-                onPress={() => {
-                  void Linking.openURL(fields.coffee.storeUrl as string);
-                }}
-              />
-            ) : null}
-          </>
-        ) : null}
-      </AppCard>
-
-      <CoffeePageProduct
-        coffeeName={fields.coffee.name}
-        varieties={fields.coffee.varieties}
-        processingMethod={fields.coffee.processingMethod}
-        producerNotes={fields.coffee.producerNotes}
-        roasterName={publicCoffee.roaster.name}
-      />
-      <CoffeePageBrewing brewingNotes={fields.batch.brewingNotes} />
-      <CoffeePageStory roasterStory={fields.batch.roasterStory} />
-      <CoffeePageCommunity
-        totalTastings={publicCoffee.stats.totalTastings}
-        avgRating={publicCoffee.stats.avgRating}
-      />
-
-      <AppCard style={styles.card}>
-        <AppText variant="h3" weight="700">Community reviews</AppText>
-        <AppText tone="secondary">
-          Public tasting notes for this batch. Helpful votes are lightweight quality signals only.
-        </AppText>
-        {communityQuery.isLoading ? (
-          <AppText tone="secondary">Loading reviews…</AppText>
-        ) : (communityQuery.data?.length ?? 0) === 0 ? (
-          <EmptyState
-            title="No public reviews yet"
-            description="Be the first to publish a short review from the tasting log."
-          />
-        ) : (
-          communityQuery.data?.map((review) => (
-            <View key={review.reviewId} style={styles.reviewCard}>
-              <AppText weight="700">
-                {review.authorName ?? 'Anonymous taster'}
-                {review.authorSensoryLevel ? ` · ${getReputationLevelLabel(review.authorSensoryLevel)}` : ''}
-              </AppText>
-              <AppText tone="secondary">
-                {new Date(review.loggedAt).toLocaleDateString('pl-PL')} · {review.helpfulCount} helpful
-              </AppText>
-              <AppText>{review.body}</AppText>
-              {userId ? (
-                <Pressable
-                  onPress={() => {
-                    void helpfulMutation.mutateAsync({
-                      reviewId: review.reviewId,
-                      shouldMarkHelpful: !review.viewerMarkedHelpful,
-                    });
-                  }}
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    styles.helpfulButton,
-                    review.viewerMarkedHelpful ? styles.helpfulButtonActive : null,
-                    pressed ? styles.helpfulButtonPressed : null,
-                  ]}
-                >
-                  <AppText tone={review.viewerMarkedHelpful ? 'onPrimary' : 'secondary'} weight="700">
-                    {review.viewerMarkedHelpful ? 'Helpful saved' : 'Mark Helpful'}
-                  </AppText>
-                </Pressable>
-              ) : null}
-            </View>
-          ))
-        )}
-      </AppCard>
-
-      {isScanContext && publicCoffee.logBatchId ? (
-        <View style={styles.logAction}>
-          <Link href={logHref} asChild>
-            <Pressable accessibilityRole="button" style={styles.logCta}>
-              <AppText weight="700" tone="onPrimary">Go to Tasting Log</AppText>
-            </Pressable>
-          </Link>
+          ) : (
+            communityQuery.data?.map((review) => (
+              <View key={review.reviewId} style={styles.reviewCard}>
+                <AppText weight="700">
+                  {review.authorName ?? 'Anonymous taster'}
+                  {review.authorSensoryLevel ? ` · ${getReputationLevelLabel(review.authorSensoryLevel)}` : ''}
+                </AppText>
+                <AppText tone="secondary">
+                  {new Date(review.loggedAt).toLocaleDateString('pl-PL')} · {review.helpfulCount} helpful
+                </AppText>
+                <AppText>{review.body}</AppText>
+                {userId ? (
+                  <Pressable
+                    onPress={() => {
+                      void helpfulMutation.mutateAsync({
+                        reviewId: review.reviewId,
+                        shouldMarkHelpful: !review.viewerMarkedHelpful,
+                      });
+                    }}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.helpfulButton,
+                      review.viewerMarkedHelpful ? styles.helpfulButtonActive : null,
+                      pressed ? styles.helpfulButtonPressed : null,
+                    ]}
+                  >
+                    <AppText tone={review.viewerMarkedHelpful ? 'onPrimary' : 'secondary'} weight="700">
+                      {review.viewerMarkedHelpful ? 'Helpful saved' : 'Mark Helpful'}
+                    </AppText>
+                  </Pressable>
+                ) : null}
+              </View>
+            ))
+          )}
         </View>
-      ) : null}
+      </AppCard>
     </AppScrollScreen>
   );
 }
@@ -371,13 +317,6 @@ const styles = StyleSheet.create({
   },
   paddedContent: {
     padding: spacing.xl,
-  },
-  archived: {
-    borderColor: colors.warning,
-    backgroundColor: colors.surfaceElevated,
-  },
-  archivedInfo: {
-    marginTop: spacing.xs,
   },
   loadingHeader: {
     marginTop: spacing.xl,
@@ -404,11 +343,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  card: {
+  roasterCard: {
     gap: spacing.xs,
+  },
+  communityCard: {
+    gap: spacing.md,
   },
   row: {
     color: colors.textPrimary,
+  },
+  communityReviewsSection: {
+    gap: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  communityReviewsIntro: {
+    marginBottom: spacing.xs,
   },
   reviewCard: {
     marginTop: spacing.md,
@@ -431,16 +382,5 @@ const styles = StyleSheet.create({
   },
   helpfulButtonPressed: {
     opacity: 0.85,
-  },
-  logAction: {
-    paddingBottom: spacing.xl,
-  },
-  logCta: {
-    backgroundColor: colors.accentPrimary,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

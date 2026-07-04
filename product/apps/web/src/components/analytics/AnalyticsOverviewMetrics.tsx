@@ -1,5 +1,7 @@
 'use client';
 
+import { formatFavoriteUsersCopy } from '@funcup/shared';
+
 import type { AnalyticsOverviewMetrics as AnalyticsOverviewMetricsData } from '@/src/hooks/useRoasterAnalyticsDashboard';
 
 type Props = {
@@ -11,10 +13,12 @@ const ITEMS = [
   { key: 'avgRating', label: 'Average rating', format: (value: number) => (value > 0 ? value.toFixed(2) : '—') },
   { key: 'telemetryCoverage', label: 'Sensory Core coverage', format: (value: number) => `${value.toFixed(0)}%` },
   { key: 'reviewCount', label: 'Reviews', format: (value: number) => String(value) },
-  { key: 'noteCount', label: 'Free-text notes', format: (value: number) => String(value) },
+  { key: 'favoriteUsersCount', label: "Users' favorite", format: (value: number) => String(value) },
 ] as const;
 
 export default function AnalyticsOverviewMetrics(props: Props) {
+  const favoriteUsersCopy = formatFavoriteUsersCopy(props.metrics.favoriteUsersCount);
+
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
       {ITEMS.map((item) => (
@@ -28,6 +32,11 @@ export default function AnalyticsOverviewMetrics(props: Props) {
           <p className="mt-3 font-display text-5xl uppercase tracking-[-0.03em] text-vs-text-primary">
             {item.format(props.metrics[item.key])}
           </p>
+          {item.key === 'favoriteUsersCount' ? (
+            <p className="mt-2 text-sm leading-snug text-vs-text-secondary">
+              {favoriteUsersCopy ?? 'No favourites yet.'}
+            </p>
+          ) : null}
         </article>
       ))}
     </section>

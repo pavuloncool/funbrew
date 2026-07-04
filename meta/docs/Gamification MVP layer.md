@@ -5,7 +5,7 @@
 - Wdrożone na 100%:
   - `Sensory Progression` oparte o istniejące `users.sensory_score/sensory_level`
   - `Community Helpful` dla publicznych review przy aktualnie skanowanej kawie/batchu
-  - `Favorite scanned entries` jako szybki feature demo
+  - `Favourite rated coffees` jako szybki feature demo
   - `Coffee Geography` jako statyczna mapa + summary na Home Hub
 - Placeholdery:
   - misje kontekstowe
@@ -15,7 +15,7 @@
 ## Business Layer
 - `QR scan` pozostaje wejściem głównym. Po skanie użytkownik trafia na Coffee Page, gdzie:
   - widzi produkt, origin, processing, batch i statystyki
-  - może dodać `scanned entry` do ulubionych
+  - może oznaczyć rated log gwiazdką i dodać go do ulubionych
   - widzi publiczne review dla tej kawy/batcha i może oznaczyć review jako `Helpful`
   - przechodzi do logowania degustacji
 - `Tasting log` staje się głównym źródłem progresji:
@@ -35,22 +35,23 @@
   - pozwala dodać/usunąć `Helpful`
   - reputacja community jest lekka: liczymy `helpful received` i `review count`; nie wpływa jeszcze na unlocki, tylko na ekspozycję i snapshot na Hub
 - `Favorites` w MVP:
-  - zapisujemy ulubione na poziomie `scanned entry`, zgodnie z decyzją demo
-  - feature służy do szybkiego powrotu do konkretnych zeskanowanych wpisów, nie do modelu docelowego kolekcji
+  - zapisujemy ulubione na poziomie `coffee_log` oznaczonego gwiazdką
+  - feature służy do szybkiego powrotu do konkretnych rated coffees, nie do modelu scan-entry
 
 ## Dev Layer
 - Zmiany backend/schema:
-  - dodać tabelę `user_favorite_qr_entries` z `user_id`, `qr_hash`, `batch_id`, `coffee_id`, `created_at`, `UNIQUE(user_id, qr_hash)`
-  - dodać RLS dla `user_favorite_qr_entries` tylko dla właściciela
+  - dodać tabelę `user_favorite_coffee_logs` z `user_id`, `coffee_log_id`, `created_at`, `UNIQUE(user_id, coffee_log_id)`
+  - dodać RLS dla `user_favorite_coffee_logs` tylko dla właściciela
   - nie dodawać na MVP `user_progression`, `vocabulary_unlocks`, `coffee_collection`; progresję i gating liczyć z istniejących danych
   - dodać community read model:
     - rekomendowane: nowy edge function/RPC `get_batch_community_reviews`
     - zwraca `review id`, `body`, `coffee_log_id`, `logged_at`, `helpful_count`, `viewer_marked_helpful`
+  - dodać RPC `get_coffee_favorite_user_count(p_coffee_id)` do społecznościowego social proof
   - głos `Helpful` obsłużyć przez `review_votes` z toggle write; można użyć drugiego małego endpointu/RPC albo bezpośredniego upsert/delete
 - Zmiany shared/mobile logic:
   - nowy shared moduł `sensoryProgression` z mapowaniem poziomów do dozwolonych tasting notes
   - nowy hook `useUnlockedTastingNotes(userId)`
-  - nowy hook `useFavoriteScannedEntries(userId)` + `toggleFavoriteScannedEntry`
+  - nowy hook `useFavoriteRatedCoffeeLogs(userId)` + `toggleFavoriteRatedCoffeeLog`
   - nowy hook `useCoffeeGeographySummary(userId)` do mapy i liczników krajów
   - nowy hook `useBatchCommunityReviews(batchId, userId)` + `toggleReviewHelpful`
 - Zmiany routingów i flows:
@@ -73,18 +74,19 @@
   - `Qualitative Feedback`: 2-3 predefiniowane komunikaty, bez pełnego silnika insightów
 
 ## Public APIs / Interfaces
-- Nowa tabela: `public.user_favorite_qr_entries`
+- Nowa tabela: `public.user_favorite_coffee_logs`
 - Nowe route’y:
   - `/atlas`
   - rozszerzony `/ (tabs)/coffee` z sekcją `Favorites`
   - opcjonalnie `/coffee/[id]/community`
 - Nowe typy/hooki:
-  - `FavoriteScannedEntry`
+  - `RatedCoffeeLogSummary`
+  - `FavoriteRatedCoffeeLog`
   - `SensoryUnlockState`
   - `CoffeeGeographySummary`
   - `BatchCommunityReview`
   - `useUnlockedTastingNotes`
-  - `useFavoriteScannedEntries`
+  - `useFavoriteRatedCoffeeLogs`
   - `useCoffeeGeographySummary`
   - `useBatchCommunityReviews`
 
@@ -93,8 +95,9 @@
   - user z niskim `sensory_score` nie może wybrać advanced tasting notes
   - po kolejnym logu i refreshu `sensory_level` oraz dostępne notes aktualizują się poprawnie
 - Favorites:
-  - zapis i usunięcie `Favorite scanned entry` działa z Coffee Page
+  - zapis i usunięcie `Favourite rated coffee` działa z Coffee Page i `coffee-log/[logId]`
   - segment `Favorites` pokazuje tylko wpisy aktualnego usera
+  - Coffee Page community card pokazuje `X users' favourite coffee`
 - Geography:
   - user bez logów widzi empty state
   - user z logami widzi kraje zliczone z originów i poprawny preview mapy
@@ -109,6 +112,6 @@
 ## Assumptions And Defaults
 - `Hard gating` dotyczy tylko wyboru tasting notes; nie blokuje samego zapisu logu, jeśli user wybrał poprawny dozwolony zestaw.
 - `Community reputation` w MVP jest oddzielona od `sensory_score`; unlocki deskryptorów są sterowane wyłącznie progression sensoryczną.
-- `Favorite scanned entry` jest świadomym kompromisem demo i powinno zostać później zmigrowane do modelu `coffee` albo `batch`.
+- `Favourite rated coffee` jest teraz świadomym kompromisem demo, ale już opiera się o `coffee_log` zamiast `scan entry`.
 - `Geography` w MVP jest read-only i opiera się głównie o kraj; region może być pokazany tekstowo, bez dodatkowej logiki mapowej.
 - Nie dodajemy leaderboardów, streaków, XP bars, push-retention ani reward stacking.

@@ -29,6 +29,7 @@ export type AnalyticsOverviewMetrics = {
   avgRating: number;
   reviewCount: number;
   noteCount: number;
+  favoriteUsersCount: number;
   telemetryCoverage: number;
 };
 
@@ -290,6 +291,7 @@ export function useRoasterAnalyticsDashboard(params: {
       avgRating: filteredSummary.totalTastings > 0 ? filteredSummary.avgRating : 0,
       reviewCount: filteredReviews.length,
       noteCount: filteredNotes.length,
+      favoriteUsersCount: params.detail?.stats.favoriteUsersCount ?? 0,
       telemetryCoverage: telemetrySummary.coveragePercent,
     };
 

@@ -77,6 +77,7 @@ export type NormalizedCoffeePageData = {
   stats: {
     totalTastings: number;
     avgRating: number;
+    favoriteUsersCount: number;
   };
   tastingNotes: Array<{
     id: string;
@@ -172,6 +173,7 @@ export function normalizeCoffeePageData(
     stats: {
       totalTastings: input.stats.total_count,
       avgRating: input.stats.avg_rating,
+      favoriteUsersCount: input.stats.favorite_user_count,
     },
     tastingNotes: [],
     logBatchId: input.batch.id,

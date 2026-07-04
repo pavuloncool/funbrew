@@ -1,8 +1,14 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useJournal, visualSystemTokens } from '@funcup/shared';
-import { useCallback } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import {
+  useFavoriteRatedCoffeeLogs,
+  useJournal,
+  useToggleFavoriteRatedCoffeeLog,
+  type RatedCoffeeLogSummary,
+  visualSystemTokens,
+} from '@funcup/shared';
 
 import { EmptyState } from '../EmptyState';
 import { ScreenError } from '../ScreenError';
@@ -11,6 +17,7 @@ import { useViewerUserId } from '../../hooks/useViewerUserId';
 import { useOfflineTastingQueueStatus } from '../../hooks/useOfflineTastingQueueStatus';
 import { supabase } from '../../services/supabaseClient';
 import { AppCard, AppText } from '../ui/primitives';
+import { RatedCoffeeLogCard, matchesRatedCoffeeSearch } from './RatedCoffeeLogCard';
 
 type JournalRow = {
   id: string;
@@ -23,6 +30,7 @@ type JournalRow = {
     coffees: {
       id: string;
       name: string;
+      processing_method: string | null;
       origin: { country: string | null } | null;
       roasters:
         | { id: string; name: string; country: string | null; city: string | null }
@@ -41,38 +49,49 @@ function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function matchesSearch(row: JournalRow, normalizedQuery: string): boolean {
-  if (!normalizedQuery) return true;
-  const coffee = row.roast_batches?.coffees;
-  const roaster = Array.isArray(coffee?.roasters)
-    ? (coffee?.roasters[0] ?? null)
-    : (coffee?.roasters ?? null);
-  const values = [
-    coffee?.name,
-    roaster?.name,
-    roaster?.city,
-    roaster?.country,
-    coffee?.origin?.country,
-    row.roast_batches?.lot_number,
-    row.free_text_notes,
-    row.logged_at ? new Date(row.logged_at).toLocaleDateString() : null,
-  ];
+function resolveSingle<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
 
-  return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
+function toRatedCoffeeLogSummary(row: JournalRow): RatedCoffeeLogSummary {
+  const coffee = resolveSingle(row.roast_batches?.coffees ?? null);
+  const roaster = resolveSingle(coffee?.roasters ?? null);
+
+  return {
+    coffeeLogId: row.id,
+    coffeeName: coffee?.name ?? 'Coffee',
+    roasterName: roaster?.name ?? null,
+    roasterCountry: roaster?.country ?? null,
+    originCountry: coffee?.origin?.country ?? null,
+    processingMethod: coffee?.processing_method ?? null,
+    lotNumber: row.roast_batches?.lot_number ?? null,
+    rating: row.rating,
+    loggedAt: row.logged_at,
+    freeTextNotes: row.free_text_notes,
+  };
 }
 
 export function RatedCoffeesSection(props: { searchQuery?: string }) {
   const { userId, isLoading: authLoading } = useViewerUserId();
+  const router = useRouter();
   const { pendingCount, failedCount } = useOfflineTastingQueueStatus();
   const journalQuery = useJournal({ supabase, userId });
+  const favoriteLogsQuery = useFavoriteRatedCoffeeLogs({ supabase, userId });
+  const favoriteToggleMutation = useToggleFavoriteRatedCoffeeLog({ supabase, userId });
   const hasQueueWarnings = pendingCount > 0 || failedCount > 0;
+  const favoriteLogIds = useMemo(
+    () => new Set((favoriteLogsQuery.data ?? []).map((entry) => entry.coffeeLogId)),
+    [favoriteLogsQuery.data]
+  );
 
   useFocusEffect(
     useCallback(() => {
       if (!userId) return undefined;
       void journalQuery.refetch();
+      void favoriteLogsQuery.refetch();
       return undefined;
-    }, [journalQuery, userId])
+    }, [favoriteLogsQuery, journalQuery, userId])
   );
 
   if (authLoading) {
@@ -88,7 +107,7 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
       <View style={styles.section}>
         <EmptyState
           title="Sign in to see rated coffees"
-          description="Your tastings will show up here after you log a coffee."
+          description="Your tastings and star-marked favourites will show up here after you log a coffee."
           footer={
             <Link href="/(auth)/login" accessibilityRole="link">
               Go to sign in
@@ -116,8 +135,9 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
   }
 
   const rows = (journalQuery.data ?? []) as JournalRow[];
+  const entries = rows.map((row) => toRatedCoffeeLogSummary(row));
   const normalizedQuery = normalizeSearchValue(props.searchQuery ?? '');
-  const filteredRows = rows.filter((row) => matchesSearch(row, normalizedQuery));
+  const filteredEntries = entries.filter((entry) => matchesRatedCoffeeSearch(entry, normalizedQuery));
 
   if (rows.length === 0) {
     return (
@@ -135,7 +155,7 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
         ) : null}
         <EmptyState
           title="Rate your first coffee"
-          description="Scan QR from coffee bag and save your tasting to build this list."
+          description="Scan QR from a coffee bag, log a tasting, and star the rated coffee to build this list."
           footer={
             <Link href="/(tabs)/scan/scan" accessibilityRole="link">
               Open scanner
@@ -159,47 +179,37 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
           ) : null}
         </AppCard>
       ) : null}
-      {filteredRows.length === 0 ? (
+      {filteredEntries.length === 0 ? (
         <EmptyState
           title="No matching rated coffees"
-          description="Try a different coffee name, country, lot, or note phrase."
+          description="Try a different coffee name, country, lot, note phrase, or rating."
         />
       ) : null}
-      {filteredRows.map((row) => {
-        const coffee = row.roast_batches?.coffees;
-        const roasterProfile = Array.isArray(coffee?.roasters)
-          ? (coffee?.roasters[0] ?? null)
-          : (coffee?.roasters ?? null);
-        const title = coffee?.name ?? 'Coffee';
-        const roaster = roasterProfile?.name;
-        const ratingLabel = row.rating != null ? `${row.rating} / 5` : '—';
+      {filteredEntries.map((entry) => {
+        const isFavorite = favoriteLogIds.has(entry.coffeeLogId);
 
         return (
-          <Link
-            key={row.id}
-            href={`/coffee-log/${row.id}`}
-            asChild
-          >
-            <Pressable accessibilityRole="button">
-              <AppCard
-                style={styles.rowCard}
-                accessibilityLabel={`${title}, ${roaster ?? ''}, rating ${ratingLabel}`}
-              >
-                <AppText variant="h3" weight="700">{title}</AppText>
-                {roaster ? <AppText tone="secondary">{roaster}</AppText> : null}
-                <AppText tone="secondary">
-                  {ratingLabel}
-                  {row.logged_at ? ` · ${new Date(row.logged_at).toLocaleString()}` : ''}
-                </AppText>
-                {row.free_text_notes ? (
-                  <AppText tone="muted" style={styles.note} numberOfLines={4}>
-                    {row.free_text_notes}
-                  </AppText>
-                ) : null}
-                <AppText style={styles.openLabel}>Open details</AppText>
-              </AppCard>
-            </Pressable>
-          </Link>
+          <RatedCoffeeLogCard
+            key={entry.coffeeLogId}
+            entry={entry}
+            isFavorite={isFavorite}
+            favoriteToggleDisabled={favoriteLogsQuery.isLoading || favoriteToggleMutation.isPending}
+            favoriteToggleLabel={
+              isFavorite
+                ? 'Remove favourite from rated coffee'
+                : 'Add rated coffee to favourites'
+            }
+            onPress={() => {
+              router.push(`/coffee-log/${entry.coffeeLogId}`);
+            }}
+            onToggleFavorite={() => {
+              void favoriteToggleMutation.mutateAsync({
+                coffeeLogId: entry.coffeeLogId,
+                shouldFavorite: !isFavorite,
+                optimisticEntry: entry,
+              });
+            }}
+          />
         );
       })}
     </View>
@@ -210,20 +220,9 @@ const styles = StyleSheet.create({
   section: {
     gap: visualSystemTokens.spacing.sm,
   },
-  rowCard: {
-    padding: visualSystemTokens.spacing.sm,
-    backgroundColor: visualSystemTokens.colors.surface,
-  },
   syncInfoCard: {
     padding: visualSystemTokens.spacing.sm,
     gap: visualSystemTokens.spacing.xxs,
     backgroundColor: visualSystemTokens.colors.surfaceMuted,
-  },
-  note: {
-    marginTop: visualSystemTokens.spacing.xxs,
-  },
-  openLabel: {
-    marginTop: visualSystemTokens.spacing.xs,
-    textDecorationLine: 'underline',
   },
 });

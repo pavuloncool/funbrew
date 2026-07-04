@@ -374,7 +374,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    const [qrResult, statsResult] = await Promise.all([
+    const favoriteUsersCountPromise = admin
+      .rpc('get_coffee_favorite_user_count', { p_coffee_id: coffee.id })
+      .then(({ data, error }) => {
+        if (error) return 0
+        return Number(data ?? 0)
+      })
+      .catch(() => 0)
+
+    const [qrResult, statsResult, favoriteUsersCount] = await Promise.all([
       admin
         .from('qr_codes')
         .select('hash')
@@ -385,6 +393,7 @@ Deno.serve(async (req) => {
         .select('total_count, avg_rating, updated_at')
         .eq('batch_id', batchId)
         .maybeSingle(),
+      favoriteUsersCountPromise,
     ])
 
     if (qrResult.error) {
@@ -434,6 +443,7 @@ Deno.serve(async (req) => {
       stats: {
         totalCount: statsRow?.total_count ?? 0,
         avgRating: Number(statsRow?.avg_rating ?? 0),
+        favoriteUsersCount,
         updatedAt: statsRow?.updated_at ?? null,
       },
     })

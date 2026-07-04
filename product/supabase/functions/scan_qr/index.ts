@@ -139,6 +139,19 @@ Deno.serve(async req => {
         .eq('batch_id', batch.id)
         .single();
 
+      let favoriteUserCount = 0;
+      try {
+        const { data: favoriteUserCountData, error: favoriteUserCountError } = await supabase.rpc(
+          'get_coffee_favorite_user_count',
+          { p_coffee_id: coffee.id }
+        );
+        if (!favoriteUserCountError) {
+          favoriteUserCount = Number(favoriteUserCountData ?? 0);
+        }
+      } catch {
+        favoriteUserCount = 0;
+      }
+
       return new Response(
         JSON.stringify({
           kind: 'batch',
@@ -174,6 +187,7 @@ Deno.serve(async req => {
           stats: {
             total_count: statsData?.total_count || 0,
             avg_rating: statsData?.avg_rating || 0,
+            favorite_user_count: favoriteUserCount,
             rating_distribution: statsData?.rating_distribution || {
               '1': 0,
               '2': 0,

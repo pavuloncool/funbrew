@@ -37,6 +37,7 @@ export type ScanQrBatchResponse = {
     avg_rating: number;
     rating_distribution: Record<string, number>;
     top_flavor_notes: unknown[];
+    favorite_user_count: number;
   };
   archived: boolean;
 };

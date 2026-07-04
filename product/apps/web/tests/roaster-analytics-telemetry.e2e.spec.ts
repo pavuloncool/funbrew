@@ -1,4 +1,9 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from '@playwright/test';
 
 import {
   createCoffeeAndBatch,
@@ -41,9 +46,16 @@ async function insertTelemetryBackedLog(params: {
 }
 
 test.describe('roaster telemetry analytics', () => {
-  test('owner sees telemetry aggregates for own batch', async ({ page, request }) => {
+  test('owner sees telemetry aggregates for own batch', async ({
+    page,
+    request,
+  }) => {
     const owner = await provisionVerifiedRoaster(request, 'telemetry-owner');
-    const { batch } = await createCoffeeAndBatch(request, owner, 'telemetry-owner');
+    const { batch } = await createCoffeeAndBatch(
+      request,
+      owner,
+      'telemetry-owner'
+    );
     await updateBatchDeclaredTelemetry({
       request,
       batchId: batch.id,
@@ -64,26 +76,59 @@ test.describe('roaster telemetry analytics', () => {
 
     await loginViaForm(page, owner);
     await page.goto(`/roaster-hub/analytics/${batch.id}`);
-    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, { timeout: 20_000 });
+    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, {
+      timeout: 20_000,
+    });
 
-    await expect(page.getByText('No tastings logged for this batch yet.')).toHaveCount(0);
+    await expect(
+      page.getByText('No tastings logged for this batch yet.')
+    ).toHaveCount(0);
+    await page.getByRole('tab', { name: 'Average rating over time' }).click();
+    await expect(
+      page.getByRole('tabpanel', { name: 'Average rating over time' })
+    ).toBeVisible();
+    await page
+      .getByRole('tab', { name: 'Declared vs perceived sensory core' })
+      .click();
+    await expect(
+      page.getByRole('tabpanel', { name: 'Declared vs perceived sensory core' })
+    ).toBeVisible();
     await expect(page.getByText('Sensory Core coverage').first()).toBeVisible();
     await expect(page.getByText('1/ 1')).toBeVisible();
     await expect(page.getByText('4.00', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('5.00', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('3.00', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('2.00', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Declared vs Perceived Sensory Core')).toBeVisible();
-    await expect(page.getByText('Consumers perceive higher').first()).toBeVisible();
+    await expect(
+      page.getByText('Declared vs Perceived Sensory Core')
+    ).toBeVisible();
+    await expect(
+      page.getByText('Consumers perceive higher').first()
+    ).toBeVisible();
 
     await page.getByRole('button', { name: 'V60' }).click();
-    await expect(page.getByText('Filtered by brew method.').first()).toBeVisible();
+    await expect(
+      page.getByText('Filtered by brew method.').first()
+    ).toBeVisible();
   });
 
-  test('non-owner does not see telemetry for someone else batch', async ({ page, request }) => {
-    const owner = await provisionVerifiedRoaster(request, 'telemetry-owner-hidden');
-    const intruder = await provisionVerifiedRoaster(request, 'telemetry-intruder');
-    const { batch } = await createCoffeeAndBatch(request, owner, 'telemetry-owner-hidden');
+  test('non-owner does not see telemetry for someone else batch', async ({
+    page,
+    request,
+  }) => {
+    const owner = await provisionVerifiedRoaster(
+      request,
+      'telemetry-owner-hidden'
+    );
+    const intruder = await provisionVerifiedRoaster(
+      request,
+      'telemetry-intruder'
+    );
+    const { batch } = await createCoffeeAndBatch(
+      request,
+      owner,
+      'telemetry-owner-hidden'
+    );
     const consumer = await provisionConsumer(request, 'hidden');
     const v60Id = await getBrewMethodId(request, 'V60');
     await insertTelemetryBackedLog({
@@ -95,7 +140,9 @@ test.describe('roaster telemetry analytics', () => {
 
     await loginViaForm(page, intruder);
     await page.goto(`/roaster-hub/analytics/${batch.id}`);
-    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, { timeout: 20_000 });
+    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, {
+      timeout: 20_000,
+    });
 
     await expect(page.getByText('Sensory Core coverage').first()).toBeVisible();
     await expect(page.getByText('0/ 0')).toBeVisible();

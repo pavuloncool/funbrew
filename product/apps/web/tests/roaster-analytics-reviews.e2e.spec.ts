@@ -1,4 +1,9 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from '@playwright/test';
 
 import {
   createCoffeeAndBatch,
@@ -36,12 +41,20 @@ async function insertLog(params: {
 }
 
 test.describe('roaster analytics anonymized reviews', () => {
-  test('shows optional review text when consumer added one', async ({ page, request }) => {
+  test('shows optional review text when consumer added one', async ({
+    page,
+    request,
+  }) => {
     const roaster = await provisionVerifiedRoaster(request, 'reviews-visible');
     const consumer = await provisionConsumer(request, 'reviews-visible');
-    const { batch } = await createCoffeeAndBatch(request, roaster, 'reviews-visible');
+    const { batch } = await createCoffeeAndBatch(
+      request,
+      roaster,
+      'reviews-visible'
+    );
     const v60Id = await getBrewMethodId(request, 'V60');
-    const reviewBody = 'Consumer optional review should appear in anonymized reviews.';
+    const reviewBody =
+      'Consumer optional review should appear in anonymized reviews.';
     await insertLog({
       request,
       batchId: batch.id,
@@ -52,16 +65,27 @@ test.describe('roaster analytics anonymized reviews', () => {
 
     await loginViaForm(page, roaster);
     await page.goto(`/roaster-hub/analytics/${batch.id}`);
-    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, { timeout: 20_000 });
-    await expect(page.getByRole('heading', { name: 'Anonymized optional reviews' })).toBeVisible();
+    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, {
+      timeout: 20_000,
+    });
+    await page.getByRole('tab', { name: 'Other data' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Anonymized optional reviews' })
+    ).toBeVisible();
     await expect(page.getByText(reviewBody)).toBeVisible();
-    await expect(page.getByText('No written reviews for this batch yet.')).toHaveCount(0);
+    await expect(
+      page.getByText('No written reviews for this batch yet.')
+    ).toHaveCount(0);
   });
 
   test('keeps empty-state when no review exists', async ({ page, request }) => {
     const roaster = await provisionVerifiedRoaster(request, 'reviews-empty');
     const consumer = await provisionConsumer(request, 'reviews-empty');
-    const { batch } = await createCoffeeAndBatch(request, roaster, 'reviews-empty');
+    const { batch } = await createCoffeeAndBatch(
+      request,
+      roaster,
+      'reviews-empty'
+    );
     const v60Id = await getBrewMethodId(request, 'V60');
     await insertLog({
       request,
@@ -72,8 +96,15 @@ test.describe('roaster analytics anonymized reviews', () => {
 
     await loginViaForm(page, roaster);
     await page.goto(`/roaster-hub/analytics/${batch.id}`);
-    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, { timeout: 20_000 });
-    await expect(page.getByRole('heading', { name: 'Anonymized optional reviews' })).toBeVisible();
-    await expect(page.getByText('No written reviews for this batch yet.')).toBeVisible();
+    await page.waitForURL(`**/roaster-hub/analytics/${batch.id}`, {
+      timeout: 20_000,
+    });
+    await page.getByRole('tab', { name: 'Other data' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Anonymized optional reviews' })
+    ).toBeVisible();
+    await expect(
+      page.getByText('No written reviews for this batch yet.')
+    ).toBeVisible();
   });
 });

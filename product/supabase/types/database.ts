@@ -327,6 +327,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_favorite_coffee_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          coffee_log_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          coffee_log_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          coffee_log_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       user_favorite_qr_entries: {
         Row: {
           id: string;
@@ -594,6 +615,12 @@ export type Database = {
       };
     };
     Functions: {
+      get_coffee_favorite_user_count: {
+        Args: {
+          p_coffee_id: string;
+        };
+        Returns: number;
+      };
       get_batch_community_reviews: {
         Args: {
           p_batch_id: string;
