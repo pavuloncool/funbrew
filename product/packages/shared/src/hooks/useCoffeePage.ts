@@ -97,7 +97,8 @@ export function useCoffeePage(params: {
   return useQuery({
     queryKey: ['coffeePage', params.hash],
     enabled: Boolean(params.hash),
-    staleTime: Number.POSITIVE_INFINITY,
+    staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: async (): Promise<ScanQrResult> => {
       try {
         if (!params.hash) {
