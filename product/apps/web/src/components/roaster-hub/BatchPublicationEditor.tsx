@@ -565,8 +565,18 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
         return;
       }
 
-      await refreshDetail(saved.batchId);
       setNotice('Batch publication saved.');
+      try {
+        await refreshDetail(saved.batchId);
+      } catch (error) {
+        const normalized = normalizeFlowError({
+          error,
+          domain: 'batch_publication',
+        });
+        setNotice(
+          `Batch publication saved, but the latest details could not be reloaded right now. ${flowErrorUiCopy(normalized).message}`
+        );
+      }
     } catch (error) {
       const normalized = normalizeFlowError({
         error,

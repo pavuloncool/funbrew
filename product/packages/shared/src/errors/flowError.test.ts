@@ -46,4 +46,15 @@ describe('flowError', () => {
     expect(error.kind).toBe('rate_limited');
     expect(error.retryable).toBe(true);
   });
+
+  it('treats backend server_error payloads as server failures', () => {
+    const error = normalizeFlowError({
+      error: { message: 'column not found', code: 'server_error' },
+      domain: 'batch_publication',
+    });
+
+    expect(error.kind).toBe('server');
+    expect(error.retryable).toBe(true);
+    expect(flowErrorUiCopy(error).title).toBe('Batch service unavailable');
+  });
 });

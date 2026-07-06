@@ -111,6 +111,38 @@ function classifyFlowError(params: {
   const message = params.message.toLowerCase();
   const code = (params.code ?? '').toLowerCase();
 
+  if (
+    code === 'server_error' ||
+    code === 'internal_error' ||
+    code === 'server'
+  ) {
+    return 'server';
+  }
+  if (
+    code === 'bad_request' ||
+    code === 'validation_error' ||
+    code === 'invalid_request'
+  ) {
+    return 'validation';
+  }
+  if (
+    code === 'unauthorized' ||
+    code === 'authentication_failed' ||
+    code === 'auth_required' ||
+    code === 'forbidden' ||
+    code === 'permission_denied'
+  ) {
+    return 'unauthorized';
+  }
+  if (code === 'not_found' || code === 'missing_resource') return 'not_found';
+  if (
+    code === 'rate_limited' ||
+    code === 'too_many_requests' ||
+    code === 'throttled'
+  ) {
+    return 'rate_limited';
+  }
+
   if (status === 401 || status === 403) return 'unauthorized';
   if (status === 400 || status === 422) return 'validation';
   if (status === 404 || code === 'not_found') return 'not_found';
@@ -276,6 +308,13 @@ export function flowErrorUiCopy(error: FlowError): FlowUiCopy {
         title: 'Batch not found',
         message: 'This batch publication does not exist or is unavailable to this roaster.',
         retryLabel: 'Retry',
+      };
+    }
+    if (kind === 'validation') {
+      return {
+        title: 'Check batch fields',
+        message: error.message,
+        retryLabel: null,
       };
     }
     if (kind === 'offline' || kind === 'timeout') {
