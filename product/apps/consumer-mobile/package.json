@@ -21,9 +21,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@expo-google-fonts/spline-sans": "^0.4.2",
     "@dicebear/core": "^9.4.2",
     "@dicebear/toon-head": "^9.4.2",
+    "@expo-google-fonts/spline-sans": "^0.4.2",
     "@expo/metro-runtime": "~6.1.2",
     "@funcup/shared": "workspace:*",
     "@funcup/types": "workspace:*",
@@ -34,6 +34,7 @@
     "@tanstack/react-query": "^5.80.0",
     "expo": "~54.0.33",
     "expo-camera": "~17.0.10",
+    "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-linking": "~8.0.11",
     "expo-local-authentication": "~17.0.8",

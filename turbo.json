@@ -1,6 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "NEXT_PUBLIC_APP_URL",
+    "QR_PUBLIC_HOST",
+    "APP_STORE_URL",
+    "PLAY_STORE_URL",
+    "ANDROID_SHA256_CERT_FINGERPRINTS",
+    "APPLE_TEAM_ID",
+    "APPLE_APP_ID_PREFIX",
+    "ANDROID_APPLICATION_ID",
+    "IOS_BUNDLE_ID",
+    "EXPO_PUBLIC_ROASTER_WEB_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
