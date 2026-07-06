@@ -57,4 +57,25 @@ describe('flowError', () => {
     expect(error.retryable).toBe(true);
     expect(flowErrorUiCopy(error).title).toBe('Batch service unavailable');
   });
+
+  it('treats Supabase fetch failures as offline errors', () => {
+    const error = normalizeFlowError({
+      error: { name: 'FunctionsFetchError', message: 'Failed to send a request to the Edge Function' },
+      domain: 'batch_publication',
+    });
+
+    expect(error.kind).toBe('offline');
+    expect(error.retryable).toBe(true);
+  });
+
+  it('preserves unknown batch publication details in the UI message', () => {
+    const error = normalizeFlowError({
+      error: { message: 'Upload failed: bucket policy rejected the file' },
+      domain: 'batch_publication',
+    });
+
+    const copy = flowErrorUiCopy(error);
+    expect(copy.title).toBe('Batch action failed');
+    expect(copy.message).toContain('bucket policy rejected the file');
+  });
 });

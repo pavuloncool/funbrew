@@ -36,6 +36,12 @@ function appendLocalDiagnostic(baseMessage: string, error: FlowError): string {
   return `${baseMessage} (${detail})`;
 }
 
+function appendErrorDetail(baseMessage: string, error: FlowError): string {
+  const detail = error.message.trim();
+  if (!detail || detail === baseMessage) return baseMessage;
+  return `${baseMessage} (${detail})`;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
   return value as Record<string, unknown>;
@@ -72,6 +78,15 @@ function extractCode(error: Record<string, unknown>): string | null {
   return readString(context.code) ?? readString(context.error);
 }
 
+function extractName(error: Record<string, unknown>): string | null {
+  const direct = readString(error.name);
+  if (direct) return direct;
+
+  const context = asRecord(error.context);
+  if (!context) return null;
+  return readString(context.name);
+}
+
 function extractMessage(error: unknown, fallback: string): string {
   if (typeof error === 'string' && error.trim().length > 0) return error;
 
@@ -106,10 +121,12 @@ function classifyFlowError(params: {
   message: string;
   status: number | null;
   code: string | null;
+  name: string | null;
 }): FlowErrorKind {
   const status = params.status;
   const message = params.message.toLowerCase();
   const code = (params.code ?? '').toLowerCase();
+  const name = (params.name ?? '').toLowerCase();
 
   if (
     code === 'server_error' ||
@@ -150,6 +167,13 @@ function classifyFlowError(params: {
     return 'rate_limited';
   }
   if (status != null && status >= 500) return 'server';
+
+  if (name === 'functionsfetcherror') {
+    return 'offline';
+  }
+  if (name === 'functionsrelayerror') {
+    return 'server';
+  }
 
   if (message.includes('timeout') || message.includes('timed out') || code.includes('timeout')) {
     return 'timeout';
@@ -192,8 +216,9 @@ export function normalizeFlowError(params: {
   const candidate = asRecord(params.error);
   const status = candidate ? extractStatus(candidate) : null;
   const code = candidate ? extractCode(candidate) : null;
+  const name = candidate ? extractName(candidate) : null;
   const message = extractMessage(params.error, fallback);
-  const kind = classifyFlowError({ message, status, code });
+  const kind = classifyFlowError({ message, status, code, name });
 
   const next = new Error(message) as FlowError;
   next.name = 'FlowError';
@@ -336,7 +361,10 @@ export function flowErrorUiCopy(error: FlowError): FlowUiCopy {
     }
     return {
       title: 'Batch action failed',
-      message: 'Unable to load or save this batch publication right now.',
+      message: appendErrorDetail(
+        'Unable to load or save this batch publication right now.',
+        error
+      ),
       retryLabel: 'Retry',
     };
   }
