@@ -60,6 +60,7 @@ function toRatedCoffeeLogSummary(row: JournalRow): RatedCoffeeLogSummary {
 
   return {
     coffeeLogId: row.id,
+    batchId: row.roast_batches?.id ?? null,
     coffeeName: coffee?.name ?? 'Coffee',
     roasterName: roaster?.name ?? null,
     roasterCountry: roaster?.country ?? null,
@@ -196,8 +197,8 @@ export function RatedCoffeesSection(props: { searchQuery?: string }) {
             favoriteToggleDisabled={favoriteLogsQuery.isLoading || favoriteToggleMutation.isPending}
             favoriteToggleLabel={
               isFavorite
-                ? 'Remove favourite from rated coffee'
-                : 'Add rated coffee to favourites'
+                ? 'Remove from Favourites'
+                : 'Add to Favourites'
             }
             onPress={() => {
               router.push(`/coffee-log/${entry.coffeeLogId}`);

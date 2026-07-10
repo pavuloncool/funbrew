@@ -43,6 +43,12 @@ test.describe('roaster batch workflow split', () => {
     await expect(
       page.getByRole('heading', { name: 'Anonymized optional reviews' })
     ).toHaveCount(0);
+
+    await page.getByRole('button', { name: '← Batch Manager' }).click();
+    await page.waitForURL('**/roaster-hub/batches', { timeout: 20_000 });
+    await expect(
+      page.getByRole('heading', { name: 'Batch Manager' })
+    ).toBeVisible();
   });
 
   test('analytics detail shows metrics workflow without manage form', async ({

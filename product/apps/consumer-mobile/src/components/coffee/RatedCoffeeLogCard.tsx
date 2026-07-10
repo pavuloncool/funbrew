@@ -76,10 +76,10 @@ export function RatedCoffeeLogCard(props: {
             {props.entry.roasterName ? <AppText tone="secondary">{props.entry.roasterName}</AppText> : null}
           </View>
           <FavoriteToggleButton
-            compact
             active={props.isFavorite}
             onPress={props.onToggleFavorite}
             disabled={props.favoriteToggleDisabled}
+            label={props.favoriteToggleLabel}
             accessibilityLabel={props.favoriteToggleLabel}
           />
         </View>

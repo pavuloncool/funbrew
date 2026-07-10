@@ -27,6 +27,7 @@ export type TastingSyncErrorKind = FlowErrorKind;
 export type TastingSyncError = FlowError & {
   name: 'TastingSyncError';
   domain: 'tasting_log';
+  coffeeLogId?: string;
 };
 
 export type UpdateTastingInput = {
@@ -51,9 +52,76 @@ export type DeleteTastingResult = {
   statsUpdated: boolean;
 };
 
+export type ExistingTastingForBatch = {
+  coffeeLogId: string;
+  batchId: string;
+  loggedAt: string;
+};
+
+type ExistingTastingForBatchRow = {
+  id: string;
+  batch_id: string;
+  logged_at: string;
+};
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
   return value as Record<string, unknown>;
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
+async function readFunctionErrorBody(error: unknown): Promise<Record<string, unknown> | null> {
+  const errorRecord = asRecord(error);
+  const context = errorRecord ? asRecord(errorRecord.context) : null;
+  const response = context ? (asRecord(context.response) ?? context) : null;
+  const json = response?.json;
+
+  if (typeof json !== 'function') return null;
+
+  try {
+    const body = await (json as () => Promise<unknown>).call(response);
+    return asRecord(body);
+  } catch {
+    return null;
+  }
+}
+
+function mergeFunctionErrorWithBody(
+  error: unknown,
+  body: Record<string, unknown> | null
+): unknown {
+  if (!body) return error;
+
+  const errorRecord = asRecord(error);
+  return {
+    ...(errorRecord ?? {}),
+    ...body,
+    code: readString(body.error) ?? readString(body.code) ?? readString(errorRecord?.code),
+    message: readString(body.message) ?? readString(errorRecord?.message) ?? 'Unable to save tasting right now.',
+    status:
+      typeof body.status === 'number'
+        ? body.status
+        : typeof errorRecord?.status === 'number'
+          ? errorRecord.status
+          : typeof asRecord(errorRecord?.context)?.status === 'number'
+            ? asRecord(errorRecord?.context)?.status
+            : null,
+  };
+}
+
+function extractDuplicateCoffeeLogId(error: unknown): string | null {
+  const candidate = asRecord(error);
+  if (!candidate) return null;
+
+  return (
+    readString(candidate.coffeeLogId) ??
+    readString(candidate.coffee_log_id) ??
+    readString(asRecord(candidate.context)?.coffeeLogId) ??
+    readString(asRecord(candidate.context)?.coffee_log_id)
+  );
 }
 
 type CoffeeLogsTable = {
@@ -123,6 +191,10 @@ export function normalizeTastingSyncError(error: unknown): TastingSyncError {
     fallbackMessage: 'Unexpected tasting sync failure.',
   });
   (normalized as Error).name = 'TastingSyncError';
+  const duplicateCoffeeLogId = extractDuplicateCoffeeLogId(error);
+  if (duplicateCoffeeLogId) {
+    (normalized as TastingSyncError).coffeeLogId = duplicateCoffeeLogId;
+  }
   return normalized as TastingSyncError;
 }
 
@@ -131,7 +203,10 @@ async function invokeLogTastingWithFallback(
   body: Record<string, unknown>
 ): Promise<unknown> {
   const primary = await supabase.functions.invoke<unknown>('log_tasting', { body });
-  if (primary.error) throw normalizeTastingSyncError(primary.error);
+  if (primary.error) {
+    const errorBody = await readFunctionErrorBody(primary.error);
+    throw normalizeTastingSyncError(mergeFunctionErrorWithBody(primary.error, errorBody));
+  }
   return primary.data;
 }
 
@@ -154,6 +229,31 @@ export async function logTasting(
   }
 
   return { coffeeLogId: payload.coffee_log_id };
+}
+
+export async function fetchExistingTastingForBatch(
+  supabase: TypedSupabaseClient,
+  params: { userId: string; batchId: string }
+): Promise<ExistingTastingForBatch | null> {
+  const { data, error } = await supabase
+    .from('coffee_logs')
+    .select('id,batch_id,logged_at')
+    .eq('user_id', params.userId)
+    .eq('batch_id', params.batchId)
+    .order('logged_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw normalizeTastingSyncError(error);
+  const row = data as ExistingTastingForBatchRow | null;
+  if (!row) return null;
+
+  return {
+    coffeeLogId: row.id,
+    batchId: row.batch_id,
+    loggedAt: row.logged_at,
+  };
 }
 
 export async function updateCoffeeStats(

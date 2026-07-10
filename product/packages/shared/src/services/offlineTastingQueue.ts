@@ -103,6 +103,22 @@ export async function getFailedTastings(storage: QueueStorage): Promise<FailedTa
   return readFailedQueue(storage);
 }
 
+export async function getPendingTastingByBatch(
+  storage: QueueStorage,
+  batchId: string
+): Promise<PendingTasting | null> {
+  const queue = await readQueue(storage);
+  return queue.find((item) => item.batchId === batchId) ?? null;
+}
+
+export async function removePendingTastingByBatch(
+  storage: QueueStorage,
+  batchId: string
+): Promise<void> {
+  const queue = await readQueue(storage);
+  await writeQueue(storage, queue.filter((item) => item.batchId !== batchId));
+}
+
 export async function enqueuePendingTasting(
   storage: QueueStorage,
   input: LogTastingInput,

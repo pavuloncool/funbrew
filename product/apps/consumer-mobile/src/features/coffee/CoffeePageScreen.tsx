@@ -1,5 +1,7 @@
 import {
+  getPendingTastingByBatch,
   getReputationLevelLabel,
+  type PendingTasting,
   useBatchCommunityReviews,
   flowErrorUiCopy,
   normalizeCoffeePageData,
@@ -7,20 +9,25 @@ import {
   toCanonicalPublicationFields,
   useToggleReviewHelpful,
   useCoffeePage,
+  useExistingTastingForBatch,
+  useFavoriteScannedEntries,
+  useToggleFavoriteScannedEntry,
   visualSystemTokens,
 } from '@funcup/shared';
-import { useNavigation, type NavigationProp, type ParamListBase } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { CoffeePageCommunity } from '../../coffee/CoffeePageCommunity';
+import { FavoriteToggleButton } from '../../components/coffee/FavoriteToggleButton';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineBackHeader } from '../../components/navigation/InlineBackHeader';
 import { ScreenError } from '../../components/ScreenError';
-import { AppCard, AppScrollScreen, AppText } from '../../components/ui/primitives';
+import { AppButton, AppCard, AppScrollScreen, AppText } from '../../components/ui/primitives';
 import { CoffeePageSkeleton } from '../../components/ui/Skeleton';
 import { useViewerUserId } from '../../hooks/useViewerUserId';
+import { useGoBackOrFallback } from '../../navigation/useGoBackOrFallback';
+import { offlineQueueStorage } from '../../services/offlineQueueStorage';
 import { getResolvedSupabasePublicUrl, supabase } from '../../services/supabaseClient';
 
 const NO_BOTTOM_SAFE_AREA = { edges: ['top', 'right', 'left'] as const };
@@ -93,15 +100,20 @@ function MetaRow(props: { label: string; value: string | null | undefined }) {
 export default function CoffeePageScreen() {
   const params = useLocalSearchParams<{ hash?: string }>();
   const segments = useSegments() as string[];
-  const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const router = useRouter();
   const hash = params.hash ?? null;
   const topSegment = segments[0] ?? null;
   const isScanContext = topSegment === 'q';
-  const scanExitInProgressRef = useRef(false);
   const { userId } = useViewerUserId();
   const coffeeQuery = useCoffeePage({ supabase, hash });
+  const favoriteEntriesQuery = useFavoriteScannedEntries({ supabase, userId });
+  const favoriteToggleMutation = useToggleFavoriteScannedEntry({ supabase, userId });
   const communityBatchId = coffeeQuery.data?.batch.id ?? null;
+  const existingTastingQuery = useExistingTastingForBatch({
+    supabase,
+    userId,
+    batchId: communityBatchId,
+  });
   const communityQuery = useBatchCommunityReviews({
     supabase,
     batchId: communityBatchId,
@@ -112,7 +124,13 @@ export default function CoffeePageScreen() {
     batchId: communityBatchId,
   });
   const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
+  const [pendingTasting, setPendingTasting] = useState<PendingTasting | null>(null);
+  const [duplicatePromptVisible, setDuplicatePromptVisible] = useState(false);
+  const promptedDuplicateKeyRef = useRef<string | null>(null);
   const fallbackHref = '/(tabs)/coffee';
+  const goBackOrFallback = useGoBackOrFallback(fallbackHref, 'replace', {
+    preferHistory: true,
+  });
   const coffeeImageUri = useMemo(() => {
     const d = coffeeQuery.data;
     if (!d) return null;
@@ -124,19 +142,76 @@ export default function CoffeePageScreen() {
   }, [coffeeImageUri]);
 
   useEffect(() => {
-    if (!isScanContext) return;
+    let stopped = false;
+    if (!communityBatchId) {
+      setPendingTasting(null);
+      return;
+    }
 
-    scanExitInProgressRef.current = false;
-    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
-      if (scanExitInProgressRef.current) return;
+    void getPendingTastingByBatch(offlineQueueStorage, communityBatchId)
+      .then((nextPendingTasting) => {
+        if (!stopped) setPendingTasting(nextPendingTasting);
+      })
+      .catch(() => {
+        if (!stopped) setPendingTasting(null);
+      });
 
-      event.preventDefault();
-      scanExitInProgressRef.current = true;
-      router.replace('/(tabs)/coffee');
+    return () => {
+      stopped = true;
+    };
+  }, [communityBatchId]);
+
+  const existingCoffeeLogId = existingTastingQuery.data?.coffeeLogId ?? null;
+  const duplicatePromptKey = existingCoffeeLogId
+    ? `log:${existingCoffeeLogId}`
+    : pendingTasting
+      ? `pending:${pendingTasting.id}`
+      : null;
+
+  useEffect(() => {
+    if (!isScanContext || !duplicatePromptKey) return;
+    if (promptedDuplicateKeyRef.current === duplicatePromptKey) return;
+
+    promptedDuplicateKeyRef.current = duplicatePromptKey;
+    setDuplicatePromptVisible(true);
+  }, [duplicatePromptKey, isScanContext]);
+
+  const openRatingFlow = () => {
+    if (!hash || !communityBatchId) return;
+    if (duplicatePromptKey) {
+      setDuplicatePromptVisible(true);
+      return;
+    }
+
+    router.push({
+      pathname: '/coffee/[hash]/log',
+      params: { hash, batchId: communityBatchId },
     });
+  };
 
-    return unsubscribe;
-  }, [isScanContext, navigation, router]);
+  const editDuplicateRating = () => {
+    setDuplicatePromptVisible(false);
+    if (existingCoffeeLogId) {
+      router.replace({
+        pathname: '/coffee-log/[logId]',
+        params: { logId: existingCoffeeLogId, edit: '1' },
+      });
+      return;
+    }
+    if (hash && communityBatchId && pendingTasting) {
+      router.replace({
+        pathname: '/coffee/[hash]/log',
+        params: { hash, batchId: communityBatchId, editPending: '1' },
+      });
+    }
+  };
+
+  const cancelDuplicateRating = () => {
+    setDuplicatePromptVisible(false);
+    if (isScanContext) {
+      goBackOrFallback();
+    }
+  };
 
   if (!hash) {
     return (
@@ -204,6 +279,7 @@ export default function CoffeePageScreen() {
 
   const publicCoffee = normalizeCoffeePageData(data, { hash });
   const fields = toCanonicalPublicationFields(publicCoffee);
+  const isFavorite = Boolean(favoriteEntriesQuery.data?.some((entry) => entry.qrHash === hash));
 
   return (
     <AppScrollScreen safeAreaProps={NO_BOTTOM_SAFE_AREA} contentContainerStyle={styles.standardContent}>
@@ -228,6 +304,45 @@ export default function CoffeePageScreen() {
           </View>
         )}
       </View>
+
+      <AppCard style={styles.actionsCard}>
+        <AppButton
+          label="Rate this Coffee"
+          onPress={openRatingFlow}
+        />
+        {userId ? (
+          <FavoriteToggleButton
+            active={isFavorite}
+            onPress={() => {
+              void favoriteToggleMutation.mutateAsync({
+                qrHash: hash,
+                batchId: data.batch.id,
+                coffeeId: data.coffee.id,
+                shouldFavorite: !isFavorite,
+                optimisticEntry: {
+                  id: `optimistic-${hash}`,
+                  qrHash: hash,
+                  batchId: data.batch.id,
+                  coffeeId: data.coffee.id,
+                  createdAt: new Date().toISOString(),
+                  coffeeName: data.coffee.name,
+                  processingMethod: data.coffee.processing_method,
+                  roastDate: data.batch.roast_date,
+                  lotNumber: data.batch.lot_number,
+                  roasterName: data.roaster.roaster_short_name ?? data.roaster.name,
+                  roasterCountry: data.roaster.country,
+                  originCountry:
+                    data.origin && typeof data.origin.country === 'string'
+                      ? data.origin.country
+                      : null,
+                },
+              });
+            }}
+            disabled={favoriteEntriesQuery.isLoading || favoriteToggleMutation.isPending}
+            label={isFavorite ? 'Remove from Favourites' : 'Add to Favourites'}
+          />
+        ) : null}
+      </AppCard>
 
       <AppCard style={styles.roasterCard}>
         {/*<AppText variant="h3" weight="700">Roaster data</AppText>*/}
@@ -304,6 +419,27 @@ export default function CoffeePageScreen() {
           )}
         </View>
       </AppCard>
+      <Modal
+        visible={duplicatePromptVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelDuplicateRating}
+      >
+        <View style={styles.modalRoot}>
+          <Pressable style={styles.modalBackdrop} onPress={cancelDuplicateRating} />
+          <View style={styles.modalContent} pointerEvents="box-none">
+            <View style={styles.modalPanel}>
+              <AppText variant="h3" weight="700" style={styles.modalText}>
+                Tę kawę już zeskanowałeś. Czy chcesz edytować swój rating?
+              </AppText>
+              <View style={styles.modalActions}>
+                <AppButton label="Anuluj" variant="secondary" onPress={cancelDuplicateRating} />
+                <AppButton label="Edytuj" onPress={editDuplicateRating} />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </AppScrollScreen>
   );
 }
@@ -345,6 +481,35 @@ const styles = StyleSheet.create({
   },
   roasterCard: {
     gap: spacing.xs,
+  },
+  actionsCard: {
+    gap: spacing.sm,
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'stretch',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(12, 18, 21, 0.52)',
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  modalPanel: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  modalText: {
+    textAlign: 'center',
+  },
+  modalActions: {
+    gap: spacing.sm,
   },
   communityCard: {
     gap: spacing.md,

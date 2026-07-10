@@ -110,6 +110,7 @@ describe('favorites rated coffee logs', () => {
     expect(result).toEqual([
       {
         coffeeLogId: 'log-1',
+        batchId: 'batch-1',
         coffeeName: 'Paper Crane',
         roasterName: 'Luma Peak',
         roasterCountry: 'Poland',

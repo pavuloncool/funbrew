@@ -56,6 +56,7 @@ type CoffeeLogRow = {
 
 export type RatedCoffeeLogSummary = {
   coffeeLogId: string;
+  batchId: string | null;
   coffeeName: string;
   roasterName: string | null;
   roasterCountry: string | null;
@@ -99,6 +100,7 @@ function toRatedCoffeeLogSummary(
 
   return {
     coffeeLogId: logRow.id,
+    batchId: batch?.id ?? null,
     coffeeName: coffee?.name ?? 'Coffee',
     roasterName: roaster.name,
     roasterCountry: roaster.country,

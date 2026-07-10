@@ -17,6 +17,21 @@ type LogTastingRequest = {
   review?: string;
 };
 
+function duplicateTastingResponse(coffeeLogId: string) {
+  return new Response(
+    JSON.stringify({
+      error: 'duplicate_tasting',
+      message: 'This batch already has a tasting for this user.',
+      coffee_log_id: coffeeLogId,
+      status: 409,
+    }),
+    {
+      status: 409,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    }
+  );
+}
+
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -107,6 +122,30 @@ Deno.serve(async req => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    const { data: existingCoffeeLog, error: existingCoffeeLogError } = await serviceSupabase
+      .from('coffee_logs')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('batch_id', batch_id)
+      .order('logged_at', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingCoffeeLogError) {
+      return new Response(
+        JSON.stringify({ error: 'lookup_failed', message: existingCoffeeLogError.message }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (existingCoffeeLog?.id) {
+      return duplicateTastingResponse(existingCoffeeLog.id);
+    }
+
     const { data: coffeeLog, error: logError } = await serviceSupabase
       .from('coffee_logs')
       .insert({
@@ -122,6 +161,20 @@ Deno.serve(async req => {
       .single();
 
     if (logError) {
+      if (logError.code === '23505') {
+        const { data: duplicateCoffeeLog } = await serviceSupabase
+          .from('coffee_logs')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('batch_id', batch_id)
+          .order('logged_at', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (duplicateCoffeeLog?.id) {
+          return duplicateTastingResponse(duplicateCoffeeLog.id);
+        }
+      }
       return new Response(
         JSON.stringify({ error: 'insert_failed', message: logError.message }),
         {

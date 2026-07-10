@@ -2,12 +2,16 @@ import {
   type ScanQrResult,
   type RepurchaseIntent,
   enqueuePendingTasting,
+  fetchExistingTastingForBatch,
   flowErrorUiCopy,
+  getPendingTastingByBatch,
   logTasting,
   logFlowError,
   normalizeFlowError,
   normalizeTastingSyncError,
+  removePendingTastingByBatch,
   SENSORY_CORE_METRICS,
+  type TastingSyncError,
   upsertRoasterTelemetryCore,
   useCoffeePage,
   useUnlockedTastingNotes,
@@ -15,7 +19,7 @@ import {
   visualSystemTokens,
 } from '@funcup/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -75,9 +79,11 @@ export default function TastingLogScreen() {
   const insets = useSafeAreaInsets();
   const { userId } = useViewerUserId();
   const queryClient = useQueryClient();
-  const params = useLocalSearchParams<{ hash?: string; batchId?: string }>();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ hash?: string; batchId?: string; editPending?: string }>();
   const hash = typeof params.hash === 'string' && params.hash.length > 0 ? params.hash : null;
   const batchId = typeof params.batchId === 'string' && params.batchId.length > 0 ? params.batchId : null;
+  const editPending = params.editPending === '1';
   const coffeeFallbackHref = hash
     ? ({ pathname: '/coffee/[hash]', params: { hash } } as const)
     : '/(tabs)/coffee';
@@ -115,6 +121,26 @@ export default function TastingLogScreen() {
   useEffect(() => {
     setCoffeeImageFailed(false);
   }, [coffeeImageUri]);
+
+  useEffect(() => {
+    let stopped = false;
+    if (!editPending || !batchId) return;
+
+    void getPendingTastingByBatch(offlineQueueStorage, batchId)
+      .then((pendingTasting) => {
+        if (stopped || !pendingTasting) return;
+        setRating(pendingTasting.rating);
+        setBrewMethodId(pendingTasting.brewMethodId ?? null);
+        setTastingNoteIds(pendingTasting.tastingNoteIds ?? []);
+        setFreeTextNotes(pendingTasting.freeTextNotes ?? '');
+        setReview(pendingTasting.review ?? '');
+      })
+      .catch(() => undefined);
+
+    return () => {
+      stopped = true;
+    };
+  }, [batchId, editPending]);
 
   const hasUnsavedDraft = useMemo(() => (
     rating != null ||
@@ -193,7 +219,23 @@ export default function TastingLogScreen() {
         return;
       }
 
+      if (userId) {
+        const existingTasting = await fetchExistingTastingForBatch(supabase, {
+          userId,
+          batchId: payload.batchId,
+        });
+        if (existingTasting) {
+          await removePendingTastingByBatch(offlineQueueStorage, payload.batchId);
+          router.replace({
+            pathname: '/coffee-log/[logId]',
+            params: { logId: existingTasting.coffeeLogId, edit: '1' },
+          });
+          return;
+        }
+      }
+
       const saved = await logTasting(supabase, payload);
+      await removePendingTastingByBatch(offlineQueueStorage, payload.batchId);
       let statsRefreshFailed = false;
       let telemetrySaveFailed = false;
       const {
@@ -254,6 +296,14 @@ export default function TastingLogScreen() {
     } catch (error) {
       const syncError = normalizeTastingSyncError(error);
       logFlowError(syncError, 'mobile.tasting-log.submit');
+      if (syncError.code === 'duplicate_tasting' && (syncError as TastingSyncError).coffeeLogId) {
+        await removePendingTastingByBatch(offlineQueueStorage, payload.batchId);
+        router.replace({
+          pathname: '/coffee-log/[logId]',
+          params: { logId: (syncError as TastingSyncError).coffeeLogId as string, edit: '1' },
+        });
+        return;
+      }
       const copy = flowErrorUiCopy(syncError);
       if (syncError.retryable) {
         await enqueuePendingTasting(offlineQueueStorage, payload);

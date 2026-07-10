@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { deleteTasting, logTasting, normalizeTastingSyncError, updateCoffeeStats, updateTasting } from './tastingService';
+import {
+  deleteTasting,
+  fetchExistingTastingForBatch,
+  logTasting,
+  normalizeTastingSyncError,
+  updateCoffeeStats,
+  updateTasting,
+} from './tastingService';
 import * as telemetryCoreService from '../roasterDataProfile/telemetryCoreService';
 
 describe('tastingService', () => {
@@ -58,6 +65,64 @@ describe('tastingService', () => {
       status: 400,
     });
     expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces duplicate tasting errors with existing coffee log id', async () => {
+    const invoke = vi.fn(async () => ({
+      data: null,
+      error: {
+        message: 'This batch already has a tasting for this user.',
+        status: 409,
+        code: 'duplicate_tasting',
+        coffee_log_id: 'log-existing',
+      },
+    }));
+
+    await expect(
+      logTasting(
+        { functions: { invoke } } as never,
+        { batchId: 'batch-1', rating: 4 }
+      )
+    ).rejects.toMatchObject({
+      name: 'TastingSyncError',
+      kind: 'validation',
+      retryable: false,
+      status: 409,
+      code: 'duplicate_tasting',
+      coffeeLogId: 'log-existing',
+    });
+  });
+
+  it('finds existing tasting for a user and batch', async () => {
+    const maybeSingle = vi.fn(async () => ({
+      data: {
+        id: 'log-1',
+        batch_id: 'batch-1',
+        logged_at: '2026-07-09T12:00:00.000Z',
+      },
+      error: null,
+    }));
+    const limit = vi.fn(() => ({ maybeSingle }));
+    const orderCreated = vi.fn(() => ({ limit }));
+    const orderLogged = vi.fn(() => ({ order: orderCreated }));
+    const eqBatch = vi.fn(() => ({ order: orderLogged }));
+    const eqUser = vi.fn(() => ({ eq: eqBatch }));
+    const select = vi.fn(() => ({ eq: eqUser }));
+    const from = vi.fn(() => ({ select }));
+
+    const result = await fetchExistingTastingForBatch(
+      { from } as never,
+      { userId: 'user-1', batchId: 'batch-1' }
+    );
+
+    expect(result).toEqual({
+      coffeeLogId: 'log-1',
+      batchId: 'batch-1',
+      loggedAt: '2026-07-09T12:00:00.000Z',
+    });
+    expect(from).toHaveBeenCalledWith('coffee_logs');
+    expect(eqUser).toHaveBeenCalledWith('user_id', 'user-1');
+    expect(eqBatch).toHaveBeenCalledWith('batch_id', 'batch-1');
   });
 
   it('normalizes network errors as retryable', () => {

@@ -2,16 +2,20 @@ import { Link, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useMemo, useState } from 'react';
 import {
+  type FavoriteScannedEntry,
   useFavoriteRatedCoffeeLogs,
+  useFavoriteScannedEntries,
   useToggleFavoriteRatedCoffeeLog,
+  useToggleFavoriteScannedEntry,
   visualSystemTokens,
 } from '@funcup/shared';
 
 import { RatedCoffeesSection } from '../../../src/components/coffee/RatedCoffeesSection';
 import { RatedCoffeeLogCard, matchesRatedCoffeeSearch } from '../../../src/components/coffee/RatedCoffeeLogCard';
+import { FavoriteToggleButton } from '../../../src/components/coffee/FavoriteToggleButton';
 import { DiscoverCoffeesTab } from '../../../src/components/hub/DiscoverCoffeesTab';
 import { EmptyState } from '../../../src/components/EmptyState';
-import { AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
+import { AppCard, AppInput, AppScrollScreen, AppText } from '../../../src/components/ui/primitives';
 import { usePendingTastingDiscoverCoffeeIds } from '../../../src/hooks/usePendingTastingDiscoverCoffeeIds';
 import { useViewerUserId } from '../../../src/hooks/useViewerUserId';
 import { supabase } from '../../../src/services/supabaseClient';
@@ -23,6 +27,83 @@ function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function matchesScannedFavoriteSearch(entry: FavoriteScannedEntry, normalizedQuery: string): boolean {
+  if (!normalizedQuery) return true;
+  const values = [
+    entry.coffeeName,
+    entry.roasterName,
+    entry.roasterCountry,
+    entry.originCountry,
+    entry.processingMethod,
+    entry.lotNumber,
+    entry.roastDate,
+    entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : null,
+  ];
+  return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
+}
+
+function formatRoastDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const parsed = new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00` : iso);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsed);
+}
+
+function formatScannedFavoriteSummary(entry: FavoriteScannedEntry): string {
+  return [
+    entry.processingMethod,
+    entry.lotNumber ? `Lot ${entry.lotNumber}` : null,
+    entry.originCountry ? `Origin ${entry.originCountry}` : null,
+  ].filter((value): value is string => Boolean(value)).join(' · ');
+}
+
+function ScannedFavoriteCard(props: {
+  entry: FavoriteScannedEntry;
+  onPress: () => void;
+  onRemoveFavorite: () => void;
+  disabled?: boolean;
+}) {
+  const summaryLine = formatScannedFavoriteSummary(props.entry);
+  const roastDate = formatRoastDate(props.entry.roastDate);
+
+  return (
+    <Pressable
+      onPress={props.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${props.entry.coffeeName} favourite coffee details`}
+      style={({ pressed }) => [styles.cardPressable, pressed ? styles.cardPressed : null]}
+    >
+      <AppCard style={styles.favoriteCard}>
+        <View style={styles.favoriteHeaderRow}>
+          <View style={styles.favoriteHeaderText}>
+            <AppText variant="h3" weight="700">
+              {props.entry.coffeeName}
+            </AppText>
+            {props.entry.roasterName ? <AppText tone="secondary">{props.entry.roasterName}</AppText> : null}
+          </View>
+          <FavoriteToggleButton
+            active
+            onPress={props.onRemoveFavorite}
+            disabled={props.disabled}
+            label="Remove from Favourites"
+            accessibilityLabel="Remove from Favourites"
+          />
+        </View>
+        <AppText tone="secondary">Saved from QR scan{roastDate ? ` · Roast ${roastDate}` : ''}</AppText>
+        {summaryLine ? <AppText tone="secondary">{summaryLine}</AppText> : null}
+        {props.entry.roasterCountry ? (
+          <AppText tone="secondary">Roaster country: {props.entry.roasterCountry}</AppText>
+        ) : null}
+        <AppText style={styles.openLabel}>Open details</AppText>
+      </AppCard>
+    </Pressable>
+  );
+}
+
 export default function CoffeeScreen() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<CoffeeSection>('rated');
@@ -31,14 +112,30 @@ export default function CoffeeScreen() {
   const pendingDiscoverCoffeeIds = usePendingTastingDiscoverCoffeeIds({
     enabled: Boolean(userId),
   });
-  const favoritesQuery = useFavoriteRatedCoffeeLogs({ supabase, userId });
+  const ratedFavoritesQuery = useFavoriteRatedCoffeeLogs({ supabase, userId });
+  const scannedFavoritesQuery = useFavoriteScannedEntries({ supabase, userId });
   const favoriteToggleMutation = useToggleFavoriteRatedCoffeeLog({ supabase, userId });
+  const scannedFavoriteToggleMutation = useToggleFavoriteScannedEntry({ supabase, userId });
   const normalizedQuery = normalizeSearchValue(searchQuery);
-  const favorites = favoritesQuery.data ?? [];
-  const filteredFavorites = useMemo(
-    () => favorites.filter((entry) => matchesRatedCoffeeSearch(entry, normalizedQuery)),
-    [favorites, normalizedQuery]
+  const ratedFavorites = ratedFavoritesQuery.data ?? [];
+  const ratedFavoriteBatchIds = useMemo(
+    () => new Set(ratedFavorites.map((entry) => entry.batchId).filter((batchId): batchId is string => Boolean(batchId))),
+    [ratedFavorites]
   );
+  const scannedFavorites = useMemo(
+    () => (scannedFavoritesQuery.data ?? []).filter((entry) => !ratedFavoriteBatchIds.has(entry.batchId)),
+    [ratedFavoriteBatchIds, scannedFavoritesQuery.data]
+  );
+  const filteredRatedFavorites = useMemo(
+    () => ratedFavorites.filter((entry) => matchesRatedCoffeeSearch(entry, normalizedQuery)),
+    [ratedFavorites, normalizedQuery]
+  );
+  const filteredScannedFavorites = useMemo(
+    () => scannedFavorites.filter((entry) => matchesScannedFavoriteSearch(entry, normalizedQuery)),
+    [scannedFavorites, normalizedQuery]
+  );
+  const hasFavorites = ratedFavorites.length > 0 || scannedFavorites.length > 0;
+  const hasFilteredFavorites = filteredRatedFavorites.length > 0 || filteredScannedFavorites.length > 0;
 
   return (
     <AppScrollScreen contentContainerStyle={[pageStyles.content, styles.content]}>
@@ -102,48 +199,72 @@ export default function CoffeeScreen() {
           <AppText tone="secondary">
             These are rated coffees you marked with the star. Tap a card to open the tasting log.
           </AppText>*/}
-          {authLoading || favoritesQuery.isLoading ? (
+          {authLoading || ratedFavoritesQuery.isLoading || scannedFavoritesQuery.isLoading ? (
             <AppText tone="secondary">Loading favourites…</AppText>
           ) : !userId ? (
             <EmptyState
               title="Sign in to save favourites"
-              description="Star a rated coffee to keep it here."
+              description="Star a scanned or rated coffee to keep it here."
               footer={
                 <Link href="/(auth)/login" accessibilityRole="link">
                   Go to sign in
                 </Link>
               }
             />
-          ) : favorites.length === 0 ? (
+          ) : !hasFavorites ? (
             <EmptyState
-              title="No favourite rated coffees yet"
-              description="Open a rated coffee and tap the star to keep it here."
+              title="No favourite coffees yet"
+              description="Scan a QR code or open a rated coffee and tap the star to keep it here."
             />
-          ) : filteredFavorites.length === 0 ? (
+          ) : !hasFilteredFavorites ? (
             <EmptyState
               title="No matching favourite coffees"
               description="Try coffee name, roaster, lot, notes, rating, or country."
             />
           ) : (
-            filteredFavorites.map((entry) => (
-              <RatedCoffeeLogCard
-                key={entry.coffeeLogId}
-                entry={entry}
-                isFavorite
-                favoriteToggleLabel="Remove favourite from rated coffee"
-                favoriteToggleDisabled={favoriteToggleMutation.isPending}
-                onPress={() => {
-                  router.push(`/coffee-log/${entry.coffeeLogId}`);
-                }}
-                onToggleFavorite={() => {
-                  void favoriteToggleMutation.mutateAsync({
-                    coffeeLogId: entry.coffeeLogId,
-                    shouldFavorite: false,
-                    optimisticEntry: entry,
-                  });
-                }}
-              />
-            ))
+            <>
+              {filteredRatedFavorites.map((entry) => (
+                <RatedCoffeeLogCard
+                  key={`rated-${entry.coffeeLogId}`}
+                  entry={entry}
+                  isFavorite
+                  favoriteToggleLabel="Remove from Favourites"
+                  favoriteToggleDisabled={favoriteToggleMutation.isPending}
+                  onPress={() => {
+                    router.push(`/coffee-log/${entry.coffeeLogId}`);
+                  }}
+                  onToggleFavorite={() => {
+                    void favoriteToggleMutation.mutateAsync({
+                      coffeeLogId: entry.coffeeLogId,
+                      shouldFavorite: false,
+                      optimisticEntry: entry,
+                    });
+                  }}
+                />
+              ))}
+              {filteredScannedFavorites.map((entry) => (
+                <ScannedFavoriteCard
+                  key={`scanned-${entry.id}`}
+                  entry={entry}
+                  disabled={scannedFavoriteToggleMutation.isPending}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/coffee/[hash]',
+                      params: { hash: entry.qrHash },
+                    });
+                  }}
+                  onRemoveFavorite={() => {
+                    void scannedFavoriteToggleMutation.mutateAsync({
+                      qrHash: entry.qrHash,
+                      batchId: entry.batchId,
+                      coffeeId: entry.coffeeId,
+                      shouldFavorite: false,
+                      optimisticEntry: entry,
+                    });
+                  }}
+                />
+              ))}
+            </>
           )}
         </View>
       ) : null}
@@ -179,5 +300,30 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: visualSystemTokens.spacing.sm,
+  },
+  cardPressable: {
+    borderRadius: visualSystemTokens.radius.xl,
+  },
+  cardPressed: {
+    opacity: 0.92,
+  },
+  favoriteCard: {
+    gap: visualSystemTokens.spacing.xs,
+    backgroundColor: visualSystemTokens.colors.surface,
+    padding: visualSystemTokens.spacing.sm,
+  },
+  favoriteHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: visualSystemTokens.spacing.xs,
+  },
+  favoriteHeaderText: {
+    flex: 1,
+    gap: visualSystemTokens.spacing.xxs,
+  },
+  openLabel: {
+    marginTop: visualSystemTokens.spacing.xs,
+    textDecorationLine: 'underline',
   },
 });

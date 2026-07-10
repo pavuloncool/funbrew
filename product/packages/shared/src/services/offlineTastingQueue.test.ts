@@ -5,8 +5,10 @@ import {
   enqueuePendingTasting,
   getFailedTastings,
   flushPendingTastings,
+  getPendingTastingByBatch,
   getPendingTastings,
   offlineQueueConfig,
+  removePendingTastingByBatch,
 } from './offlineTastingQueue';
 
 function createMemoryStorage(): QueueStorage {
@@ -57,6 +59,28 @@ describe('offlineTastingQueue', () => {
     const pending = await getPendingTastings(storage);
     expect(pending).toHaveLength(1);
     expect(pending[0]?.rating).toBe(5);
+  });
+
+  it('finds and removes pending tasting by batch', async () => {
+    const storage = createMemoryStorage();
+
+    await enqueuePendingTasting(
+      storage,
+      { batchId: 'batch-a', rating: 2 },
+      new Date('2026-01-01T00:00:00.000Z')
+    );
+    await enqueuePendingTasting(
+      storage,
+      { batchId: 'batch-b', rating: 5 },
+      new Date('2026-01-01T00:00:01.000Z')
+    );
+
+    expect((await getPendingTastingByBatch(storage, 'batch-a'))?.rating).toBe(2);
+    await removePendingTastingByBatch(storage, 'batch-a');
+
+    expect(await getPendingTastingByBatch(storage, 'batch-a')).toBeNull();
+    expect(await getPendingTastings(storage)).toHaveLength(1);
+    expect((await getPendingTastings(storage))[0]?.batchId).toBe('batch-b');
   });
 
   it('caps queue to max size', async () => {

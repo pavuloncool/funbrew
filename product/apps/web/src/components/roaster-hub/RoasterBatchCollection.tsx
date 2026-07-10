@@ -70,6 +70,18 @@ function batchSupportCopy(record: BatchPublicationSummary, variant: RoasterBatch
     : 'No tastings logged yet. Open analytics to monitor the first feedback as it arrives.';
 }
 
+function compareDescendingNullableDate(left: string | null, right: string | null): number {
+  return (right ?? '').localeCompare(left ?? '');
+}
+
+function compareStableBatchIdentity(left: BatchPublicationSummary, right: BatchPublicationSummary): number {
+  return (
+    left.coffeeName.localeCompare(right.coffeeName) ||
+    left.lotNumber.localeCompare(right.lotNumber) ||
+    left.batchId.localeCompare(right.batchId)
+  );
+}
+
 export function RoasterBatchCollection(props: RoasterBatchCollectionProps) {
   const { variant } = props;
   const copy = VARIANT_COPY[variant];
@@ -138,10 +150,18 @@ export function RoasterBatchCollection(props: RoasterBatchCollectionProps) {
     });
 
     return nextRecords.sort((left, right) => {
-      if (sortBy === 'rating') return right.avgRating - left.avgRating;
-      if (sortBy === 'tastings') return right.totalCount - left.totalCount;
+      if (sortBy === 'rating') {
+        return right.avgRating - left.avgRating || compareStableBatchIdentity(left, right);
+      }
+      if (sortBy === 'tastings') {
+        return right.totalCount - left.totalCount || compareStableBatchIdentity(left, right);
+      }
       if (sortBy === 'name') return left.coffeeName.localeCompare(right.coffeeName);
-      return (right.statsUpdatedAt ?? '').localeCompare(left.statsUpdatedAt ?? '');
+      return (
+        compareDescendingNullableDate(left.statsUpdatedAt, right.statsUpdatedAt) ||
+        compareDescendingNullableDate(left.roastDate, right.roastDate) ||
+        compareStableBatchIdentity(left, right)
+      );
     });
   }, [activityFilter, records, searchQuery, sortBy]);
 

@@ -33,6 +33,8 @@ export * from './hooks/useDiscoverRoasters';
 export * from './hooks/useFollowRoaster';
 export * from './hooks/useUnlockedTastingNotes';
 export * from './hooks/useFavoriteRatedCoffeeLogs';
+export * from './hooks/useFavoriteScannedEntries';
+export * from './hooks/useExistingTastingForBatch';
 export * from './hooks/useCoffeeGeographySummary';
 export * from './hooks/useBatchCommunityReviews';
 export * from './hooks/useCommunityReputationSummary';

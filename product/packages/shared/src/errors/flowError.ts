@@ -137,6 +137,7 @@ function classifyFlowError(params: {
   }
   if (
     code === 'bad_request' ||
+    code === 'duplicate_tasting' ||
     code === 'validation_error' ||
     code === 'invalid_request'
   ) {
@@ -161,7 +162,7 @@ function classifyFlowError(params: {
   }
 
   if (status === 401 || status === 403) return 'unauthorized';
-  if (status === 400 || status === 422) return 'validation';
+  if (status === 400 || status === 409 || status === 422) return 'validation';
   if (status === 404 || code === 'not_found') return 'not_found';
   if (status === 429 || code === 'rate_limited' || code === 'too_many_requests') {
     return 'rate_limited';

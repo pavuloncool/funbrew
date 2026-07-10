@@ -77,11 +77,13 @@ tmux kill-session -t funcup-sim
 pnpm exec supabase stop --project-id funcup --workdir product
 pnpm exec supabase stop --project-id supabase --workdir product
 ```
+
+
 ## Uruchom Metro na Expo Go
-```bash
+
 EXPO_METRO_PORT=8081 pnpm run dev:phone
-```
-Zoom panelu z kodem QR:
+
+## Zoom panelu z kodem QR:
 tmux resize-pane -Z -t funcup-phone:0.3
 
 Potem to w Safari na iPhone, jeśli nie widzisz kodu QR w terminalu:
@@ -91,3 +93,8 @@ To kill Metro na Expo Go:
 ```bash
 tmux kill-session -t funcup-phone
 ```
+## Kill localhost
+tmux kill-session -t funcup-web 2>/dev/null; tmux kill-session -t funcup-sim 2>/dev/null; pnpm exec supabase stop --project-id funcup --workdir product; pnpm exec supabase stop --project-id supabase --workdir product
+
+# Kill localhost i Expo:
+tmux kill-session -t funcup-phone; tmux kill-session -t funcup-web 2>/dev/null; tmux kill-session -t funcup-sim 2>/dev/null; pnpm exec supabase stop --project-id funcup --workdir product; pnpm exec supabase stop --project-id supabase --workdir product

@@ -95,8 +95,9 @@ function resolveImageUri(rawUri: string | null | undefined): string | null {
 }
 
 export default function CoffeeLogDetailsScreen() {
-  const params = useLocalSearchParams<{ logId?: string }>();
+  const params = useLocalSearchParams<{ logId?: string; edit?: string }>();
   const logId = typeof params.logId === 'string' ? params.logId : '';
+  const startInEditMode = params.edit === '1';
   const router = useRouter();
   const queryClient = useQueryClient();
   const { userId, isLoading: userLoading } = useViewerUserId();
@@ -142,6 +143,12 @@ export default function CoffeeLogDetailsScreen() {
   const [sensoryAftertaste, setSensoryAftertaste] = useState(3);
   const [repurchaseIntent, setRepurchaseIntent] = useState<RepurchaseIntent>('unsure');
   const [coffeeImageFailed, setCoffeeImageFailed] = useState(false);
+
+  useEffect(() => {
+    if (startInEditMode) {
+      setIsEditing(true);
+    }
+  }, [startInEditMode]);
 
   useEffect(() => {
     const details = detailsQuery.data;
@@ -418,6 +425,7 @@ export default function CoffeeLogDetailsScreen() {
                   shouldFavorite: !isFavorite,
                   optimisticEntry: {
                     coffeeLogId: logId,
+                    batchId: details.batchId,
                     coffeeName: title,
                     roasterName: details.roasterName,
                     roasterCountry: null,

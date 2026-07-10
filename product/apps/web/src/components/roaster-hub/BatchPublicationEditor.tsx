@@ -593,6 +593,10 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
     await hydrateQrPreview(currentBatchId);
   }
 
+  function openBatchManager() {
+    router.push('/roaster-hub/batches');
+  }
+
   function downloadSvg() {
     if (!qrPreview?.svg || !currentBatchId) return;
     const blob = new Blob([qrPreview.svg], { type: 'image/svg+xml' });
@@ -631,9 +635,13 @@ export function BatchPublicationEditor(props: BatchPublicationEditorProps) {
   return (
     <main className={hubCrudStyles.main760}>
       <p className="mb-4">
-        <Link href="/roaster-hub/batches" className={hubCrudStyles.navBack}>
+        <button
+          type="button"
+          className={`${hubCrudStyles.navBack} border-0 bg-transparent p-0`}
+          onClick={openBatchManager}
+        >
           ← Batch Manager
-        </Link>
+        </button>
       </p>
 
       <h1 className={hubCrudStyles.pageHeading}>
