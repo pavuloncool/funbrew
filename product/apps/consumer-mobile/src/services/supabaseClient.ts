@@ -11,10 +11,16 @@ type SupabaseExtra = {
   supabaseFallbackAnonKey?: string;
 };
 
+const PROD_SUPABASE_URL = 'https://ztbfsnxofxpwhuwhrfvq.supabase.co';
+const PROD_SUPABASE_ANON_KEY = 'sb_publishable_Ojtssa-ar1de9fadQMdPsw_qEdgiJsq';
+
 /** Same defaults as app.config.ts — used only if env + manifest extra are empty. */
 const LOCAL_SUPABASE_URL = 'http://127.0.0.1:54321';
 const LOCAL_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.9kEXx9GFfgcZ21LlMB1qI-LOwSGOzI8g8c92UgEHQDk';
+
+const DEFAULT_SUPABASE_URL = __DEV__ ? LOCAL_SUPABASE_URL : PROD_SUPABASE_URL;
+const DEFAULT_SUPABASE_ANON_KEY = __DEV__ ? LOCAL_SUPABASE_ANON_KEY : PROD_SUPABASE_ANON_KEY;
 
 function getSupabaseExtra(): SupabaseExtra {
   const e = Constants.expoConfig?.extra ?? Constants.manifest2?.extra;
@@ -44,8 +50,8 @@ function resolveSupabaseConfig(): { url: string; key: string; usedFallbackUrl: b
       ? extra.supabaseFallbackAnonKey
       : undefined;
 
-  const url = extraUrl || envUrl || LOCAL_SUPABASE_URL;
-  const key = extraKey || envKey || LOCAL_SUPABASE_ANON_KEY;
+  const url = extraUrl || envUrl || DEFAULT_SUPABASE_URL;
+  const key = extraKey || envKey || DEFAULT_SUPABASE_ANON_KEY;
   const usedFallbackUrl = !extraUrl && !envUrl;
   const usedFallbackKey = !extraKey && !envKey;
 

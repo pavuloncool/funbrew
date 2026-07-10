@@ -207,7 +207,7 @@ const appleAppSiteAssociation = {
       ? [
           {
             appID: `${appleTeamId}.${iosBundleId}`,
-            paths: ['/q/*'],
+            paths: ['/q/*', '/roaster-hub/batches/*'],
           },
         ]
       : [],

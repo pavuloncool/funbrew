@@ -24,6 +24,31 @@ function hashFromSlashQPathname(pathname: string): string | null {
   }
 }
 
+/** Path pattern from the roaster web app: `/roaster-hub/batches/{batchId}` */
+export function parseFuncupRoasterBatchPath(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  let pathname = raw;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    pathname = u.pathname;
+  } catch {
+    // not an absolute URL
+  }
+
+  const p = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  const m = p.match(/^\/roaster-hub\/batches\/([^/?#]+)/);
+  if (!m) return null;
+
+  try {
+    return normalizeHash(decodeURIComponent(m[1]));
+  } catch {
+    return normalizeHash(m[1]);
+  }
+}
+
 export function parseFuncupQrScanPayload(input: string): string | null {
   const raw = input.trim();
   if (!raw) return null;

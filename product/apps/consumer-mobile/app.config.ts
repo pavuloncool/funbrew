@@ -3,13 +3,18 @@ import { config as loadDotenv } from 'dotenv';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 loadDotenv({ path: path.join(__dirname, '.env') });
-loadDotenv({ path: path.join(__dirname, '.env.local') });
+loadDotenv({ path: path.join(__dirname, '.env.local'), override: true });
 
 /** Default local Supabase (CLI). Used when EXPO_PUBLIC_* are missing at bundle/config time. */
 const LAN_FALLBACK_HOST = process.env.REACT_NATIVE_PACKAGER_HOSTNAME || '127.0.0.1';
 const LOCAL_SUPABASE_URL = `http://${LAN_FALLBACK_HOST}:54321`;
 const LOCAL_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.9kEXx9GFfgcZ21LlMB1qI-LOwSGOzI8g8c92UgEHQDk';
+const PROD_SUPABASE_URL = 'https://ztbfsnxofxpwhuwhrfvq.supabase.co';
+const PROD_SUPABASE_ANON_KEY = 'sb_publishable_Ojtssa-ar1de9fadQMdPsw_qEdgiJsq';
+const DEFAULT_SUPABASE_URL = process.env.NODE_ENV === 'production' ? PROD_SUPABASE_URL : LOCAL_SUPABASE_URL;
+const DEFAULT_SUPABASE_ANON_KEY =
+  process.env.NODE_ENV === 'production' ? PROD_SUPABASE_ANON_KEY : LOCAL_SUPABASE_ANON_KEY;
 
 function getRoasterWebHttpsHost(): string | null {
   const raw = process.env.EXPO_PUBLIC_ROASTER_WEB_URL?.trim();
@@ -75,6 +80,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                   host: roasterWebHttpsHost,
                   pathPrefix: '/q',
                 },
+                {
+                  scheme: 'https',
+                  host: roasterWebHttpsHost,
+                  pathPrefix: '/roaster-hub/batches',
+                },
               ],
               category: ['BROWSABLE', 'DEFAULT'],
             },
@@ -95,7 +105,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     associatedDomains: roasterWebHttpsHost ? [`applinks:${roasterWebHttpsHost}`] : undefined,
   },
   extra: {
-    supabaseFallbackUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || LOCAL_SUPABASE_URL,
-    supabaseFallbackAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || LOCAL_SUPABASE_ANON_KEY,
+    supabaseFallbackUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL,
+    supabaseFallbackAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY,
   },
 });

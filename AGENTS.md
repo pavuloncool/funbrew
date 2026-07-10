@@ -1,5 +1,12 @@
 # Funcup Agent Instructions
 
+## Repository Hygiene
+
+No decommissioned, obsolete, backup, scratch, or duplicate files should remain in the repository.
+Current working versions are backed up by GitHub history, branches, tags, and pull requests; the local repo should stay free of stale artifacts and clutter.
+
+When retiring a file, delete it from the repo instead of renaming it to a backup/decommissioned copy. If historical recovery is needed, use Git history.
+
 ## Protected Localhost Startup Workflow
 
 Do not modify the `localhost:3000` startup workflow without explicit user approval in the current task.

@@ -1,4 +1,4 @@
-import { parseFuncupQrScanPayload } from '@funcup/shared';
+import { parseFuncupQrScanPayload, parseFuncupRoasterBatchPath } from '@funcup/shared';
 import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Link, router } from 'expo-router';
@@ -34,8 +34,13 @@ export default function ScanScreen() {
         router.push({ pathname: '/q/[hash]', params: { hash } });
         return;
       }
+      const batchId = parseFuncupRoasterBatchPath(data);
+      if (batchId) {
+        router.push({ pathname: '/roaster-hub/batches/[batchId]', params: { batchId } });
+        return;
+      }
       setParseError(
-        'Nie rozpoznano kodu funcup. Zeskanuj kod z aplikacji palarni (adres zakończony na /q/…).'
+        'Nie rozpoznano kodu funcup. Zeskanuj kod z aplikacji palarni (adres zakończony na /q/… albo /roaster-hub/batches/…).'
       );
     },
     [scanned]

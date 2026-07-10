@@ -1,3 +1,5 @@
+import { parseFuncupRoasterBatchPath } from '@funcup/shared';
+
 /**
  * Custom-scheme cold starts (e.g. funcup:///) parse to an empty path after Expo Router
  * strips a lone leading slash — which does not match the index route and shows Unmatched.
@@ -48,6 +50,11 @@ function normalizeQDeepLink(path: string, initial: boolean): string | null {
   return `/q/${hash}${suffix}`;
 }
 
+function normalizeRoasterBatchDeepLink(path: string): string | null {
+  const batchId = parseFuncupRoasterBatchPath(path);
+  return batchId ? `/roaster-hub/batches/${batchId}` : null;
+}
+
 export function redirectSystemPath(event: { path: string; initial: boolean }): string {
   const { path, initial } = event;
   try {
@@ -58,6 +65,10 @@ export function redirectSystemPath(event: { path: string; initial: boolean }): s
     const normalizedQDeepLink = normalizeQDeepLink(trimmed, initial);
     if (normalizedQDeepLink) {
       return normalizedQDeepLink;
+    }
+    const normalizedRoasterBatchDeepLink = normalizeRoasterBatchDeepLink(trimmed);
+    if (normalizedRoasterBatchDeepLink) {
+      return normalizedRoasterBatchDeepLink;
     }
     return path;
   } catch {

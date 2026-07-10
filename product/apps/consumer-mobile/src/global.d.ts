@@ -4,6 +4,7 @@ declare const process: {
     EXPO_PUBLIC_SUPABASE_URL?: string;
     EXPO_PUBLIC_SUPABASE_ANON_KEY?: string;
     EXPO_PUBLIC_APP_URL?: string;
+    EXPO_PUBLIC_ROASTER_WEB_URL?: string;
     [key: string]: string | undefined;
   };
 };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseFuncupQrScanPayload } from './parseFuncupQrScanPayload';
+import { parseFuncupQrScanPayload, parseFuncupRoasterBatchPath } from './parseFuncupQrScanPayload';
 
 const SAMPLE =
   '6f464b58-825a-4d95-9865-321a42873b81';
@@ -34,5 +34,20 @@ describe('parseFuncupQrScanPayload', () => {
     expect(parseFuncupQrScanPayload('')).toBeNull();
     expect(parseFuncupQrScanPayload('https://evil.com/batch/111')).toBeNull();
     expect(parseFuncupQrScanPayload('not-a-uuid')).toBeNull();
+  });
+});
+
+describe('parseFuncupRoasterBatchPath', () => {
+  it('parses funbrew.site roaster batch URLs', () => {
+    expect(parseFuncupRoasterBatchPath(`https://funbrew.site/roaster-hub/batches/${SAMPLE}`)).toBe(SAMPLE);
+  });
+
+  it('parses path-only roaster batch URLs', () => {
+    expect(parseFuncupRoasterBatchPath(`/roaster-hub/batches/${SAMPLE}?tab=qr`)).toBe(SAMPLE);
+  });
+
+  it('returns null for non-batch URLs', () => {
+    expect(parseFuncupRoasterBatchPath(`https://funbrew.site/q/${SAMPLE}`)).toBeNull();
+    expect(parseFuncupRoasterBatchPath('not-a-uuid')).toBeNull();
   });
 });
