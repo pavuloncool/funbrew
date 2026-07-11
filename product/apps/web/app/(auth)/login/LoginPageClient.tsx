@@ -72,26 +72,44 @@ export default function LoginPageClient({ nextParam, reason }: LoginPageClientPr
     <main className="mx-auto w-full max-w-[980px] px-4 py-10 font-sans text-vs-text-primary sm:px-6 sm:py-12">
       <section className="grid gap-8 border-2 border-vs-border-strong bg-vs-surface p-6 shadow-vs-sm lg:grid-cols-[1.05fr_0.95fr] lg:items-start sm:p-8">
         <div className="space-y-6">
-          <p className="inline-flex rounded-full border-2 border-vs-border-strong bg-white px-4 py-1 text-xs font-semibold uppercase tracking-wide text-vs-text-primary shadow-vs-sm">
+          {/*<p className="inline-flex rounded-full border-2 border-vs-border-strong bg-white px-4 py-1 text-xs font-semibold uppercase tracking-wide text-vs-text-primary shadow-vs-sm">
             Account access
-          </p>
+          </p>*/}
           <div className="space-y-4">
             <h1 className="max-w-[14ch] font-display text-[40px] uppercase leading-[0.95] tracking-[-0.04em] text-vs-text-primary sm:text-[52px] lg:text-[64px]">
-              Log in
+              Sign in
             </h1>
             <p className="max-w-[620px] text-base leading-relaxed text-vs-text-secondary sm:text-lg">
-              Sign in to continue to your roaster workspace, batch publishing tools, and
-              analytics. If you need access, contact fun•brew and we will route you to the
-              right account flow.
+              Sign in to your roaster workspace using your Roaster credentials. Need an account? Get in touch using the {' '}
+            <Link href="/contact" className="font-medium text-vs-text-primary underline">
+              contact form
+            </Link>.
             </p>
+            <div className="max-w-[620px] space-y-4">
+              <p className="text-base leading-relaxed text-vs-text-secondary sm:text-lg">
+                A Home Barista? Get fun•brew from your favourite online store and start your coffee journey today.
+              </p>
+              <div className="flex items-center justify-center gap-6 sm:gap-8">
+                <img
+                  src="/apple-download-badge-PL/Download_on_the_App_Store_Badge_PL_RGB_blk_100317.svg"
+                  alt="Download on the App Store"
+                  className="block h-11 w-auto"
+                />
+                <img
+                  src="/google-download-badge-PL/GetItOnGooglePlay_Badge_Web_color_Polish.svg"
+                  alt="Get it on Google Play"
+                  className="block h-11 w-auto"
+                />
+              </div>
+            </div>
           </div>
 
-          <p className={authPagesStyles.footer}>
+          {/*<p className={authPagesStyles.footer}>
             No account?{' '}
             <Link href="/contact" className="font-medium text-vs-text-primary underline">
               Contact fun•brew
             </Link>
-          </p>
+          </p>*/}
         </div>
 
         <div className="rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-5 shadow-vs-sm sm:p-6">
@@ -99,7 +117,7 @@ export default function LoginPageClient({ nextParam, reason }: LoginPageClientPr
             Sign in
           </h2>
           <p className={`mt-3 text-base leading-relaxed text-vs-text-secondary sm:text-lg`}>
-            Use your email and password to open the roaster dashboard.
+            Use your Roaster credentials to sign in.
           </p>
           {reason === 'roaster_auth_required' && reasonMessage ? (
             <p className={authPagesStyles.notice}>{reasonMessage}</p>

@@ -25,15 +25,13 @@ type PublicLeadFormProps = {
   formDescription?: string;
   submitLabel?: string;
   successMessage?: string;
-  messagePlaceholder?: string;
 };
 
 export default function PublicLeadForm({
   formTitle = 'Contact',
-  formDescription = 'Leave your details and we will follow up with access, onboarding, or partnership details.',
+  formDescription,
   submitLabel = 'Send message',
   successMessage = 'Thanks. We will contact you soon.',
-  messagePlaceholder = 'What do you want to achieve with fun•brew? (optional)',
 }: PublicLeadFormProps) {
   const [form, setForm] = useState<LeadFormValues>(INITIAL_FORM);
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
@@ -72,13 +70,13 @@ export default function PublicLeadForm({
       <h2 className="font-display text-[28px] uppercase leading-none tracking-[-0.03em] text-vs-text-primary sm:text-[32px]">
         {formTitle}
       </h2>
-      <p className={`mt-3 ${PUBLIC_BODY_COPY_CLASS}`}>{formDescription}</p>
+      {formDescription ? <p className={`mt-3 ${PUBLIC_BODY_COPY_CLASS}`}>{formDescription}</p> : null}
 
       <form onSubmit={handleContactSubmit} className="mt-5 grid gap-3">
         <input
           className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
           type="text"
-          placeholder="Full name"
+          placeholder="Full name*"
           value={form.fullName}
           onChange={event => setForm(prev => ({ ...prev, fullName: event.target.value }))}
           required
@@ -89,7 +87,7 @@ export default function PublicLeadForm({
         <input
           className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
           type="email"
-          placeholder="Email"
+          placeholder="Email*"
           value={form.email}
           onChange={event => setForm(prev => ({ ...prev, email: event.target.value }))}
           required
@@ -103,16 +101,16 @@ export default function PublicLeadForm({
           placeholder="Company"
           value={form.company}
           onChange={event => setForm(prev => ({ ...prev, company: event.target.value }))}
-          required
           maxLength={160}
           disabled={submitState === 'loading'}
           suppressHydrationWarning
         />
         <textarea
           className="min-h-[120px] rounded border border-vs-border-default bg-vs-surface px-3 py-2 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
-          placeholder={messagePlaceholder}
+          placeholder="Your message*"
           value={form.message}
           onChange={event => setForm(prev => ({ ...prev, message: event.target.value }))}
+          required
           maxLength={2000}
           disabled={submitState === 'loading'}
           suppressHydrationWarning

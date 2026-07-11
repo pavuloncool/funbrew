@@ -10,7 +10,7 @@ type PublicAction = {
 type PublicInfoPageProps = {
   eyebrow: string;
   title: string;
-  intro: string;
+  intro: ReactNode;
   actions?: PublicAction[];
   children?: ReactNode;
   aside?: ReactNode;

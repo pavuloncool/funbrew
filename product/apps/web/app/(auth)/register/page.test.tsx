@@ -10,12 +10,10 @@ describe('RegisterPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Turn coffee batches into structured product data' })
     ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Full name')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Full name*')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Email*')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Company')).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText('What do you want to achieve with fun•brew? (optional)')
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Your message*')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/password/i)).not.toBeInTheDocument();
   });
 });

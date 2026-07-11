@@ -34,8 +34,9 @@ export default function WebHeader() {
   const [hubCtaLoading, setHubCtaLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isLoginPage = pathname === '/login';
   const isMarketingEntry = isMarketingRoute(pathname);
-  const isCompactPublicHeader = isPublicRoute(pathname) && !isMarketingEntry;
+  const isCompactPublicHeader = isPublicRoute(pathname) && !isMarketingEntry && !isLoginPage;
 
   useEffect(() => {
     setLoading(false);
@@ -146,7 +147,7 @@ export default function WebHeader() {
           <div className="hidden h-[74px] items-center border-l-2 border-vs-border-strong px-6 md:flex">
             <span className="text-[22px] font-semibold">EN</span>
           </div>
-          {isMarketingEntry ? (
+          {isMarketingEntry || isLoginPage ? (
             <button
               type="button"
               onClick={() => void handlePublicHubCta()}

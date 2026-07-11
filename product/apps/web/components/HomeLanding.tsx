@@ -71,10 +71,8 @@ export default function HomeLanding() {
       aside={
         <PublicLeadForm
           formTitle="Contact"
-          formDescription="Leave your details and we will follow up with roaster access, onboarding, or partnership details."
           submitLabel="Send message"
           successMessage="Thanks. We will contact you soon."
-          messagePlaceholder="What do you want to achieve with fun•brew? (optional)"
         />
       }
     >

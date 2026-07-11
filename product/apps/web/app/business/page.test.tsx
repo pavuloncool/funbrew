@@ -11,6 +11,6 @@ describe('BusinessPage', () => {
       screen.getByRole('heading', { name: 'Commercial partners for accessories and equipment' })
     ).toBeInTheDocument();
     expect(screen.getByText('Product storytelling')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start a partnership' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument();
   });
 });

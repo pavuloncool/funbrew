@@ -36,10 +36,8 @@ export default function BusinessPage() {
         <div className="lg:sticky lg:top-6">
           <PublicLeadForm
             formTitle="Partner inquiry"
-            formDescription="Tell us what you make, where you want to show up, and whether you are planning an event, a launch, or a long-term placement."
-            submitLabel="Start a partnership"
+            submitLabel="Send message"
             successMessage="Thanks. We will contact you soon."
-            messagePlaceholder="Tell us about the product or campaign you want to place. (optional)"
           />
         </div>
       }

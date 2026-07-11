@@ -64,6 +64,7 @@ test.describe('header auth states across public routes and roaster workspace', (
 
     await page.getByRole('button', { name: 'My Roaster Hub' }).click();
     await page.waitForURL('**/login', { timeout: 15_000 });
+    await expectMarketingHeader(page);
 
     await loginViaForm(page, actor);
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
@@ -84,6 +85,7 @@ test.describe('header auth states across public routes and roaster workspace', (
 
     await page.getByRole('button', { name: 'My Roaster Hub' }).click();
     await page.waitForURL('**/login', { timeout: 15_000 });
+    await expectMarketingHeader(page);
     await loginViaForm(page, actor);
 
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
