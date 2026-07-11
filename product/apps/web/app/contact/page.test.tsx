@@ -17,7 +17,7 @@ describe('ContactPage', () => {
     expect(screen.queryByText('Good topics for the form')).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('Full name*')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Email*')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Company')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Company*')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your message*')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument();
   });

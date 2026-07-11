@@ -285,6 +285,7 @@ export default function PartnerProgramLanding() {
           variant="partnerProgram"
           formTitle="Zgłoś palarnię do programu"
           formDescription="Zgłoszenie nie oznacza automatycznego przyjęcia do programu. Szukamy kilku palarni, które mogą realnie pomóc sprawdzić, jakie dane z konsumpcji kawy są przydatne w decyzjach produktowych, sensorycznych i komunikacyjnych."
+          leadSource="partner_program_home"
           submitLabel="Zgłoś palarnię do programu"
           successMessage="Dziękujemy za zgłoszenie. Odezwiemy się w sprawie udziału w programie. Ekipa fun•brew."
         />

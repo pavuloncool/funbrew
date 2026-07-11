@@ -12,7 +12,7 @@ describe('RegisterPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Full name*')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Email*')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Company')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Company*')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your message*')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/password/i)).not.toBeInTheDocument();
   });

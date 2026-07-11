@@ -11,6 +11,10 @@ type LeadFormValues = {
   message: string;
 };
 
+type LeadSubmitPayload = LeadFormValues & {
+  source: string;
+};
+
 type PartnerProgramFormValues = {
   roasteryName: string;
   contactPerson: string;
@@ -46,6 +50,7 @@ type PublicLeadFormProps = {
   variant?: 'contact' | 'partnerProgram';
   formTitle?: string;
   formDescription?: string;
+  leadSource?: string;
   submitLabel?: string;
   successMessage?: string;
 };
@@ -54,6 +59,7 @@ export default function PublicLeadForm({
   variant = 'contact',
   formTitle = 'Contact',
   formDescription,
+  leadSource = 'web_public_entry',
   submitLabel = 'Send message',
   successMessage = 'Thanks. We will contact you soon.',
 }: PublicLeadFormProps) {
@@ -92,15 +98,16 @@ export default function PublicLeadForm({
     setSubmitState('loading');
     setSubmitMessage(null);
 
-    const submitPayload =
+    const submitPayload: LeadSubmitPayload =
       variant === 'partnerProgram'
         ? {
             fullName: partnerForm.contactPerson,
             email: partnerForm.email,
             company: partnerForm.roasteryName,
             message: buildPartnerProgramMessage(partnerForm),
+            source: leadSource,
           }
-        : form;
+        : { ...form, source: leadSource };
 
     if (variant === 'partnerProgram' && partnerForm.salesChannels.length === 0) {
       setSubmitState('error');
@@ -267,9 +274,10 @@ export default function PublicLeadForm({
             <input
               className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
               type="text"
-              placeholder="Company"
+              placeholder="Company*"
               value={form.company}
               onChange={event => setForm(prev => ({ ...prev, company: event.target.value }))}
+              required
               maxLength={160}
               disabled={submitState === 'loading'}
               suppressHydrationWarning

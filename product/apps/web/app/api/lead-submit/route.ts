@@ -7,6 +7,7 @@ type LeadSubmitPayload = {
   email?: unknown;
   company?: unknown;
   message?: unknown;
+  source?: unknown;
 };
 
 function asTrimmedString(input: unknown): string {
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
   const email = asTrimmedString(body.email).toLowerCase();
   const company = asTrimmedString(body.company);
   const message = asTrimmedString(body.message);
+  const source = asTrimmedString(body.source) || 'web_public_entry';
 
   if (!fullName || !email || !company) {
     return NextResponse.json(
@@ -52,7 +54,13 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  if (fullName.length > 120 || email.length > 320 || company.length > 160 || message.length > 4000) {
+  if (
+    fullName.length > 120 ||
+    email.length > 320 ||
+    company.length > 160 ||
+    message.length > 4000 ||
+    source.length > 64
+  ) {
     return NextResponse.json(
       { error: 'bad_request', message: 'One or more fields exceed allowed length.' },
       { status: 400 }
@@ -76,7 +84,7 @@ export async function POST(request: Request) {
         email,
         company,
         message: message || null,
-        source: 'web_public_entry',
+        source,
         metadata: {
           origin: request.headers.get('origin'),
           user_agent: request.headers.get('user-agent'),
