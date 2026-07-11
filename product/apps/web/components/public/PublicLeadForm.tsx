@@ -78,6 +78,8 @@ export default function PublicLeadForm({
   }
 
   function buildPartnerProgramMessage(values: PartnerProgramFormValues): string {
+    const salesChannels = values.salesChannels.length > 0 ? values.salesChannels.join(', ') : 'nie podano';
+
     return [
       'Zgłoszenie do Programu Partnerów Branżowych',
       '',
@@ -86,7 +88,7 @@ export default function PublicLeadForm({
       `Email: ${values.email}`,
       `Strona / Instagram: ${values.websiteOrInstagram}`,
       `Liczba produktów w ofercie: ${values.productCount}`,
-      `Kanały sprzedaży: ${values.salesChannels.join(', ')}`,
+      `Kanały sprzedaży: ${salesChannels}`,
       '',
       'Czego palarnia chce się dowiedzieć o odbiorze kawy przez konsumentów:',
       values.insightQuestion,
@@ -108,12 +110,6 @@ export default function PublicLeadForm({
             source: leadSource,
           }
         : { ...form, source: leadSource };
-
-    if (variant === 'partnerProgram' && partnerForm.salesChannels.length === 0) {
-      setSubmitState('error');
-      setSubmitMessage('Wybierz przynajmniej jeden kanał sprzedaży.');
-      return;
-    }
 
     try {
       const response = await fetch('/api/lead-submit', {
