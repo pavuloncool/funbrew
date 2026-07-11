@@ -8,11 +8,11 @@ export default function ContactPage() {
       title="Talk to fun•brew"
       intro={
         <>
-          Want deeper understanding of how your clients brew your coffee? 
+          Learn how your clients brew your coffee.
           <br />
-          Ready to up your game and integrate consumer feedback in your product marketing?
+          Up your game and integrate consumer feedback in your product.
           <br />
-          Contact us to discuss features and onboarding with fun•brew.
+          Find out how fun•brew turns consumer experience into actionable insights.
           <br />
           Use the details below or send us a message using the contact form.
         </>

@@ -11,6 +11,16 @@ type LeadFormValues = {
   message: string;
 };
 
+type PartnerProgramFormValues = {
+  roasteryName: string;
+  contactPerson: string;
+  email: string;
+  websiteOrInstagram: string;
+  productCount: string;
+  salesChannels: string[];
+  insightQuestion: string;
+};
+
 const INITIAL_FORM: LeadFormValues = {
   fullName: '',
   email: '',
@@ -18,9 +28,22 @@ const INITIAL_FORM: LeadFormValues = {
   message: '',
 };
 
+const INITIAL_PARTNER_FORM: PartnerProgramFormValues = {
+  roasteryName: '',
+  contactPerson: '',
+  email: '',
+  websiteOrInstagram: '',
+  productCount: '',
+  salesChannels: [],
+  insightQuestion: '',
+};
+
+const SALES_CHANNEL_OPTIONS = ['online', 'stacjonarnie', 'przez partnerów', 'inne / mieszany model'] as const;
+
 type SubmitState = 'idle' | 'loading' | 'success' | 'error';
 
 type PublicLeadFormProps = {
+  variant?: 'contact' | 'partnerProgram';
   formTitle?: string;
   formDescription?: string;
   submitLabel?: string;
@@ -28,37 +51,84 @@ type PublicLeadFormProps = {
 };
 
 export default function PublicLeadForm({
+  variant = 'contact',
   formTitle = 'Contact',
   formDescription,
   submitLabel = 'Send message',
   successMessage = 'Thanks. We will contact you soon.',
 }: PublicLeadFormProps) {
   const [form, setForm] = useState<LeadFormValues>(INITIAL_FORM);
+  const [partnerForm, setPartnerForm] = useState<PartnerProgramFormValues>(INITIAL_PARTNER_FORM);
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+
+  function toggleSalesChannel(channel: string) {
+    setPartnerForm(prev => ({
+      ...prev,
+      salesChannels: prev.salesChannels.includes(channel)
+        ? prev.salesChannels.filter(item => item !== channel)
+        : [...prev.salesChannels, channel],
+    }));
+  }
+
+  function buildPartnerProgramMessage(values: PartnerProgramFormValues): string {
+    return [
+      'Zgłoszenie do Programu Partnerów Branżowych',
+      '',
+      `Nazwa palarni: ${values.roasteryName}`,
+      `Osoba kontaktowa: ${values.contactPerson}`,
+      `Email: ${values.email}`,
+      `Strona / Instagram: ${values.websiteOrInstagram}`,
+      `Liczba produktów w ofercie: ${values.productCount}`,
+      `Kanały sprzedaży: ${values.salesChannels.join(', ')}`,
+      '',
+      'Czego palarnia chce się dowiedzieć o odbiorze kawy przez konsumentów:',
+      values.insightQuestion,
+    ].join('\n');
+  }
 
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitState('loading');
     setSubmitMessage(null);
 
+    const submitPayload =
+      variant === 'partnerProgram'
+        ? {
+            fullName: partnerForm.contactPerson,
+            email: partnerForm.email,
+            company: partnerForm.roasteryName,
+            message: buildPartnerProgramMessage(partnerForm),
+          }
+        : form;
+
+    if (variant === 'partnerProgram' && partnerForm.salesChannels.length === 0) {
+      setSubmitState('error');
+      setSubmitMessage('Wybierz przynajmniej jeden kanał sprzedaży.');
+      return;
+    }
+
     try {
       const response = await fetch('/api/lead-submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(submitPayload),
       });
 
-      const payload = (await response.json()) as { message?: string } | null;
+      const responsePayload = (await response.json()) as { message?: string } | null;
       if (!response.ok) {
         setSubmitState('error');
-        setSubmitMessage(payload?.message ?? 'Could not submit your message. Please try again.');
+        setSubmitMessage(responsePayload?.message ?? 'Could not submit your message. Please try again.');
         return;
       }
 
       setSubmitState('success');
       setSubmitMessage(successMessage);
-      setForm(INITIAL_FORM);
+      if (variant === 'partnerProgram') {
+        setPartnerForm(INITIAL_PARTNER_FORM);
+      } else {
+        setForm(INITIAL_FORM);
+      }
     } catch {
       setSubmitState('error');
       setSubmitMessage('Network error. Please try again in a moment.');
@@ -73,55 +143,162 @@ export default function PublicLeadForm({
       {formDescription ? <p className={`mt-3 ${PUBLIC_BODY_COPY_CLASS}`}>{formDescription}</p> : null}
 
       <form onSubmit={handleContactSubmit} className="mt-5 grid gap-3">
-        <input
-          className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
-          type="text"
-          placeholder="Full name*"
-          value={form.fullName}
-          onChange={event => setForm(prev => ({ ...prev, fullName: event.target.value }))}
-          required
-          maxLength={120}
-          disabled={submitState === 'loading'}
-          suppressHydrationWarning
-        />
-        <input
-          className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
-          type="email"
-          placeholder="Email*"
-          value={form.email}
-          onChange={event => setForm(prev => ({ ...prev, email: event.target.value }))}
-          required
-          maxLength={220}
-          disabled={submitState === 'loading'}
-          suppressHydrationWarning
-        />
-        <input
-          className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
-          type="text"
-          placeholder="Company"
-          value={form.company}
-          onChange={event => setForm(prev => ({ ...prev, company: event.target.value }))}
-          maxLength={160}
-          disabled={submitState === 'loading'}
-          suppressHydrationWarning
-        />
-        <textarea
-          className="min-h-[120px] rounded border border-vs-border-default bg-vs-surface px-3 py-2 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
-          placeholder="Your message*"
-          value={form.message}
-          onChange={event => setForm(prev => ({ ...prev, message: event.target.value }))}
-          required
-          maxLength={2000}
-          disabled={submitState === 'loading'}
-          suppressHydrationWarning
-        />
+        {variant === 'partnerProgram' ? (
+          <>
+            <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
+              Nazwa palarni
+              <input
+                className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+                type="text"
+                value={partnerForm.roasteryName}
+                onChange={event => setPartnerForm(prev => ({ ...prev, roasteryName: event.target.value }))}
+                required
+                maxLength={160}
+                disabled={submitState === 'loading'}
+                suppressHydrationWarning
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
+              Osoba kontaktowa
+              <input
+                className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+                type="text"
+                value={partnerForm.contactPerson}
+                onChange={event => setPartnerForm(prev => ({ ...prev, contactPerson: event.target.value }))}
+                required
+                maxLength={120}
+                disabled={submitState === 'loading'}
+                suppressHydrationWarning
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
+              Email
+              <input
+                className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+                type="email"
+                value={partnerForm.email}
+                onChange={event => setPartnerForm(prev => ({ ...prev, email: event.target.value }))}
+                required
+                maxLength={220}
+                disabled={submitState === 'loading'}
+                suppressHydrationWarning
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
+              Strona / Instagram
+              <input
+                className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+                type="text"
+                value={partnerForm.websiteOrInstagram}
+                onChange={event => setPartnerForm(prev => ({ ...prev, websiteOrInstagram: event.target.value }))}
+                required
+                maxLength={220}
+                disabled={submitState === 'loading'}
+                suppressHydrationWarning
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
+              Liczba produktów w ofercie
+              <input
+                className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+                type="text"
+                value={partnerForm.productCount}
+                onChange={event => setPartnerForm(prev => ({ ...prev, productCount: event.target.value }))}
+                required
+                maxLength={80}
+                disabled={submitState === 'loading'}
+                suppressHydrationWarning
+              />
+            </label>
+            <fieldset className="rounded border border-vs-border-default bg-vs-surface p-3">
+              <legend className="px-1 text-sm font-semibold text-vs-text-primary">Czy palarnia sprzedaje</legend>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {SALES_CHANNEL_OPTIONS.map(channel => (
+                  <label key={channel} className="flex items-start gap-2 text-sm text-vs-text-primary">
+                    <input
+                      type="checkbox"
+                      className="mt-1 accent-vs-text-primary"
+                      checked={partnerForm.salesChannels.includes(channel)}
+                      onChange={() => toggleSalesChannel(channel)}
+                      disabled={submitState === 'loading'}
+                    />
+                    {channel}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
+              Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?
+              <textarea
+                className="min-h-[150px] rounded border border-vs-border-default bg-vs-surface px-3 py-2 text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+                value={partnerForm.insightQuestion}
+                onChange={event => setPartnerForm(prev => ({ ...prev, insightQuestion: event.target.value }))}
+                required
+                maxLength={1800}
+                disabled={submitState === 'loading'}
+                suppressHydrationWarning
+              />
+            </label>
+          </>
+        ) : (
+          <>
+            <input
+              className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+              type="text"
+              placeholder="Full name*"
+              value={form.fullName}
+              onChange={event => setForm(prev => ({ ...prev, fullName: event.target.value }))}
+              required
+              maxLength={120}
+              disabled={submitState === 'loading'}
+              suppressHydrationWarning
+            />
+            <input
+              className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+              type="email"
+              placeholder="Email*"
+              value={form.email}
+              onChange={event => setForm(prev => ({ ...prev, email: event.target.value }))}
+              required
+              maxLength={220}
+              disabled={submitState === 'loading'}
+              suppressHydrationWarning
+            />
+            <input
+              className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+              type="text"
+              placeholder="Company"
+              value={form.company}
+              onChange={event => setForm(prev => ({ ...prev, company: event.target.value }))}
+              maxLength={160}
+              disabled={submitState === 'loading'}
+              suppressHydrationWarning
+            />
+            <textarea
+              className="min-h-[120px] rounded border border-vs-border-default bg-vs-surface px-3 py-2 text-sm text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
+              placeholder="Your message*"
+              value={form.message}
+              onChange={event => setForm(prev => ({ ...prev, message: event.target.value }))}
+              required
+              maxLength={2000}
+              disabled={submitState === 'loading'}
+              suppressHydrationWarning
+            />
+          </>
+        )}
         <button
           type="submit"
           className="vs-button-primary mt-1 w-fit text-sm font-semibold"
           disabled={submitState === 'loading'}
         >
-          {submitState === 'loading' ? 'Sending…' : submitLabel}
+          {submitState === 'loading' ? (variant === 'partnerProgram' ? 'Wysyłanie…' : 'Sending…') : submitLabel}
         </button>
+        {variant === 'partnerProgram' ? (
+          <p className="text-sm leading-relaxed text-vs-text-muted">
+            Zgłoszenie nie oznacza automatycznego przyjęcia. Program jest ograniczony do kilku
+            palarni w pierwszym etapie.
+          </p>
+        ) : null}
       </form>
 
       {submitMessage ? (

@@ -15,6 +15,12 @@ const MARKETING_NAV_ITEMS = [
   { label: 'Business', href: '/business' },
 ] as const;
 
+const HOME_NAV_ITEMS = [
+  { label: 'Co testujemy', href: '#co-testujemy' },
+  { label: 'Program', href: '#program' },
+  { label: 'Dla palarni', href: '#dla-palarni' },
+] as const;
+
 const PINK_HEADER_BUTTON_CLASS =
   'vs-button-primary bg-vs-hero-primary hover:bg-vs-hero-primary/90 text-vs-text-primary';
 const PINK_HEADER_SECONDARY_BUTTON_CLASS =
@@ -34,6 +40,7 @@ export default function WebHeader() {
   const [hubCtaLoading, setHubCtaLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isHomePage = pathname === '/home';
   const isLoginPage = pathname === '/login';
   const isMarketingEntry = isMarketingRoute(pathname);
   const isCompactPublicHeader = isPublicRoute(pathname) && !isMarketingEntry && !isLoginPage;
@@ -104,11 +111,17 @@ export default function WebHeader() {
         </Link>
 
         <nav className="ml-12 hidden items-center gap-8 md:flex lg:gap-10">
-          {MARKETING_NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className={getNavLinkClass(pathname, item.href)}>
-              {item.label}
-            </Link>
-          ))}
+          {(isHomePage ? HOME_NAV_ITEMS : MARKETING_NAV_ITEMS).map((item) =>
+            isHomePage ? (
+              <a key={item.href} href={item.href} className={getNavLinkClass(pathname, item.href)}>
+                {item.label}
+              </a>
+            ) : (
+              <Link key={item.href} href={item.href} className={getNavLinkClass(pathname, item.href)}>
+                {item.label}
+              </Link>
+            )
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-3 sm:gap-4">
@@ -128,18 +141,29 @@ export default function WebHeader() {
               }`}
             >
               <nav className="grid gap-2">
-                {MARKETING_NAV_ITEMS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`inline-flex items-center rounded-vs-md border border-transparent px-3 py-2 text-base font-medium text-vs-text-primary hover:border-vs-border-default hover:bg-vs-surface ${
-                      pathname === item.href ? 'bg-vs-surface underline decoration-2 underline-offset-4' : ''
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {(isHomePage ? HOME_NAV_ITEMS : MARKETING_NAV_ITEMS).map((item) =>
+                  isHomePage ? (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="inline-flex items-center rounded-vs-md border border-transparent px-3 py-2 text-base font-medium text-vs-text-primary hover:border-vs-border-default hover:bg-vs-surface"
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`inline-flex items-center rounded-vs-md border border-transparent px-3 py-2 text-base font-medium text-vs-text-primary hover:border-vs-border-default hover:bg-vs-surface ${
+                        pathname === item.href ? 'bg-vs-surface underline decoration-2 underline-offset-4' : ''
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                )}
               </nav>
             </div>
           </div>
@@ -147,7 +171,19 @@ export default function WebHeader() {
           <div className="hidden h-[74px] items-center border-l-2 border-vs-border-strong px-6 md:flex">
             <span className="text-[22px] font-semibold">EN</span>
           </div>
-          {isMarketingEntry || isLoginPage ? (
+          {isHomePage ? (
+            <>
+              <Link
+                href="/login"
+                className="hidden text-sm font-semibold text-vs-text-primary underline-offset-4 hover:underline sm:inline-flex"
+              >
+                Logowanie
+              </Link>
+              <a href="#zgloszenie" className="vs-button-primary text-[15px] font-semibold sm:text-[16px]">
+                Zgłoś palarnię
+              </a>
+            </>
+          ) : isMarketingEntry || isLoginPage ? (
             <button
               type="button"
               onClick={() => void handlePublicHubCta()}

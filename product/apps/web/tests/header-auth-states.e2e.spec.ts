@@ -32,6 +32,7 @@ async function loginViaForm(page: Page, actor: TestActor): Promise<void> {
 }
 
 const MARKETING_NAV_ITEMS = ['Support', 'About', 'Contact', 'Business'];
+const PARTNER_HOME_NAV_ITEMS = ['Co testujemy', 'Program', 'Dla palarni', 'Zgłoś palarnię'];
 const HIDDEN_NAV_ITEMS = ['News', 'Individuals'];
 
 async function expectMarketingHeader(page: Page): Promise<void> {
@@ -43,8 +44,21 @@ async function expectMarketingHeader(page: Page): Promise<void> {
     await expect(page.getByRole('link', { name: item })).toHaveCount(0);
   }
 
-  await expect(page.getByRole('button', { name: 'EN' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'My Roaster Hub' })).toBeVisible();
+  await expect(page.getByText('EN')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Roaster Hub' })).toBeVisible();
+}
+
+async function expectPartnerHomeHeader(page: Page): Promise<void> {
+  for (const item of PARTNER_HOME_NAV_ITEMS) {
+    await expect(page.getByRole('link', { name: item }).first()).toBeVisible();
+  }
+
+  for (const item of MARKETING_NAV_ITEMS) {
+    await expect(page.getByRole('link', { name: item })).toHaveCount(0);
+  }
+
+  await expect(page.getByText('EN')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Logowanie' })).toBeVisible();
 }
 
 test.describe('header auth states across public routes and roaster workspace', () => {
@@ -53,7 +67,7 @@ test.describe('header auth states across public routes and roaster workspace', (
     await completeRoasterProfile(request, actor);
 
     await page.goto('/home');
-    await expectMarketingHeader(page);
+    await expectPartnerHomeHeader(page);
 
     await page.goto('/register');
     await expectMarketingHeader(page);
@@ -62,7 +76,7 @@ test.describe('header auth states across public routes and roaster workspace', (
     await page.waitForURL('**/business', { timeout: 15_000 });
     await expectMarketingHeader(page);
 
-    await page.getByRole('button', { name: 'My Roaster Hub' }).click();
+    await page.getByRole('button', { name: 'Roaster Hub' }).click();
     await page.waitForURL('**/login', { timeout: 15_000 });
     await expectMarketingHeader(page);
 
@@ -70,20 +84,20 @@ test.describe('header auth states across public routes and roaster workspace', (
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 
     await page.goto('/home');
-    await expectMarketingHeader(page);
+    await expectPartnerHomeHeader(page);
 
     await page.goto('/register');
     await expectMarketingHeader(page);
 
-    await page.getByRole('button', { name: 'My Roaster Hub' }).click();
+    await page.getByRole('button', { name: 'Roaster Hub' }).click();
     await page.waitForURL('**/roaster-hub', { timeout: 15_000 });
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
     await expect(page).toHaveURL(/\/home$/);
-    await expectMarketingHeader(page);
+    await expectPartnerHomeHeader(page);
 
-    await page.getByRole('button', { name: 'My Roaster Hub' }).click();
+    await page.getByRole('link', { name: 'Logowanie' }).click();
     await page.waitForURL('**/login', { timeout: 15_000 });
     await expectMarketingHeader(page);
     await loginViaForm(page, actor);

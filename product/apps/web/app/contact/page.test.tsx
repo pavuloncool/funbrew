@@ -8,7 +8,7 @@ describe('ContactPage', () => {
     render(<ContactPage />);
 
     expect(screen.getByRole('heading', { name: 'Talk to fun•brew' })).toBeInTheDocument();
-    expect(screen.getByText('Dane kontaktowe')).toBeInTheDocument();
+    expect(screen.getByText('Contact details')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'roasters@funbrew.site' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '+48 691 810 000' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'About' })).not.toBeInTheDocument();
