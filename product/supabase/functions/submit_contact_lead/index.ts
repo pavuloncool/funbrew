@@ -27,6 +27,31 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function extractEmailAddress(value: string): string {
+  const angleAddress = value.match(/<([^<>]+)>/);
+  return normalizeText(angleAddress?.[1] ?? value).toLowerCase();
+}
+
+function getEmailDomain(value: string): string {
+  const address = extractEmailAddress(value);
+  const atIndex = address.lastIndexOf('@');
+  return atIndex >= 0 ? address.slice(atIndex + 1) : '';
+}
+
+function shouldSetReplyTo(params: { replyTo: string; from: string; to: string[] }): boolean {
+  const replyToDomain = getEmailDomain(params.replyTo);
+  if (!replyToDomain) {
+    return false;
+  }
+
+  const notificationDomains = new Set([
+    getEmailDomain(params.from),
+    ...params.to.map(getEmailDomain),
+  ]);
+
+  return !notificationDomains.has(replyToDomain);
+}
+
 function buildEmailText(params: {
   leadId: string;
   createdAt: string;
@@ -43,7 +68,7 @@ function buildEmailText(params: {
       : '{}';
 
   return [
-    'New beta contact lead received.',
+    'New funbrew contact lead received.',
     '',
     `Lead ID: ${params.leadId}`,
     `Created at: ${params.createdAt}`,
@@ -102,8 +127,18 @@ async function trySendNotificationEmail(params: {
     return;
   }
 
-  const subject = `[funcup beta] New contact lead from ${params.fullName}`;
+  const subject = `[funbrew] New contact lead from ${params.fullName}`;
   const text = buildEmailText(params);
+  const emailPayload: Record<string, unknown> = {
+    from: fromEmail,
+    to: recipients,
+    subject,
+    text,
+  };
+
+  if (shouldSetReplyTo({ replyTo: params.email, from: fromEmail, to: recipients })) {
+    emailPayload.reply_to = params.email;
+  }
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -111,13 +146,7 @@ async function trySendNotificationEmail(params: {
       Authorization: `Bearer ${resendApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: recipients,
-      subject,
-      text,
-      reply_to: params.email,
-    }),
+    body: JSON.stringify(emailPayload),
   });
 
   if (!response.ok) {
