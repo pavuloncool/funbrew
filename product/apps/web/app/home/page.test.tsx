@@ -21,7 +21,11 @@ describe('HomePage', () => {
     expect(screen.getByLabelText('Osoba kontaktowa')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Strona / Instagram')).toBeInTheDocument();
-    expect(screen.getByLabelText('Liczba produktów w ofercie')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Liczba produktów w ofercie')).not.toBeInTheDocument();
+    expect(screen.getByText('Aktywne kanały sprzedaży')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' })).toHaveTextContent(
+      'Wybierz kanały sprzedaży'
+    );
     expect(
       screen.getByLabelText(
         'Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?'

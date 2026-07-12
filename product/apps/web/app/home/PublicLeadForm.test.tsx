@@ -36,10 +36,13 @@ describe('PublicLeadForm', () => {
     fireEvent.change(screen.getByLabelText('Strona / Instagram'), {
       target: { value: '@roasterytest' },
     });
-    fireEvent.change(screen.getByLabelText('Liczba produktów w ofercie'), {
-      target: { value: '12' },
-    });
-    fireEvent.click(screen.getByLabelText('online'));
+    expect(screen.queryByLabelText('Liczba produktów w ofercie')).not.toBeInTheDocument();
+    expect(screen.getByText('Aktywne kanały sprzedaży')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' })).toHaveTextContent(
+      'Wybierz kanały sprzedaży'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' }));
+    fireEvent.click(screen.getByRole('button', { name: /online/ }));
     fireEvent.change(
       screen.getByLabelText(
         'Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?'
@@ -78,6 +81,7 @@ describe('PublicLeadForm', () => {
     });
     expect(payload.message).toContain('Zgłoszenie do Programu Partnerów Branżowych');
     expect(payload.message).toContain('Kanały sprzedaży: online');
+    expect(payload.message).not.toContain('Liczba produktów w ofercie');
   });
 
   it('does not block partner program submission when sales channel is not selected', async () => {
@@ -101,9 +105,11 @@ describe('PublicLeadForm', () => {
     fireEvent.change(screen.getByLabelText('Strona / Instagram'), {
       target: { value: '@roasterytest' },
     });
-    fireEvent.change(screen.getByLabelText('Liczba produktów w ofercie'), {
-      target: { value: '12' },
-    });
+    expect(screen.queryByLabelText('Liczba produktów w ofercie')).not.toBeInTheDocument();
+    expect(screen.getByText('Aktywne kanały sprzedaży')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' })).toHaveTextContent(
+      'Wybierz kanały sprzedaży'
+    );
     fireEvent.change(
       screen.getByLabelText(
         'Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?'

@@ -1,8 +1,10 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useId, useState } from 'react';
 
 import { PUBLIC_BODY_COPY_CLASS } from '@/components/public/PublicInfoPage';
+import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
+import { cn } from '@/src/lib/utils';
 
 type LeadFormValues = {
   fullName: string;
@@ -20,7 +22,6 @@ type PartnerProgramFormValues = {
   contactPerson: string;
   email: string;
   websiteOrInstagram: string;
-  productCount: string;
   salesChannels: string[];
   insightQuestion: string;
 };
@@ -37,7 +38,6 @@ const INITIAL_PARTNER_FORM: PartnerProgramFormValues = {
   contactPerson: '',
   email: '',
   websiteOrInstagram: '',
-  productCount: '',
   salesChannels: [],
   insightQuestion: '',
 };
@@ -67,6 +67,11 @@ export default function PublicLeadForm({
   const [partnerForm, setPartnerForm] = useState<PartnerProgramFormValues>(INITIAL_PARTNER_FORM);
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+  const [salesChannelOpen, setSalesChannelOpen] = useState(false);
+  const salesChannelLabelId = useId();
+
+  const salesChannelLabel =
+    partnerForm.salesChannels.length > 0 ? partnerForm.salesChannels.join(', ') : 'Wybierz kanały sprzedaży';
 
   function toggleSalesChannel(channel: string) {
     setPartnerForm(prev => ({
@@ -87,7 +92,6 @@ export default function PublicLeadForm({
       `Osoba kontaktowa: ${values.contactPerson}`,
       `Email: ${values.email}`,
       `Strona / Instagram: ${values.websiteOrInstagram}`,
-      `Liczba produktów w ofercie: ${values.productCount}`,
       `Kanały sprzedaży: ${salesChannels}`,
       '',
       'Czego palarnia chce się dowiedzieć o odbiorze kawy przez konsumentów:',
@@ -200,36 +204,59 @@ export default function PublicLeadForm({
                 suppressHydrationWarning
               />
             </label>
-            <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
-              Liczba produktów w ofercie
-              <input
-                className="h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60"
-                type="text"
-                value={partnerForm.productCount}
-                onChange={event => setPartnerForm(prev => ({ ...prev, productCount: event.target.value }))}
-                required
-                maxLength={80}
-                disabled={submitState === 'loading'}
-                suppressHydrationWarning
-              />
-            </label>
-            <fieldset className="rounded border border-vs-border-default bg-vs-surface p-3">
-              <legend className="px-1 text-sm font-semibold text-vs-text-primary">Czy palarnia sprzedaje</legend>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {SALES_CHANNEL_OPTIONS.map(channel => (
-                  <label key={channel} className="flex items-start gap-2 text-sm text-vs-text-primary">
-                    <input
-                      type="checkbox"
-                      className="mt-1 accent-vs-text-primary"
-                      checked={partnerForm.salesChannels.includes(channel)}
-                      onChange={() => toggleSalesChannel(channel)}
-                      disabled={submitState === 'loading'}
-                    />
-                    {channel}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <div className="grid gap-1 text-sm font-semibold text-vs-text-primary">
+              <p id={salesChannelLabelId}>Aktywne kanały sprzedaży</p>
+              <Popover open={salesChannelOpen} onOpenChange={setSalesChannelOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-labelledby={salesChannelLabelId}
+                    className={cn(
+                      'min-h-11 rounded border border-vs-border-default bg-vs-surface px-3 text-left text-sm font-normal text-vs-text-primary outline-none focus-visible:ring-2 focus-visible:ring-vs-hero-primary/60',
+                      partnerForm.salesChannels.length === 0 && 'text-vs-text-muted'
+                    )}
+                    disabled={submitState === 'loading'}
+                  >
+                    {salesChannelLabel}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="w-[min(32rem,calc(100vw-2rem))] border-2 border-vs-border-strong bg-vs-elevated p-3"
+                >
+                  <div className="space-y-2">
+                    {SALES_CHANNEL_OPTIONS.map(channel => {
+                      const selected = partnerForm.salesChannels.includes(channel);
+
+                      return (
+                        <button
+                          key={channel}
+                          type="button"
+                          aria-pressed={selected}
+                          className={cn(
+                            'flex w-full items-start gap-3 rounded-vs-sm border border-vs-border-subtle/40 bg-vs-surface px-3 py-3 text-left text-sm transition-colors',
+                            selected && 'border-vs-hero-primary bg-vs-hero-primary/10'
+                          )}
+                          onClick={() => toggleSalesChannel(channel)}
+                        >
+                          <span
+                            className={cn(
+                              'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold',
+                              selected
+                                ? 'border-vs-hero-primary bg-vs-hero-primary text-vs-text-inverse'
+                                : 'border-vs-border-strong bg-vs-elevated text-transparent'
+                            )}
+                          >
+                            ✓
+                          </span>
+                          <span className="font-medium text-vs-text-primary">{channel}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <label className="grid gap-1 text-sm font-semibold text-vs-text-primary">
               Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?
               <textarea
