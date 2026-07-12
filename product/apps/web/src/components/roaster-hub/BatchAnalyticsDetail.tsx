@@ -13,8 +13,9 @@ import {
   type TastingNoteOption,
   useRoasterAnalytics,
 } from '@funcup/shared';
+import { Filter, X } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import AnalyticsFilterBar from '@/src/components/analytics/AnalyticsFilterBar';
 import AnalyticsOverviewMetrics from '@/src/components/analytics/AnalyticsOverviewMetrics';
@@ -142,6 +143,62 @@ function SectionTabButton(props: {
   );
 }
 
+function MobileFiltersDrawer(props: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const { open, onClose, children } = props;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose, open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 xl:hidden">
+      <button
+        type="button"
+        aria-label="Close filters"
+        className="absolute inset-0 bg-vs-text-primary/35"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Dashboard filters"
+        className="absolute right-0 top-0 h-full w-[min(24rem,calc(100vw-2rem))] overflow-y-auto border-l-2 border-vs-border-strong bg-vs-surface p-4 shadow-vs-lg"
+      >
+        <div className="mb-3 flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Close filters"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function formatUpdatedAt(value: string | null): string {
   if (!value) return '—';
   const date = new Date(value);
@@ -207,6 +264,7 @@ export function BatchAnalyticsDetail(props: BatchAnalyticsDetailProps) {
     useState<AnalyticsSectionId>('momentum');
   const [momentumView, setMomentumView] =
     useState<AnalyticsTrendView>('tastings');
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
 
   useEffect(() => {
     setActiveSection('momentum');
@@ -673,17 +731,17 @@ export function BatchAnalyticsDetail(props: BatchAnalyticsDetailProps) {
           <>
             <AnalyticsOverviewMetrics metrics={dashboard.overview} />
 
-            <AnalyticsFilterBar
-              filters={dashboardState.filters}
-              brewMethods={analytics.data.brewMethodOptions}
-              onChange={updater =>
-                dashboardState.setFilters(current => updater(current))
-              }
-              reportMode={props.reportMode}
-            />
-
             {props.reportMode ? (
               <>
+                <AnalyticsFilterBar
+                  filters={dashboardState.filters}
+                  brewMethods={analytics.data.brewMethodOptions}
+                  onChange={updater =>
+                    dashboardState.setFilters(current => updater(current))
+                  }
+                  reportMode={props.reportMode}
+                />
+
                 <AnalyticsTrendChart
                   title="Tasting momentum"
                   caption={dashboard.caption}
@@ -775,24 +833,51 @@ export function BatchAnalyticsDetail(props: BatchAnalyticsDetailProps) {
                 </div>
               </>
             ) : (
-              <section className={analyticsStyles.sectionTabsLayout}>
-                <aside className={analyticsStyles.sectionTabsRail}>
-                  <div className={analyticsStyles.sectionTabsRailHeader}>
-                    <p className={analyticsStyles.sectionTabsRailEyebrow}>
-                      Panels
-                    </p>
-                    <h2 className={analyticsStyles.sectionTabsRailTitle}>
-                      Analytics sections
-                    </h2>
-                    <p className={analyticsStyles.sectionTabsRailDescription}>
-                      Focus on one block at a time to avoid oversized cards and
-                      empty holes.
-                    </p>
+              <section
+                className={analyticsStyles.dashboardLayout}
+                data-analytics-section="panels"
+              >
+                <aside className={analyticsStyles.dashboardFilterRail}>
+                  <AnalyticsFilterBar
+                    filters={dashboardState.filters}
+                    brewMethods={analytics.data.brewMethodOptions}
+                    onChange={updater =>
+                      dashboardState.setFilters(current => updater(current))
+                    }
+                    layout="sidebar"
+                  />
+                </aside>
+
+                <div className={analyticsStyles.dashboardMain}>
+                  <div className={analyticsStyles.mobileFilterTrigger}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setFiltersDrawerOpen(true)}
+                    >
+                      <Filter className="h-4 w-4" />
+                      Filters
+                    </Button>
                   </div>
+
+                  <MobileFiltersDrawer
+                    open={filtersDrawerOpen}
+                    onClose={() => setFiltersDrawerOpen(false)}
+                  >
+                    <AnalyticsFilterBar
+                      filters={dashboardState.filters}
+                      brewMethods={analytics.data.brewMethodOptions}
+                      onChange={updater =>
+                        dashboardState.setFilters(current => updater(current))
+                      }
+                      layout="sidebar"
+                    />
+                  </MobileFiltersDrawer>
 
                   <div
                     role="tablist"
-                    aria-orientation="vertical"
+                    aria-orientation="horizontal"
                     aria-label="Analytics sections"
                     className={analyticsStyles.sectionTabsList}
                   >
@@ -809,9 +894,9 @@ export function BatchAnalyticsDetail(props: BatchAnalyticsDetailProps) {
                       />
                     ))}
                   </div>
-                </aside>
 
-                {renderActiveSectionPanel()}
+                  {renderActiveSectionPanel()}
+                </div>
               </section>
             )}
           </>

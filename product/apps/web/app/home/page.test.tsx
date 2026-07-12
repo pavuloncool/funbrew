@@ -8,9 +8,17 @@ describe('HomePage', () => {
     render(<HomePage />);
 
     expect(
-      screen.getByRole('heading', { name: 'Zobacz, co dzieje się z Twoją kawą po zakupie.' })
+      screen.getByRole('heading', {
+        name: 'Plus feedback. Plus dane. Minus niepewność.',
+      })
     ).toBeInTheDocument();
     expect(screen.getAllByText('Program Partnerów Branżowych')[0]).toBeInTheDocument();
+    expect(screen.getByText('Dashboard analityki')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {
+        name: 'Dashboard funbrew z filtrami, zakładkami analityki i panelami insightów dla palarni',
+      })
+    ).toHaveAttribute('src', '/roaster-analytics.png');
     expect(
       screen.getAllByText('Dla palarni, które chcą współtworzyć standard danych konsumenckich w kawie specialty.')[0]
     ).toBeInTheDocument();

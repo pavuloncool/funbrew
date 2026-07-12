@@ -97,37 +97,37 @@ function SectionHeading(props: { eyebrow?: string; title: string; lead?: string 
   );
 }
 
-function DataCard(props: { label: string; value: string }) {
-  return (
-    <div className="border-t border-vs-border-strong pt-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-vs-text-muted">{props.label}</p>
-      <p className="mt-2 text-lg font-semibold text-vs-text-primary">{props.value}</p>
-    </div>
-  );
-}
-
 export default function PartnerProgramLanding() {
   return (
     <main className="bg-[#f5f1df] text-vs-text-primary">
-      <section className="mx-auto grid min-h-[calc(100vh-74px)] w-full max-w-[1600px] gap-10 border-x border-vs-border-strong px-5 py-10 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-16">
+      <section className="mx-auto grid w-full max-w-[1600px] gap-10 border-x border-vs-border-strong px-5 py-8 sm:px-8 lg:min-h-[calc(80vh-74px)] lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
         <div>
           <div className="inline-flex rounded-full border border-vs-border-strong bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.16em] shadow-vs-sm">
             Program Partnerów Branżowych
           </div>
           <p className="mt-5 max-w-xl text-sm font-semibold uppercase tracking-[0.12em] text-vs-text-muted">
-            Dla palarni, które chcą współtworzyć standard danych konsumenckich w kawie specialty.
+            Dla palarni specialty, które chcą wiedzieć więcej.
           </p>
-          <h1 className="mt-6 max-w-5xl font-display text-[48px] uppercase leading-[0.9] text-vs-text-primary sm:text-[72px] lg:text-[92px]">
-            Zobacz, co dzieje się z Twoją kawą po zakupie.
+          <h1
+            className="mt-6 max-w-5xl font-display text-[48px] uppercase leading-[0.9] text-vs-text-primary sm:text-[72px] lg:text-[92px]"
+            aria-label="Plus feedback. Plus dane. Minus niepewność."
+          >
+            (+) feedback
+            <br />
+            (+) dane
+            <br />
+            (–) niepewność
           </h1>
           <p className="mt-7 max-w-3xl text-lg leading-relaxed text-vs-text-secondary sm:text-xl">
-            fun•brew pomaga palarniom zobaczyć, co dzieje się z kawą po zakupie: jak jest parzona,
-            oceniana, konsumowana i rozumiana przez klientów.
+            fun•brew to prototyp platformy analitycznej dla palarni specialty.
+            <br />
+            fun•brew pozwala roasterom zgłębić doświadczenie klientów.
+            <br />
+            Zgłoś swoją palarnię i twórz branżowy standard.
           </p>
-          <p className="mt-5 max-w-3xl text-base leading-relaxed text-vs-text-secondary sm:text-lg">
-            Szukamy kilku palarni, które pomogą zweryfikować, jakie dane są naprawdę użyteczne w
-            decyzjach produktowych, sensorycznych i komunikacyjnych.
-          </p>
+          {/*<p className="mt-5 max-w-3xl text-lg leading-relaxed text-vs-text-secondary sm:text-lg">
+            Szukamy palarni, które pomogą zdefiniować zakres danych użytecznych w analityce doświadczenia konsumentów w kontakcie z kawą specialtyh.
+          </p>*/}
           <div className="mt-8 flex flex-wrap gap-3">
             <a href="#zgloszenie" className="vs-button-primary inline-flex text-sm font-semibold sm:text-base">
               Zgłoś palarnię do programu
@@ -138,29 +138,21 @@ export default function PartnerProgramLanding() {
           </div>
         </div>
 
-        <div className="rounded-vs-md border border-vs-border-strong bg-white/80 p-5 shadow-vs-sm sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-vs-text-muted">
-            QR na opakowaniu → feedback konsumenta → insight dla palarni
+        <div className="overflow-hidden rounded-vs-md border border-vs-border-strong bg-white/80 shadow-vs-sm">
+          <p className="px-5 pt-5 text-xs font-semibold uppercase tracking-[0.18em] text-vs-text-muted sm:px-6 sm:pt-6">
+            Dashboard analityki
           </p>
-          <div className="mt-6 grid gap-4">
-            <div className="rounded-vs-md border border-vs-border-strong bg-[#fbfaf4] p-4">
-              <p className="text-sm font-semibold text-vs-text-muted">Produkt pilotażowy</p>
-              <p className="mt-2 text-2xl font-semibold">Kolumbia, washed, 250 g</p>
-              <p className="mt-4 inline-flex rounded border border-vs-border-strong px-3 py-2 font-mono text-sm">
-                QR / batch / feedback
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <DataCard label="Zakres programu" value="2–3 produkty" />
-              <DataCard label="Cel" value="walidacja danych" />
-              <DataCard label="Feedback" value="parzenie, odbiór, powrót" />
-              <DataCard label="Format" value="kontrolowany pilotaż" />
-            </div>
-          </div>
+          <img
+            src="/roaster-analytics.png"
+            alt="Dashboard funbrew z filtrami, zakładkami analityki i panelami insightów dla palarni"
+            width={3104}
+            height={1920}
+            className="mt-4 block aspect-[3104/1920] h-auto w-full object-cover"
+          />
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
+      <section className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
         <SectionHeading title="Po sprzedaży paczki kawa znika z pola widzenia palarni." />
         <div className="space-y-6 text-lg leading-relaxed text-vs-text-secondary">
           <p>
@@ -183,7 +175,7 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:py-20">
+      <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
         <SectionHeading
           title="QR na opakowaniu. Feedback od konsumenta. Dane, które mają prowadzić do decyzji."
           lead="Mechanika programu jest ograniczona celowo: ma pomóc sprawdzić, które dane z realnej konsumpcji kawy są użyteczne, a które tylko dodają szumu."
@@ -201,7 +193,7 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section id="program" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:py-20">
+      <section id="program" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:py-20">
         <SectionHeading
           eyebrow="Program"
           title="Program Partnerów Branżowych"
@@ -224,7 +216,7 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section id="co-testujemy" className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:py-20">
+      <section id="co-testujemy" className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
         <SectionHeading
           eyebrow="Research questions"
           title="Nie testujemy, czy aplikacja się podoba. Testujemy, czy dane pomagają palarni podjąć decyzję."
@@ -238,7 +230,7 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:py-20">
+      <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
         <SectionHeading title="Co zyskuje palarnia uczestnicząca w programie" />
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {BENEFITS.map(item => (
@@ -250,7 +242,7 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section id="dla-palarni" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:grid-cols-2 lg:py-20">
+      <section id="dla-palarni" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-2 lg:py-20">
         <SectionHeading title="Dla jakich palarni jest ten program" />
         <ul className="grid gap-3">
           {CRITERIA.map(item => (
@@ -261,7 +253,7 @@ export default function PartnerProgramLanding() {
         </ul>
       </section>
 
-      <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:py-20">
+      <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
         <SectionHeading title="Jak wygląda udział w programie" />
         <div className="mt-10 grid gap-4 md:grid-cols-5">
           {PARTICIPATION_STEPS.map(([title, copy], index) => (
@@ -276,7 +268,7 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section id="zgloszenie" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-14 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:py-20">
+      <section id="zgloszenie" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:py-20">
         <SectionHeading
           title="Zgłoś palarnię do programu"
           lead="Szukamy kilku palarni, które pomogą zweryfikować, jakie dane z realnej konsumpcji kawy są przydatne w decyzjach produktowych, sensorycznych i komunikacyjnych."

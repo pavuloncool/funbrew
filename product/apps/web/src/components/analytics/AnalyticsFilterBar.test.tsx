@@ -104,30 +104,8 @@ describe('AnalyticsFilterBar', () => {
     expect(next.brewMethodId).toBeNull();
   });
 
-  it('collapses the filter bar automatically once it becomes sticky on narrow screens', async () => {
+  it('renders the sidebar layout without hiding filter fields', async () => {
     const onChange = vi.fn();
-    const previousInnerWidth = window.innerWidth;
-    const previousGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
-    let top = 100;
-
-    Object.defineProperty(window, 'innerWidth', {
-      configurable: true,
-      value: 375,
-    });
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      () =>
-        ({
-          top,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: 0,
-          height: 0,
-          x: 0,
-          y: 0,
-          toJSON: () => ({}),
-        }) as DOMRect
-    );
 
     render(
       <AnalyticsFilterBar
@@ -144,30 +122,17 @@ describe('AnalyticsFilterBar', () => {
           { id: 'v60', name: 'V60' },
         ]}
         onChange={onChange}
+        layout="sidebar"
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Reset filters' })).toBeInTheDocument();
-      expect(
-        screen.getByText('Narrow charts and tables by brew method, tasting date and rating.')
-      ).toBeInTheDocument();
-    });
-
-    top = 0;
-    fireEvent.scroll(window);
-
-    await waitFor(() => {
-      expect(
-        screen.queryByText('Narrow charts and tables by brew method, tasting date and rating.')
-      ).not.toBeInTheDocument();
-    });
-
-    HTMLElement.prototype.getBoundingClientRect = previousGetBoundingClientRect;
-    Object.defineProperty(window, 'innerWidth', {
-      configurable: true,
-      value: previousInnerWidth,
-    });
-    window.dispatchEvent(new Event('resize'));
+    expect(screen.getByText('Dashboard filters')).toBeInTheDocument();
+    expect(screen.getByText('Narrow charts and tables by brew method, tasting date and rating.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Brew method' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Start date')).toBeInTheDocument();
+    expect(screen.getByLabelText('End date')).toBeInTheDocument();
+    expect(screen.getByLabelText('Min rating')).toBeInTheDocument();
+    expect(screen.getByLabelText('Max rating')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search feedback')).toBeInTheDocument();
   });
 });

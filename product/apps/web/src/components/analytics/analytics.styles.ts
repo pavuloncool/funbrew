@@ -57,20 +57,14 @@ export const analyticsStyles = {
   compareBlockStacked:
     'mt-4 rounded-vs-sm border border-vs-border-subtle/40 bg-vs-surface px-4 py-4',
   declaredMetricGrid: 'mt-4 grid gap-3 sm:grid-cols-3',
-  sectionTabsLayout:
-    'grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)] xl:items-start',
-  sectionTabsRail:
-    'rounded-vs-lg border-2 border-vs-border-strong bg-vs-elevated p-3 shadow-vs-md',
-  sectionTabsRailHeader: 'px-3 pb-4 pt-2',
-  sectionTabsRailEyebrow:
-    'text-[11px] font-semibold uppercase tracking-[0.18em] text-vs-text-muted',
-  sectionTabsRailTitle:
-    'mt-1 font-display text-3xl uppercase tracking-[-0.03em] text-vs-text-primary',
-  sectionTabsRailDescription:
-    'mt-2 text-sm leading-relaxed text-vs-text-secondary',
-  sectionTabsList: 'mt-4 space-y-2',
+  dashboardLayout: 'grid gap-6 xl:grid-cols-[20rem_minmax(0,1fr)] xl:items-start',
+  dashboardFilterRail: 'hidden xl:block xl:sticky xl:top-4',
+  dashboardMain: 'min-w-0 space-y-4',
+  mobileFilterTrigger: 'xl:hidden',
+  sectionTabsList:
+    'flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
   sectionTabButton:
-    'vs-focus-ring relative flex w-full flex-col items-start gap-1 rounded-vs-md border-2 px-4 py-3 text-left transition-all duration-220',
+    'vs-focus-ring relative flex min-h-16 min-w-[12rem] shrink-0 flex-col items-start justify-center gap-1 rounded-vs-md border-2 px-4 py-3 text-left transition-all duration-220 sm:min-w-[14rem]',
   sectionTabButtonActive:
     'border-vs-hero-primary bg-vs-hero-primary text-vs-text-inverse shadow-vs-sm',
   sectionTabButtonInactive:
