@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useId, useState } from 'react';
+import Link from 'next/link';
+import { FormEvent, ReactNode, useId, useState } from 'react';
 
 import { PUBLIC_BODY_COPY_CLASS } from '@/components/public/PublicInfoPage';
 import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
@@ -52,7 +53,7 @@ type PublicLeadFormProps = {
   formDescription?: string;
   leadSource?: string;
   submitLabel?: string;
-  successMessage?: string;
+  successMessage?: ReactNode;
 };
 
 export default function PublicLeadForm({
@@ -66,7 +67,7 @@ export default function PublicLeadForm({
   const [form, setForm] = useState<LeadFormValues>(INITIAL_FORM);
   const [partnerForm, setPartnerForm] = useState<PartnerProgramFormValues>(INITIAL_PARTNER_FORM);
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
-  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<ReactNode>(null);
   const [salesChannelOpen, setSalesChannelOpen] = useState(false);
   const salesChannelLabelId = useId();
 
@@ -326,15 +327,19 @@ export default function PublicLeadForm({
         </button>
         {variant === 'partnerProgram' ? (
           <p className="text-sm leading-relaxed text-vs-text-muted">
-            Zgłoszenie nie oznacza automatycznego przyjęcia. Program jest ograniczony do kilku
-            palarni w pierwszym etapie.
+            Dane z formularza wykorzystamy wyłącznie do kontaktu w sprawie Programu Partnerów
+            Branżowych. Szczegóły:{' '}
+            <Link href="/privacy" className="font-semibold text-vs-text-primary underline underline-offset-4">
+              Polityka prywatności
+            </Link>
+            .
           </p>
         ) : null}
       </form>
 
       {submitMessage ? (
         <p
-          className={`mt-4 ${PUBLIC_BODY_COPY_CLASS} ${submitState === 'success' ? 'text-vs-success' : 'text-vs-danger'}`}
+          className={`mt-4 whitespace-pre-line ${PUBLIC_BODY_COPY_CLASS} ${submitState === 'success' ? 'text-vs-success' : 'text-vs-danger'}`}
           role={submitState === 'error' ? 'alert' : 'status'}
         >
           {submitMessage}

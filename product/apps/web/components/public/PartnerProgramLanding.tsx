@@ -1,27 +1,44 @@
 import PublicLeadForm from '@/components/public/PublicLeadForm';
+import type { ReactNode } from 'react';
 
 const RESEARCH_QUESTIONS = [
-  'Czy feedback konsumenta pomaga lepiej opisać kawę?',
-  'Czy klienci rozumieją profil sensoryczny tak, jak zakłada palarnia?',
-  'Czy metoda parzenia wpływa na ocenę produktu?',
-  'Czy klient wie, po którą kawę wróciłby ponownie?',
-  'Które dane są przydatne dla palarni, a które tylko obciążają formularz?',
+  { key: 'describe-feedback', content: 'Czy feedback konsumenta pomaga lepiej opisać kawę?' },
+  {
+    key: 'funbrew-workflow',
+    content: (
+      <>
+        Jak wpisać workflow <b>fun•brew</b> w codzienną pracę palarni?
+      </>
+    ),
+  },
+  {
+    key: 'sensory-profile',
+    content: 'Czy klienci odnajdują profil sensoryczny deklarowany przez roastera?',
+  },
+  { key: 'brewing-method', content: 'Czy metoda parzenia wpływa na ocenę produktu?' },
+  { key: 'repeat-choice', content: 'Po którą kawę klient wróciłby ponownie?' },
+  {
+    key: 'useful-data',
+    content: 'Które dane są przydatne dla palarni, a które tylko obciążają formularz?',
+  },
 ] as const;
 
 const PROBLEM_QUESTIONS = [
-  'czy klienci parzą kawę zgodnie z rekomendacją?',
-  'czy odbierają profil sensoryczny zgodnie z deklaracją roastera?',
-  'co wpływa na ocenę produktu: metoda parzenia, przepis, oczekiwania, kontekst?',
-  'które informacje pomagają klientowi wrócić po właściwy produkt?',
+  'Jak dany batch oceniają użytkownicy o różnym stopniu doświadczenia sensorycznego?',
+  'Jak profil sensoryczny deklarowany przez palarnię pokrywa się z odbiorem konsumenta?',
+  'Jakie metody parzenia rekomenduje roaster, a jakie realnie wybiera klient?',
+  'Co wpływa na ocenę produktu: metoda parzenia, przepis, oczekiwania, kontekst?',
+  'Które informacje pomagają klientowi wrócić po właściwy produkt?',
+  'Które dane są przydatne dla palarni, a które tylko obciążają formularz?'
 ] as const;
 
 const CRITERIA = [
-  'prowadzą aktywną ofertę kaw specialty',
-  'sprzedają kawę online, stacjonarnie lub przez partnerów',
-  'chcą lepiej rozumieć, jak konsumenci odbierają ich kawy po zakupie',
-  'są ciekawe danych, które mogą wspierać decyzje produktowe, sensoryczne i komunikacyjne',
-  'są gotowe współtworzyć standard feedbacku konsumenckiego dla kawy specialty',
-  'szukają kontrolowanego programu współtworzenia, nie gotowego systemu enterprise',
+  'prowadzą aktywną ofertę kaw specialty;',
+  'sprzedają kawę online, stacjonarnie lub przez partnerów;',
+  'chcą lepiej rozumieć, jak konsumenci odbierają ich kawy po zakupie;',
+  'są ciekawe danych, które mogą wspierać decyzje produktowe, sensoryczne i komunikacyjne;',
+  'są gotowe współtworzyć standard feedbacku konsumenckiego dla kawy specialty;',
+  'szukają kontrolowanego programu współtworzenia, nie gotowego systemu enterprise.',
 ] as const;
 
 const COMMITMENTS = [
@@ -42,16 +59,16 @@ const PILOT_STEPS = [
 
 const BENEFITS = [
   {
-    title: 'Darmowy lifetime access',
-    copy: 'Palarnie uczestniczące w programie otrzymają darmowy lifetime access do pełnego pakietu danych i usług fun•brew po uruchomieniu.',
+    title: 'Preferencyjny dostęp do wersji produkcyjnej',
+    copy: 'Palarnie uczestniczące w pilotażu zyskują preferencyjny dostęp do funkcji i usług fun•brew po uruchomieniu.',
   },
   {
     title: 'Wpływ na zakres danych i usług',
-    copy: 'Partnerzy pomagają ustalić, które moduły, metryki i raporty powinny znaleźć się w pierwszej wersji produktu.',
+    copy: 'Partnerzy mają realny wpływ na to, które moduły, metryki i raporty powinny znaleźć się w pierwszej wersji produktu.',
   },
   {
-    title: 'Wyniki pilotażu własnych produktów',
-    copy: 'Po teście palarnia otrzymuje wgląd w feedback zebrany dla swoich kaw i kontekst interpretacji wyników.',
+    title: 'Bieżący wgląd w wyniki pilotażu własnych produktów',
+    copy: 'W trakcie programu palarnia na bieżąco śledzi feedback na temat swoich kaw i kontekst wyników.',
   },
   {
     title: 'Udział w tworzeniu standardu',
@@ -59,7 +76,7 @@ const BENEFITS = [
   },
 ] as const;
 
-function SectionHeading(props: { eyebrow?: string; title: string; lead?: string }) {
+function SectionHeading(props: { eyebrow?: string; title: string; lead?: ReactNode }) {
   return (
     <div className="max-w-3xl">
       {props.eyebrow ? (
@@ -99,21 +116,18 @@ export default function PartnerProgramLanding() {
             (+) decyzje
           </h1>
           <p className="mt-7 max-w-3xl text-lg leading-relaxed text-vs-text-secondary sm:text-xl">
-            fun•brew to prototyp platformy analitycznej dla palarni specialty.
+            <b>fun•brew</b> to prototyp platformy analitycznej dla palarni specialty,
             <br />
-            fun•brew pozwala roasterom zgłębić doświadczenie klientów.
+            pozwalającej roasterom odzyskać dane konsumenckie.
             <br />
-            Zgłoś swoją palarnię i twórz branżowy standard.
+            Zgłoś swoją palarnię do programu Partnerów Brażowych.
           </p>
-          {/*<p className="mt-5 max-w-3xl text-lg leading-relaxed text-vs-text-secondary sm:text-lg">
-            Szukamy palarni, które pomogą zdefiniować zakres danych użytecznych w analityce doświadczenia konsumentów w kontakcie z kawą specialtyh.
-          </p>*/}
-          <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
             <a href="#zgloszenie" className="vs-button-primary inline-flex text-sm font-semibold sm:text-base">
               Zgłoś palarnię do programu
             </a>
             <a href="#co-testujemy" className="vs-button-secondary inline-flex text-sm font-semibold sm:text-base">
-              Zobacz, co testujemy
+              Co badamy?
             </a>
           </div>
         </div>
@@ -135,10 +149,10 @@ export default function PartnerProgramLanding() {
       <section className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
         <SectionHeading 
         eyebrow="Problem wyjściowy"
-        title="Co adresujemy: utrata danych" />
+        title="Odzyskać dane + Uporządkować feedback" />
         <div className="space-y-6 text-lg leading-relaxed text-vs-text-secondary">
           <p>
-            fun•brew dostarcza palarniom posprzedażowe dane z realnej konsumpcji, które na dzisiaj są niedostępne. Roaster otrzymuje feedback, który jasno pokazuje:
+            Zadaniem <b>fun•brew</b> jest pomóc palarniom odzyskać dane posprzedażowe, które na dzisiaj są rozproszone, przypadkowe i często niedostępne. Na etapie prototypu zakres danych obejmuje insighty, które odpowiadają na pytania:
           </p>
           <ul className="grid gap-3 sm:grid-cols-2">
             {PROBLEM_QUESTIONS.map(question => (
@@ -150,24 +164,30 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section id="co-testujemy" className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
+      <section id="co-testujemy" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
         <SectionHeading
-          eyebrow="Zakres marytoryczny"
-          title="Co testujemy: zakres insightów"
-          lead="Walidujemy hipotezy o tym, jakie dane z realnej konsumpcji pomagają palarni podejmować lepsze decyzje."
+          eyebrow="Zakres pilotażu"
+          title="zakres insightów + workflow fun•brew"
         />
-        <ul className="mt-10 grid gap-4 md:grid-cols-2">
-          {RESEARCH_QUESTIONS.map(question => (
-            <li key={question} className="rounded-vs-md border border-vs-border-strong bg-[#fbfaf4] p-5 text-lg font-semibold leading-snug text-vs-text-primary">
-              {question}
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-6 text-lg leading-relaxed text-vs-text-secondary">
+          <p>
+            Chcemy wspólnie w wybranymi palarniami doprecyzować branżowy standard danych do wykorzystania w realnym procesie produkcji. Pytamy o miejsce <b>fun•brew</b> w toku codziennej pracy roastera, próbując ustalić:
+          </p>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {RESEARCH_QUESTIONS.map(question => (
+              <li key={question.key} className="rounded-vs-md border border-vs-border-strong bg-white/70 p-4">
+                {question.content}
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       <section id="zgloszenie" className="mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-2 lg:py-20">
         <div>
-          <SectionHeading title="Dla jakich palarni jest ten program" />
+          <SectionHeading 
+          eyebrow="Adresaci programu"
+          title="Palarnie specialty, które:" />
           <ul className="mt-8 grid gap-3">
             {CRITERIA.map(item => (
               <li key={item} className="rounded-vs-md border border-vs-border-strong bg-white/80 p-4 text-base leading-relaxed">
@@ -179,17 +199,22 @@ export default function PartnerProgramLanding() {
         <PublicLeadForm
           variant="partnerProgram"
           formTitle="Zgłoś palarnię do programu"
-          formDescription="Zgłoszenie nie oznacza automatycznego przyjęcia do programu. Odezwiemy się, jeśli profil palarni pasuje do pierwszego etapu pilotażu."
           leadSource="partner_program_home"
           submitLabel="Zgłoś palarnię do programu"
-          successMessage="Dziękujemy za zgłoszenie. Odezwiemy się w sprawie udziału w programie. Ekipa fun•brew."
+          successMessage={
+            <>
+              Dziękujemy za zgłoszenie. Odezwiemy się w sprawie udziału w programie.
+              <br />
+              Ekipa <b>fun•brew</b>.
+            </>
+          }
         />
       </section>
 
       <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
         <SectionHeading
-          title="Ile zaangażowania wymaga program"
-          lead="Pilotaż jest krótki i kontrolowany. Po stronie palarni potrzebujemy decyzji produktowej, zgody na zebranie feedbacku i rozmowy o wartości danych."
+          title="Zaangażowanie w program"
+          lead="Pilotaż jest krótki i kontrolowany. Zaangażowanie po stronie palarni polega na podjęciu decyzji biznesowej, czasowej ekspozycji produktów z wygenerowanym QR kodem i udziale w na zebranie feedbacku i rozmowy o wartości danych."
         />
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {COMMITMENTS.map(([title, copy]) => (
@@ -221,6 +246,7 @@ export default function PartnerProgramLanding() {
 
       <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
         <SectionHeading
+          eyebrow="Korzyści dla palarni"
           title="Co otrzymuje palarnia"
           lead="Udział w programie daje realny wpływ na produkt i dostęp do efektów pracy po uruchomieniu fun•brew."
         />

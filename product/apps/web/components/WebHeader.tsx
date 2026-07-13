@@ -16,9 +16,9 @@ const MARKETING_NAV_ITEMS = [
 ] as const;
 
 const HOME_NAV_ITEMS = [
-  { label: 'Co testujemy', href: '#co-testujemy' },
+  { label: 'Co badamy', href: '#co-testujemy' },
   { label: 'Program', href: '#program' },
-  { label: 'Dla palarni', href: '#dla-palarni' },
+  { label: 'Zgłoś palarnię', href: '#zgloszenie' },
 ] as const;
 
 const PINK_HEADER_BUTTON_CLASS =

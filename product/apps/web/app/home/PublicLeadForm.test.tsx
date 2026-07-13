@@ -41,6 +41,8 @@ describe('PublicLeadForm', () => {
     expect(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' })).toHaveTextContent(
       'Wybierz kanały sprzedaży'
     );
+    expect(screen.getByText(/Dane z formularza wykorzystamy wyłącznie do kontaktu/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Polityka prywatności' })).toHaveAttribute('href', '/privacy');
     fireEvent.click(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' }));
     fireEvent.click(screen.getByRole('button', { name: /online/ }));
     fireEvent.change(
