@@ -9,7 +9,7 @@ describe('HomePage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Plus feedback. Plus dane. Minus niepewność.',
+        name: 'Plus feedback. Plus dane. Plus decyzje.',
       })
     ).toBeInTheDocument();
     expect(screen.getAllByText('Program Partnerów Branżowych')[0]).toBeInTheDocument();
@@ -19,12 +19,16 @@ describe('HomePage', () => {
         name: 'Dashboard funbrew z filtrami, zakładkami analityki i panelami insightów dla palarni',
       })
     ).toHaveAttribute('src', '/roaster-analytics.png');
-    expect(
-      screen.getAllByText('Dla palarni, które chcą współtworzyć standard danych konsumenckich w kawie specialty.')[0]
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Co testujemy: zakres insightów' })).toBeInTheDocument();
     expect(screen.getByText('Czy feedback konsumenta pomaga lepiej opisać kawę?')).toBeInTheDocument();
-    expect(screen.getByText('Wcześniejszy dostęp do wersji komercyjnej')).toBeInTheDocument();
-    expect(screen.getByText('Preferencyjne warunki membership')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Dla jakich palarni jest ten program' })).toBeInTheDocument();
+    expect(screen.getByText('prowadzą aktywną ofertę kaw specialty')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ile zaangażowania wymaga program' })).toBeInTheDocument();
+    expect(screen.getByText('Zgoda na QR i flow feedbacku')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Jak wygląda pilotaż' })).toBeInTheDocument();
+    expect(screen.getByText('Wybór 2–3 produktów')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Co otrzymuje palarnia' })).toBeInTheDocument();
+    expect(screen.getByText('Darmowy lifetime access')).toBeInTheDocument();
     expect(screen.getByLabelText('Nazwa palarni')).toBeInTheDocument();
     expect(screen.getByLabelText('Osoba kontaktowa')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
