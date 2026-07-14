@@ -33,37 +33,31 @@ const PROBLEM_QUESTIONS = [
 ] as const;
 
 const CRITERIA = [
-  'prowadzą aktywną ofertę kaw specialty;',
-  'sprzedają kawę online, stacjonarnie lub przez partnerów;',
-  'chcą lepiej rozumieć, jak konsumenci odbierają ich kawy po zakupie;',
-  'są ciekawe danych, które mogą wspierać decyzje produktowe, sensoryczne i komunikacyjne;',
-  'są gotowe współtworzyć standard feedbacku konsumenckiego dla kawy specialty;',
-  'szukają kontrolowanego programu współtworzenia, nie gotowego systemu enterprise.',
+  'posiada aktywną ofertę kaw specialty w sprzedaży detalicznej;',
+  'chce dotrzeć do danych posprzedażowych z realnej konsumpcji;',
+  'jest gotowa współtworzyć branżowy standard feedbacku konsumenckiego;',
+  'chce mieć wpływ na kształt platformy, zamiast używać szablonowych systemów.',
 ] as const;
 
 const COMMITMENTS = [
-  ['Krótka rozmowa discovery', 'Ustalamy kontekst palarni, kanały sprzedaży i pytania, na które pilotaż ma dać odpowiedź.'],
-  ['Wskazanie produktów', 'Wybieracie kawy, na których warto sprawdzić feedback konsumencki w pierwszym etapie.'],
-  ['Zgoda na QR i flow feedbacku', 'Kod QR prowadzi konsumenta do prostego formularza po zakupie lub konsumpcji.'],
-  ['Udział w review wyników', 'Spotykamy się po zebraniu danych, żeby omówić sygnały i ograniczenia pilotażu.'],
-  ['Rozmowa o użyteczności danych', 'Wspólnie oddzielamy dane przydatne od informacji, które tylko obciążają proces.'],
-] as const;
-
-const PILOT_STEPS = [
-  ['Zgłoszenie palarni', 'Wypełniasz formularz i opisujesz, czego chcecie dowiedzieć się o odbiorze Waszych kaw.'],
-  ['Rozmowa discovery', 'Sprawdzamy dopasowanie palarni do pierwszego etapu programu i ustalamy zakres pilotażu.'],
-  ['Wybór 2–3 produktów', 'Określamy kawy, które trafią do testu feedbacku konsumenckiego.'],
-  ['QR i feedback konsumentów', 'Konsumenci skanują kod i zostawiają uporządkowaną ocenę parzenia, profilu i chęci powrotu.'],
-  ['Review wyników', 'Omawiamy, które sygnały pomagają w decyzjach, a które wymagają zmiany lub usunięcia.'],
+  ['Poznajemy się', 'Jak działa roaster, jak działa fun•brew. Jakie dane są dostępne na ten moment. Decyzja o udziale w pilotażu.'],
+  ['Precyzujemy roaster data', 'Uzupełniamy i modyfikujemy zakres danych i inputów. Definiujemy przyszły workflow pod kątem roastera.'],
+  ['Dopinamy mobile', 'Spinamy dane z panelu roastera we wspólny flow z aplikacją kliencką na iOS i Android. Testujemy QR kody.'],
+  ['Odpalamy beta appki', 'Beta aplikacji klienckiej trafia do wybranych konsumentów. Zbieramy realny feedback i dane na temat kawy.'],
+  ['Omawiamy feedback i wyniki', 'Oddzielamy kluczowe dane od szumu. Walidujemy wnioski i rekomendacje. Decydujemy o adopcji fun•brew w palarni.'],
 ] as const;
 
 const BENEFITS = [
   {
     title: 'Preferencyjny dostęp do wersji produkcyjnej',
-    copy: 'Palarnie uczestniczące w pilotażu zyskują preferencyjny dostęp do funkcji i usług fun•brew po uruchomieniu.',
+    copy: (
+      <>
+        Palarnie uczestniczące w pilotażu zyskują preferencyjny dostęp do funkcji i usług <b>fun•brew</b> po uruchomieniu.
+      </>
+    ),
   },
   {
-    title: 'Wpływ na zakres danych i usług',
+    title: 'Wpływ na zakres ekspozycji danych w aplikacji klienckiej',
     copy: 'Partnerzy mają realny wpływ na to, które moduły, metryki i raporty powinny znaleźć się w pierwszej wersji produktu.',
   },
   {
@@ -76,7 +70,7 @@ const BENEFITS = [
   },
 ] as const;
 
-function SectionHeading(props: { eyebrow?: string; title: string; lead?: ReactNode }) {
+function SectionHeading(props: { eyebrow?: string; title: ReactNode; lead?: ReactNode }) {
   return (
     <div className="max-w-3xl">
       {props.eyebrow ? (
@@ -116,9 +110,9 @@ export default function PartnerProgramLanding() {
             (+) decyzje
           </h1>
           <p className="mt-7 max-w-3xl text-lg leading-relaxed text-vs-text-secondary sm:text-xl">
-            <b>fun•brew</b> to prototyp platformy analitycznej dla palarni specialty,
+            Testujemy <b>fun•brew</b>: prototyp platformy analitycznej dla palarni specialty,
             <br />
-            pozwalającej roasterom odzyskać dane konsumenckie.
+            która pozwoli roasterom odzyskać dane konsumenckie.
             <br />
             Zgłoś swoją palarnię do programu Partnerów Brażowych.
           </p>
@@ -187,10 +181,10 @@ export default function PartnerProgramLanding() {
         <div>
           <SectionHeading 
           eyebrow="Adresaci programu"
-          title="Palarnie specialty, które:" />
+          title="Jeśli działasz w palarni, która:" />
           <ul className="mt-8 grid gap-3">
             {CRITERIA.map(item => (
-              <li key={item} className="rounded-vs-md border border-vs-border-strong bg-white/80 p-4 text-base leading-relaxed">
+              <li key={item} className="rounded-vs-md border border-vs-border-strong bg-white/80 p-4 text-lg leading-relaxed">
                 {item}
               </li>
             ))}
@@ -213,32 +207,21 @@ export default function PartnerProgramLanding() {
 
       <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
         <SectionHeading
-          title="Zaangażowanie w program"
-          lead="Pilotaż jest krótki i kontrolowany. Zaangażowanie po stronie palarni polega na podjęciu decyzji biznesowej, czasowej ekspozycji produktów z wygenerowanym QR kodem i udziale w na zebranie feedbacku i rozmowy o wartości danych."
+          eyebrow="Jak to działa"
+          title={
+            <>
+            Gdzie zaczynamy
+            <br /> 
+           + na czym kończymy
+            </>
+          }
+          lead="Pilotaż jest krótki i kontrolowany. Zasadniczo obejmuje następujące kroki:"
         />
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {COMMITMENTS.map(([title, copy]) => (
             <article key={title} className="rounded-vs-md border border-vs-border-strong bg-white/80 p-5">
               <h3 className="text-lg font-semibold text-vs-text-primary">{title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-vs-text-secondary">{copy}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="program" className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:py-20">
-        <SectionHeading
-          title="Jak wygląda pilotaż"
-          lead="Jeden uporządkowany proces prowadzi od zgłoszenia palarni do wspólnego review wyników."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-5">
-          {PILOT_STEPS.map(([title, copy], index) => (
-            <article key={title} className="rounded-vs-md border border-vs-border-strong bg-[#fbfaf4] p-4">
-              <p className="font-display text-[32px] font-semibold uppercase leading-[0.95] text-vs-text-muted sm:text-[44px]">
-                {String(index + 1).padStart(2, '0')}
-              </p>
-              <h3 className="mt-3 text-lg font-semibold text-vs-text-primary">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-vs-text-secondary">{copy}</p>
+              <p className="mt-3 text-lg leading-relaxed text-vs-text-secondary">{copy}</p>
             </article>
           ))}
         </div>
@@ -254,7 +237,7 @@ export default function PartnerProgramLanding() {
           {BENEFITS.map(item => (
             <article key={item.title} className="rounded-vs-md border border-vs-border-strong bg-white/80 p-5">
               <h3 className="text-xl font-semibold text-vs-text-primary">{item.title}</h3>
-              <p className="mt-3 text-base leading-relaxed text-vs-text-secondary">{item.copy}</p>
+              <p className="mt-3 text-lg leading-relaxed text-vs-text-secondary">{item.copy}</p>
             </article>
           ))}
         </div>

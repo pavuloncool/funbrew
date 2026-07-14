@@ -1,11 +1,13 @@
-'use client';
+import type { Metadata } from 'next';
 
-import { useRouter } from 'next/navigation';
+import PartnerProgramLanding from '@/components/public/PartnerProgramLanding';
 
-import AnimatedSplash from '@/components/AnimatedSplash';
+export const metadata: Metadata = {
+  title: 'fun•brew — Program Partnerów Branżowych dla palarni specialty',
+  description:
+    'fun•brew pomaga palarniom sprawdzić, jak kawa jest parzona, oceniana i rozumiana po zakupie. Szukamy kilku palarni do programu walidacji danych konsumenckich w kawie specialty.',
+};
 
-export default function RootEntryPage() {
-  const router = useRouter();
-
-  return <AnimatedSplash onFinish={() => router.push('/home')} />;
+export default function HomePage() {
+  return <PartnerProgramLanding />;
 }

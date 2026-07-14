@@ -21,12 +21,11 @@ describe('HomePage', () => {
     ).toHaveAttribute('src', '/roaster-analytics.png');
     expect(screen.getByRole('heading', { name: 'zakres insightów + workflow fun•brew' })).toBeInTheDocument();
     expect(screen.getByText('Czy feedback konsumenta pomaga lepiej opisać kawę?')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Palarnie specialty, które:' })).toBeInTheDocument();
-    expect(screen.getByText('prowadzą aktywną ofertę kaw specialty;')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Zaangażowanie w program' })).toBeInTheDocument();
-    expect(screen.getByText('Zgoda na QR i flow feedbacku')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Jak wygląda pilotaż' })).toBeInTheDocument();
-    expect(screen.getByText('Wybór 2–3 produktów')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Jeśli działasz w palarni, która:' })).toBeInTheDocument();
+    expect(screen.getByText('posiada aktywną ofertę kaw specialty w sprzedaży detalicznej;')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Gdzie zaczynamy+ na czym kończymy' })).toBeInTheDocument();
+    expect(screen.getByText('Poznajemy się')).toBeInTheDocument();
+    expect(screen.getByText('Dopinamy mobile')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Co otrzymuje palarnia' })).toBeInTheDocument();
     expect(screen.getByText('Preferencyjny dostęp do wersji produkcyjnej')).toBeInTheDocument();
     expect(screen.getByLabelText('Nazwa palarni')).toBeInTheDocument();

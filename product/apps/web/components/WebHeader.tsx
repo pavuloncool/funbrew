@@ -8,6 +8,9 @@ import { supabaseBrowser } from '@/src/lib/supabase/browserClient';
 import { resolvePublicHubCtaTarget } from '@/src/lib/publicEntryRouting';
 import { isMarketingRoute, isPublicRoute } from '@/src/lib/publicRoutes';
 
+// MARKETING_NAV_ITEMS is temporarily expired in favor of HOME_NAV_ITEMS.
+// If this decision holds in the future, MARKETING_NAV_ITEMS can be removed entirely
+// as a leftover from an expired project branch.
 const MARKETING_NAV_ITEMS = [
   { label: 'Support', href: '/support' },
   { label: 'About', href: '/about' },
@@ -27,10 +30,14 @@ const PINK_HEADER_SECONDARY_BUTTON_CLASS =
   'vs-button-secondary bg-vs-hero-primary hover:bg-vs-hero-primary/90 text-vs-text-primary';
 
 function getNavLinkClass(pathname: string, href: string): string {
-  const isActive = pathname === href;
+  const isActive = pathname === href && !MARKETING_NAV_ITEMS.some(item => item.href === href);
   return `inline-flex items-center text-[24px] font-medium text-vs-text-primary transition hover:underline ${
     isActive ? 'underline decoration-2 underline-offset-4' : ''
   }`;
+}
+
+function getHomeNavHref(href: string, isHomePage: boolean): string {
+  return isHomePage ? href : `/${href}`;
 }
 
 export default function WebHeader() {
@@ -40,7 +47,7 @@ export default function WebHeader() {
   const [hubCtaLoading, setHubCtaLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isHomePage = pathname === '/home';
+  const isHomePage = pathname === '/';
   const isLoginPage = pathname === '/login';
   const isMarketingEntry = isMarketingRoute(pathname);
   const isCompactPublicHeader = isPublicRoute(pathname) && !isMarketingEntry && !isLoginPage;
@@ -53,7 +60,7 @@ export default function WebHeader() {
 
   async function handleLogout() {
     setLoading(true);
-    router.push('/home');
+    router.push('/');
     try {
       await supabaseBrowser.auth.signOut();
       router.refresh();
@@ -81,7 +88,7 @@ export default function WebHeader() {
           <button
             type="button"
             className="font-display text-[42px] leading-none tracking-[-0.04em] text-vs-text-primary sm:text-[52px]"
-            onClick={() => router.push('/home')}
+            onClick={() => router.push('/')}
           >
             fun•brew
           </button>
@@ -104,20 +111,24 @@ export default function WebHeader() {
     <header className="w-full border-b-2 border-vs-border-strong bg-vs-elevated">
       <div className="mx-auto flex min-h-[74px] w-full max-w-[1600px] items-center gap-4 border-x-2 border-vs-border-strong px-5 sm:px-8">
         <Link
-          href="/home"
+          href="/"
           className="font-display text-[42px] leading-none tracking-[-0.04em] text-vs-text-primary sm:text-[52px]"
         >
           fun•brew
         </Link>
 
         <nav className="ml-12 hidden items-center gap-8 md:flex lg:gap-10">
-          {(isHomePage ? HOME_NAV_ITEMS : MARKETING_NAV_ITEMS).map((item) =>
+          {HOME_NAV_ITEMS.map((item) =>
             isHomePage ? (
               <a key={item.href} href={item.href} className={getNavLinkClass(pathname, item.href)}>
                 {item.label}
               </a>
             ) : (
-              <Link key={item.href} href={item.href} className={getNavLinkClass(pathname, item.href)}>
+              <Link
+                key={item.href}
+                href={getHomeNavHref(item.href, isHomePage)}
+                className={getNavLinkClass(pathname, item.href)}
+              >
                 {item.label}
               </Link>
             )
@@ -141,7 +152,7 @@ export default function WebHeader() {
               }`}
             >
               <nav className="grid gap-2">
-                {(isHomePage ? HOME_NAV_ITEMS : MARKETING_NAV_ITEMS).map((item) =>
+                {HOME_NAV_ITEMS.map((item) =>
                   isHomePage ? (
                     <a
                       key={item.href}
@@ -154,7 +165,7 @@ export default function WebHeader() {
                   ) : (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={getHomeNavHref(item.href, isHomePage)}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`inline-flex items-center rounded-vs-md border border-transparent px-3 py-2 text-base font-medium text-vs-text-primary hover:border-vs-border-default hover:bg-vs-surface ${
                         pathname === item.href ? 'bg-vs-surface underline decoration-2 underline-offset-4' : ''

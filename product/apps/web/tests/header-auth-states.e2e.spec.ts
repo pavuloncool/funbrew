@@ -32,15 +32,15 @@ async function loginViaForm(page: Page, actor: TestActor): Promise<void> {
 }
 
 const MARKETING_NAV_ITEMS = ['Support', 'About', 'Contact', 'Business'];
-const PARTNER_HOME_NAV_ITEMS = ['Co testujemy', 'Program', 'Dla palarni', 'Zgłoś palarnię'];
+const PARTNER_HOME_NAV_ITEMS = ['Co badamy', 'Program', 'Zgłoś palarnię'];
 const HIDDEN_NAV_ITEMS = ['News', 'Individuals'];
 
 async function expectMarketingHeader(page: Page): Promise<void> {
-  for (const item of MARKETING_NAV_ITEMS) {
+  for (const item of PARTNER_HOME_NAV_ITEMS) {
     await expect(page.getByRole('link', { name: item })).toBeVisible();
   }
 
-  for (const item of HIDDEN_NAV_ITEMS) {
+  for (const item of [...MARKETING_NAV_ITEMS, ...HIDDEN_NAV_ITEMS]) {
     await expect(page.getByRole('link', { name: item })).toHaveCount(0);
   }
 
@@ -66,14 +66,13 @@ test.describe('header auth states across public routes and roaster workspace', (
     const actor = await provisionVerifiedRoaster(request, 'header-auth-states');
     await completeRoasterProfile(request, actor);
 
-    await page.goto('/home');
+    await page.goto('/');
     await expectPartnerHomeHeader(page);
 
     await page.goto('/register');
     await expectMarketingHeader(page);
 
-    await page.getByRole('link', { name: 'Business' }).click();
-    await page.waitForURL('**/business', { timeout: 15_000 });
+    await page.goto('/business');
     await expectMarketingHeader(page);
 
     await page.getByRole('button', { name: 'Roaster Hub' }).click();
@@ -83,7 +82,7 @@ test.describe('header auth states across public routes and roaster workspace', (
     await loginViaForm(page, actor);
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 
-    await page.goto('/home');
+    await page.goto('/');
     await expectPartnerHomeHeader(page);
 
     await page.goto('/register');
@@ -94,7 +93,7 @@ test.describe('header auth states across public routes and roaster workspace', (
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
-    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveURL(/\/$/);
     await expectPartnerHomeHeader(page);
 
     await page.getByRole('link', { name: 'Logowanie' }).click();
