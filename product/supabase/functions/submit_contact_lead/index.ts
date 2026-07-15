@@ -12,6 +12,7 @@ type ContactLeadRequest = {
   company?: string | null;
   message?: string | null;
   source?: string;
+  subject?: string | null;
   metadata?: unknown;
 };
 
@@ -93,6 +94,7 @@ async function trySendNotificationEmail(params: {
   company: string;
   message: string | null;
   source: string;
+  subject: string | null;
   metadata: Record<string, unknown>;
 }): Promise<void> {
   const toRaw = Deno.env.get('CONTACT_NOTIFICATION_TO') ?? '';
@@ -127,7 +129,7 @@ async function trySendNotificationEmail(params: {
     return;
   }
 
-  const subject = `[funbrew] New contact lead from ${params.fullName}`;
+  const subject = params.subject || `[funbrew] New contact lead from ${params.fullName}`;
   const text = buildEmailText(params);
   const emailPayload: Record<string, unknown> = {
     from: fromEmail,
@@ -194,6 +196,7 @@ Deno.serve(async req => {
     const companyRaw = normalizeText(body.company);
     const message = normalizeText(body.message);
     const source = normalizeText(body.source) || 'web_public_beta';
+    const subject = normalizeText(body.subject);
 
     if (!fullName || fullName.length > 120) {
       return new Response(
@@ -260,6 +263,19 @@ Deno.serve(async req => {
       );
     }
 
+    if (subject.length > 160) {
+      return new Response(
+        JSON.stringify({
+          error: 'bad_request',
+          message: 'subject must be <= 160 chars when provided.',
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const metadataBase = isObject(body.metadata) ? body.metadata : {};
     const requestMetadata: Record<string, unknown> = {
       ...metadataBase,
@@ -317,6 +333,7 @@ Deno.serve(async req => {
         company: companyRaw,
         message: message || null,
         source,
+        subject: subject || null,
         metadata: requestMetadata,
       });
     } catch (emailError) {

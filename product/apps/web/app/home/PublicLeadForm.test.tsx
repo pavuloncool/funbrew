@@ -20,6 +20,7 @@ describe('PublicLeadForm', () => {
       <PublicLeadForm
         variant="partnerProgram"
         leadSource="partner_program_home"
+        emailSubject="Web Inquiry from Landing"
         submitLabel="Zgłoś palarnię do programu"
       />
     );
@@ -73,6 +74,7 @@ describe('PublicLeadForm', () => {
       company: string;
       message: string;
       source: string;
+      subject: string;
     };
 
     expect(payload).toMatchObject({
@@ -80,6 +82,7 @@ describe('PublicLeadForm', () => {
       email: 'jan@example.com',
       company: 'Roastery Test',
       source: 'partner_program_home',
+      subject: 'Web Inquiry from Landing',
     });
     expect(payload.message).toContain('Zgłoszenie do Programu Partnerów Branżowych');
     expect(payload.message).toContain('Kanały sprzedaży: online');

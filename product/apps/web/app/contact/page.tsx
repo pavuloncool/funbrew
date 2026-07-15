@@ -20,6 +20,7 @@ export default function ContactPage() {
       aside={
         <PublicLeadForm
           formTitle="Contact"
+          emailSubject="Web Inquiry from Contact"
           submitLabel="Send message"
           successMessage="Thanks. We will contact you soon."
         />
@@ -32,14 +33,20 @@ export default function ContactPage() {
         <div className="mt-4 space-y-3 text-base font-medium text-vs-text-primary sm:text-lg">
           <p>
             <span className="font-semibold">Email:</span>{' '}
-            <a href="mailto:roasters@funbrew.site" className="underline">
+            <a href="mailto:roasters@funbrew.site?subject=Web%20Inquiry%20from%20Contact" className="underline">
               roasters@funbrew.site
             </a>
           </p>
           <p>
+            <span className="font-semibold">Telefon:</span>{' '}
+            <a href="tel:+48573363234" className="underline">
+              +48 573 363 234
+            </a>
+          </p>
+          <p>
             <span className="font-semibold">WhatsApp:</span>{' '}
-            <a href="https://wa.me/48691810000" className="underline">
-              +48 691 810 000
+            <a href="https://wa.me/48573363234" className="underline">
+              +48 573 363 234
             </a>
           </p>
         </div>

@@ -16,6 +16,7 @@ type LeadFormValues = {
 
 type LeadSubmitPayload = LeadFormValues & {
   source: string;
+  subject?: string;
 };
 
 type PartnerProgramFormValues = {
@@ -52,6 +53,7 @@ type PublicLeadFormProps = {
   formTitle?: string;
   formDescription?: string;
   leadSource?: string;
+  emailSubject?: string;
   submitLabel?: string;
   successMessage?: ReactNode;
 };
@@ -61,6 +63,7 @@ export default function PublicLeadForm({
   formTitle = 'Contact',
   formDescription,
   leadSource = 'web_public_entry',
+  emailSubject,
   submitLabel = 'Send message',
   successMessage = 'Thanks. We will contact you soon.',
 }: PublicLeadFormProps) {
@@ -115,6 +118,10 @@ export default function PublicLeadForm({
             source: leadSource,
           }
         : { ...form, source: leadSource };
+
+    if (emailSubject) {
+      submitPayload.subject = emailSubject;
+    }
 
     try {
       const response = await fetch('/api/lead-submit', {
