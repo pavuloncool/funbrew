@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, ReactNode, useId, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { PUBLIC_BODY_COPY_CLASS } from '@/components/public/PublicInfoPage';
 import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
@@ -17,6 +17,7 @@ type LeadFormValues = {
 type LeadSubmitPayload = LeadFormValues & {
   source: string;
   subject?: string;
+  turnstileToken?: string;
 };
 
 type PartnerProgramFormValues = {
@@ -58,6 +59,26 @@ type PublicLeadFormProps = {
   successMessage?: ReactNode;
 };
 
+type TurnstileRenderOptions = {
+  sitekey: string;
+  theme?: 'light' | 'dark' | 'auto';
+  callback: (token: string) => void;
+  'expired-callback': () => void;
+  'error-callback': () => void;
+};
+
+type TurnstileApi = {
+  render: (container: HTMLElement, options: TurnstileRenderOptions) => string;
+  reset?: (widgetId?: string) => void;
+  remove?: (widgetId: string) => void;
+};
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
+
 export default function PublicLeadForm({
   variant = 'contact',
   formTitle = 'Contact',
@@ -72,7 +93,14 @@ export default function PublicLeadForm({
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [submitMessage, setSubmitMessage] = useState<ReactNode>(null);
   const [salesChannelOpen, setSalesChannelOpen] = useState(false);
+  const [intentConfirmed, setIntentConfirmed] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
   const salesChannelLabelId = useId();
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const turnstileEnabled = variant === 'partnerProgram' && Boolean(turnstileSiteKey);
 
   const salesChannelLabel =
     partnerForm.salesChannels.length > 0 ? partnerForm.salesChannels.join(', ') : 'Wybierz kanały sprzedaży';
@@ -103,10 +131,83 @@ export default function PublicLeadForm({
     ].join('\n');
   }
 
+  useEffect(() => {
+    if (!turnstileEnabled) {
+      return;
+    }
+
+    if (window.turnstile) {
+      setTurnstileReady(true);
+      return;
+    }
+
+    const scriptSrc = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${scriptSrc}"]`);
+
+    function markReady() {
+      setTurnstileReady(true);
+    }
+
+    if (existingScript) {
+      existingScript.addEventListener('load', markReady);
+      return () => existingScript.removeEventListener('load', markReady);
+    }
+
+    const script = document.createElement('script');
+    script.src = scriptSrc;
+    script.async = true;
+    script.defer = true;
+    script.addEventListener('load', markReady);
+    document.head.appendChild(script);
+
+    return () => script.removeEventListener('load', markReady);
+  }, [turnstileEnabled]);
+
+  useEffect(() => {
+    if (
+      !turnstileEnabled ||
+      !turnstileReady ||
+      !turnstileSiteKey ||
+      !turnstileContainerRef.current ||
+      !window.turnstile ||
+      turnstileWidgetIdRef.current
+    ) {
+      return;
+    }
+
+    turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+      sitekey: turnstileSiteKey,
+      theme: 'light',
+      callback: token => setTurnstileToken(token),
+      'expired-callback': () => setTurnstileToken(''),
+      'error-callback': () => setTurnstileToken(''),
+    });
+
+    return () => {
+      if (turnstileWidgetIdRef.current && window.turnstile?.remove) {
+        window.turnstile.remove(turnstileWidgetIdRef.current);
+      }
+      turnstileWidgetIdRef.current = null;
+    };
+  }, [turnstileEnabled, turnstileReady, turnstileSiteKey]);
+
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitState('loading');
     setSubmitMessage(null);
+
+    if (variant === 'partnerProgram' && !intentConfirmed) {
+      setSubmitState('error');
+      setSubmitMessage('Potwierdź chęć zgłoszenia palarni do programu.');
+      return;
+    }
+
+    if (turnstileEnabled && !turnstileToken) {
+      setSubmitState('error');
+      setSubmitMessage('Potwierdź, że zgłoszenie nie jest spamem.');
+      return;
+    }
+
+    setSubmitState('loading');
 
     const submitPayload: LeadSubmitPayload =
       variant === 'partnerProgram'
@@ -121,6 +222,9 @@ export default function PublicLeadForm({
 
     if (emailSubject) {
       submitPayload.subject = emailSubject;
+    }
+    if (turnstileToken) {
+      submitPayload.turnstileToken = turnstileToken;
     }
 
     try {
@@ -141,6 +245,11 @@ export default function PublicLeadForm({
       setSubmitMessage(successMessage);
       if (variant === 'partnerProgram') {
         setPartnerForm(INITIAL_PARTNER_FORM);
+        setIntentConfirmed(false);
+        setTurnstileToken('');
+        if (turnstileWidgetIdRef.current && window.turnstile?.reset) {
+          window.turnstile.reset(turnstileWidgetIdRef.current);
+        }
       } else {
         setForm(INITIAL_FORM);
       }
@@ -230,7 +339,8 @@ export default function PublicLeadForm({
                 </PopoverTrigger>
                 <PopoverContent
                   align="start"
-                  className="w-[min(32rem,calc(100vw-2rem))] border-2 border-vs-border-strong bg-vs-elevated p-3"
+                  collisionPadding={16}
+                  className="z-[80] w-[min(32rem,calc(100vw-4rem))] border-2 border-vs-border-strong bg-vs-elevated p-3"
                 >
                   <div className="space-y-2">
                     {SALES_CHANNEL_OPTIONS.map(channel => {
@@ -261,6 +371,13 @@ export default function PublicLeadForm({
                         </button>
                       );
                     })}
+                    <button
+                      type="button"
+                      className="mt-3 w-fit rounded-vs-sm border border-vs-border-strong bg-vs-hero-primary px-3 py-1.5 text-sm font-semibold text-vs-text-primary shadow-vs-sm transition hover:bg-vs-hero-primary/90"
+                      onClick={() => setSalesChannelOpen(false)}
+                    >
+                      Gotowe
+                    </button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -277,6 +394,24 @@ export default function PublicLeadForm({
                 suppressHydrationWarning
               />
             </label>
+            <label className="flex items-start gap-3 rounded border border-vs-border-default bg-vs-surface p-3 text-sm font-semibold text-vs-text-primary">
+              <input
+                className="mt-0.5 h-4 w-4 accent-vs-hero-primary"
+                type="checkbox"
+                checked={intentConfirmed}
+                onChange={event => setIntentConfirmed(event.target.checked)}
+                required
+                disabled={submitState === 'loading'}
+              />
+              <span>Potwierdzam, że chcę zgłosić palarnię do Programu Partnerów Branżowych.</span>
+            </label>
+            {turnstileEnabled ? (
+              <div
+                ref={turnstileContainerRef}
+                className="min-h-[65px]"
+                aria-label="Weryfikacja antyspamowa Cloudflare Turnstile"
+              />
+            ) : null}
           </>
         ) : (
           <>

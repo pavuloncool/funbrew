@@ -63,8 +63,7 @@ export default function PrivacyPage() {
           <h2 className="text-xl font-semibold text-vs-text-primary">Odbiorcy i transfer danych</h2>
           <p className={`mt-3 ${PUBLIC_BODY_COPY_CLASS}`}>
             Dane mogą być przetwarzane przez dostawców usług technicznych używanych do obsługi
-            formularza i komunikacji, w szczególności dostawców hostingu, Supabase/backendu, poczty
-            e-mail oraz narzędzi technicznych obsługujących zgłoszenia.
+            formularza i komunikacji, w szczególności dostawców hostingu, Supabase/backendu, poczty e-mail (Resend) oraz narzędzi technicznych obsługujących zgłoszenia.
           </p>
           <p className={`mt-3 ${PUBLIC_BODY_COPY_CLASS}`}>
             Jeżeli dostawcy infrastruktury lub narzędzi przetwarzają dane poza Europejskim Obszarem

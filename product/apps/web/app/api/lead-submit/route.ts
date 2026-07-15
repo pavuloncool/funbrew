@@ -9,6 +9,12 @@ type LeadSubmitPayload = {
   message?: unknown;
   source?: unknown;
   subject?: unknown;
+  turnstileToken?: unknown;
+};
+
+type TurnstileSiteverifyResponse = {
+  success?: boolean;
+  'error-codes'?: string[];
 };
 
 function asTrimmedString(input: unknown): string {
@@ -19,9 +25,40 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function getRequestIp(request: Request): string {
+  return (
+    request.headers.get('cf-connecting-ip') ??
+    request.headers
+      .get('x-forwarded-for')
+      ?.split(',')[0]
+      ?.trim() ??
+    ''
+  );
+}
+
+async function verifyTurnstileToken(token: string, secretKey: string, request: Request): Promise<boolean> {
+  const formData = new FormData();
+  formData.append('secret', secretKey);
+  formData.append('response', token);
+
+  const remoteIp = getRequestIp(request);
+  if (remoteIp) {
+    formData.append('remoteip', remoteIp);
+  }
+
+  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    body: formData,
+  });
+  const payload = (await response.json().catch(() => null)) as TurnstileSiteverifyResponse | null;
+
+  return response.ok && payload?.success === true;
+}
+
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json(
@@ -43,6 +80,7 @@ export async function POST(request: Request) {
   const message = asTrimmedString(body.message);
   const source = asTrimmedString(body.source) || 'web_public_entry';
   const subject = asTrimmedString(body.subject);
+  const turnstileToken = asTrimmedString(body.turnstileToken);
 
   if (!fullName || !email || !company) {
     return NextResponse.json(
@@ -62,12 +100,39 @@ export async function POST(request: Request) {
     company.length > 160 ||
     message.length > 4000 ||
     source.length > 64 ||
-    subject.length > 160
+    subject.length > 160 ||
+    turnstileToken.length > 2048
   ) {
     return NextResponse.json(
       { error: 'bad_request', message: 'One or more fields exceed allowed length.' },
       { status: 400 }
     );
+  }
+
+  if (turnstileSecretKey) {
+    if (!turnstileToken) {
+      return NextResponse.json(
+        { error: 'turnstile_required', message: 'Please complete the anti-spam check.' },
+        { status: 400 }
+      );
+    }
+
+    let turnstileVerified = false;
+    try {
+      turnstileVerified = await verifyTurnstileToken(turnstileToken, turnstileSecretKey, request);
+    } catch {
+      return NextResponse.json(
+        { error: 'turnstile_unreachable', message: 'Anti-spam verification is temporarily unavailable.' },
+        { status: 400 }
+      );
+    }
+
+    if (!turnstileVerified) {
+      return NextResponse.json(
+        { error: 'turnstile_failed', message: 'Anti-spam verification failed. Please try again.' },
+        { status: 400 }
+      );
+    }
   }
 
   const leadSubmitFunction = process.env.LEAD_SUBMIT_FUNCTION ?? 'submit_contact_lead';
@@ -95,6 +160,7 @@ export async function POST(request: Request) {
           referer: request.headers.get('referer'),
           forwarded_for: request.headers.get('x-forwarded-for'),
           email_subject: subject || null,
+          turnstile_verified: Boolean(turnstileSecretKey),
         },
       }),
     });

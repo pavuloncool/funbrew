@@ -3,12 +3,43 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import PublicLeadForm from '@/components/public/PublicLeadForm';
 
+const originalTurnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  if (originalTurnstileSiteKey === undefined) {
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  } else {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = originalTurnstileSiteKey;
+  }
 });
 
 describe('PublicLeadForm', () => {
+  function fillPartnerProgramForm() {
+    fireEvent.change(screen.getByLabelText('Nazwa palarni'), {
+      target: { value: 'Roastery Test' },
+    });
+    fireEvent.change(screen.getByLabelText('Osoba kontaktowa'), {
+      target: { value: 'Jan Kowalski' },
+    });
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'jan@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('Strona / Instagram'), {
+      target: { value: '@roasterytest' },
+    });
+    fireEvent.change(
+      screen.getByLabelText(
+        'Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?'
+      ),
+      {
+        target: { value: 'Chcemy lepiej rozumieć odbiór profilu sensorycznego.' },
+      }
+    );
+    fireEvent.click(screen.getByLabelText('Potwierdzam, że chcę zgłosić palarnię do Programu Partnerów Branżowych.'));
+  }
+
   it('submits partner program leads through the contact lead endpoint', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
@@ -25,18 +56,7 @@ describe('PublicLeadForm', () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText('Nazwa palarni'), {
-      target: { value: 'Roastery Test' },
-    });
-    fireEvent.change(screen.getByLabelText('Osoba kontaktowa'), {
-      target: { value: 'Jan Kowalski' },
-    });
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'jan@example.com' },
-    });
-    fireEvent.change(screen.getByLabelText('Strona / Instagram'), {
-      target: { value: '@roasterytest' },
-    });
+    fillPartnerProgramForm();
     expect(screen.queryByLabelText('Liczba produktów w ofercie')).not.toBeInTheDocument();
     expect(screen.getByText('Aktywne kanały sprzedaży')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' })).toHaveTextContent(
@@ -46,14 +66,6 @@ describe('PublicLeadForm', () => {
     expect(screen.getByRole('link', { name: 'Polityka prywatności' })).toHaveAttribute('href', '/privacy');
     fireEvent.click(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' }));
     fireEvent.click(screen.getByRole('button', { name: /online/ }));
-    fireEvent.change(
-      screen.getByLabelText(
-        'Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?'
-      ),
-      {
-        target: { value: 'Chcemy lepiej rozumieć odbiór profilu sensorycznego.' },
-      }
-    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Zgłoś palarnię do programu' }));
 
@@ -98,30 +110,11 @@ describe('PublicLeadForm', () => {
 
     render(<PublicLeadForm variant="partnerProgram" submitLabel="Zgłoś palarnię do programu" />);
 
-    fireEvent.change(screen.getByLabelText('Nazwa palarni'), {
-      target: { value: 'Roastery Test' },
-    });
-    fireEvent.change(screen.getByLabelText('Osoba kontaktowa'), {
-      target: { value: 'Jan Kowalski' },
-    });
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'jan@example.com' },
-    });
-    fireEvent.change(screen.getByLabelText('Strona / Instagram'), {
-      target: { value: '@roasterytest' },
-    });
+    fillPartnerProgramForm();
     expect(screen.queryByLabelText('Liczba produktów w ofercie')).not.toBeInTheDocument();
     expect(screen.getByText('Aktywne kanały sprzedaży')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' })).toHaveTextContent(
       'Wybierz kanały sprzedaży'
-    );
-    fireEvent.change(
-      screen.getByLabelText(
-        'Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?'
-      ),
-      {
-        target: { value: 'Chcemy lepiej rozumieć odbiór profilu sensorycznego.' },
-      }
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Zgłoś palarnię do programu' }));
@@ -133,5 +126,47 @@ describe('PublicLeadForm', () => {
 
     expect(payload.message).toContain('Kanały sprzedaży: nie podano');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('includes the Turnstile token when the widget verifies the form', async () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = 'test-site-key';
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ message: 'ok' }),
+    }));
+    const renderTurnstile = vi.fn((_container: HTMLElement, options: { callback: (token: string) => void }) => {
+      options.callback('test-turnstile-token');
+      return 'test-widget-id';
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('turnstile', {
+      render: renderTurnstile,
+      reset: vi.fn(),
+      remove: vi.fn(),
+    });
+
+    render(
+      <PublicLeadForm
+        variant="partnerProgram"
+        leadSource="partner_program_home"
+        emailSubject="Web Inquiry from Landing"
+        submitLabel="Zgłoś palarnię do programu"
+      />
+    );
+
+    await waitFor(() => expect(renderTurnstile).toHaveBeenCalledTimes(1));
+    fillPartnerProgramForm();
+    fireEvent.click(screen.getByRole('button', { name: 'Zgłoś palarnię do programu' }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const payload = JSON.parse(String(requestInit?.body)) as {
+      subject: string;
+      turnstileToken: string;
+    };
+
+    expect(payload.subject).toBe('Web Inquiry from Landing');
+    expect(payload.turnstileToken).toBe('test-turnstile-token');
   });
 });

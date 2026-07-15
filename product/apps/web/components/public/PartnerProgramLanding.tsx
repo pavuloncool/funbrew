@@ -1,4 +1,4 @@
-import PublicLeadForm from '@/components/public/PublicLeadForm';
+import PartnerProgramSignupDrawer from '@/components/public/PartnerProgramSignupDrawer';
 import type { ReactNode } from 'react';
 
 const PROBLEM_QUESTIONS = [
@@ -11,14 +11,6 @@ const PROBLEM_QUESTIONS = [
 ] as const;
 
 const RESEARCH_QUESTIONS = [
-  {
-    key: 'funbrew-workflow',
-    content: (
-      <>
-        Jak wpisać workflow <b>fun•brew</b> w codzienną pracę i doświadczenie palarni?
-      </>
-    ),
-  },
   { key: 'describe-feedback', content: 'Jaki rodzaj feedbacku może zwiększyć codzienną ekspozycję na kupujących?' },
   { key: 'needs-and-deliver', content: 'Jak odpowiadać na oczekiwania odbiorców i dowozić produkt, który trafia w sedno?' },
   { key: 'new-horizons', content: 'Czy można otwierać nowe horyzonty, nie ryzykując utraty lojalnych klientów?' },
@@ -26,13 +18,21 @@ const RESEARCH_QUESTIONS = [
     key: 'build-relations',
     content: (
       <>
-        Jak wykorzystać insighty z <b>fun•brew</b>, żeby wzmacnianiać relacji roaster – konsument?
+        Jak wykorzystać insighty z <b>fun•brew</b>, żeby wzmacnianiać relacje roaster – konsument?
       </>
     ),
   },
   {
     key: 'useful-data',
     content: 'Jakie jeszcze dane i informacje mogą wspierać palarnię w codziennej działalności?',
+  },
+  {
+    key: 'funbrew-workflow',
+    content: (
+      <>
+        Jak wpisać workflow <b>fun•brew</b> w codzienną pracę i doświadczenie palarni?
+      </>
+    ),
   },
 ] as const;
 
@@ -56,7 +56,7 @@ const BENEFITS = [
     title: 'Preferencyjny dostęp',
     copy: (
       <>
-        Palarnie uczestniczące w programie zyskują preferencyjny dostęp do funkcji i usług <b>fun•brew</b> po uruchomieniu.
+        Dostęp na specjalnych warunkach do funkcji, danych i raportów dostępnych po uruchomieniu aplikacji.
       </>
     ),
   },
@@ -95,7 +95,9 @@ function SectionHeading(props: { eyebrow?: string; title: ReactNode; lead?: Reac
 export default function PartnerProgramLanding() {
   return (
     <main className="bg-[#f5f1df] text-vs-text-primary">
-      <section className="mx-auto grid w-full max-w-[1600px] gap-10 border-x border-vs-border-strong px-5 py-8 sm:px-8 lg:min-h-[calc(80vh-74px)] lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+      <PartnerProgramSignupDrawer />
+
+      <section className="mx-auto grid w-full max-w-[1600px] gap-10 border-x border-vs-border-strong px-5 py-8 sm:px-8 min-[1100px]:min-h-[calc(80vh-74px)] min-[1100px]:grid-cols-[1.05fr_0.95fr] min-[1100px]:items-start min-[1100px]:pb-20 min-[1100px]:pt-16">
         <div>
           {/*<div className="inline-flex rounded-full border border-vs-border-strong bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.16em] shadow-vs-sm">
             Program Partnerów Branżowych
@@ -104,31 +106,31 @@ export default function PartnerProgramLanding() {
             Aplikacja dla palarni,<br className="min-[1100px]:hidden" /> które chcą wiedzieć więcej.
           </p>
           <h1
-            className="mt-6 max-w-5xl font-display text-[48px] uppercase leading-[0.9] text-vs-text-primary sm:text-[72px] lg:text-[92px]"
+            className="mt-6 max-w-5xl font-display text-[48px] uppercase leading-[0.9] text-vs-text-primary sm:text-[72px] min-[1100px]:text-[92px]"
             aria-label="Plus feedback. Plus dane. Plus decyzje."
           >
-            (+) dane
+            <span className="whitespace-nowrap">(+)&nbsp;dane</span>
             <br />
-            (+) feedback
+            <span className="whitespace-nowrap">(+)&nbsp;feedback</span>
             <br />
-            (+) decyzje
+            <span className="whitespace-nowrap">(+)&nbsp;decyzje</span>
           </h1>
           <p className="mt-7 max-w-3xl text-lg leading-relaxed text-vs-text-secondary sm:text-xl">
-            Testuj z nami prototyp aplikacji, która pokazuje roasterom,<br className="max-[1100px]:hidden" /> jak ich kawa jest parzona i oceniana przez odbiorców.<br /> Wspólnie zdefiniujmy najcenniejsze insighty.
+            Testuj z nami prototyp aplikacji, która pokazuje roasterom, jak ich kawa jest parzona i oceniana przez odbiorców. Wspólnie zdefiniujmy najcenniejsze insighty.
           </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+          {/*<div className="mt-8 flex flex-wrap gap-3">
             <a href="#zgloszenie" className="vs-button-primary inline-flex text-sm font-semibold sm:text-base">
               Zgłoś palarnię do programu
             </a>
-            {/*<a href="#co-testujemy" className="vs-button-secondary inline-flex text-sm font-semibold sm:text-base">
+            <a href="#co-testujemy" className="vs-button-secondary inline-flex text-sm font-semibold sm:text-base">
               Co badamy?
-            </a>*/}
-          </div>
+            </a>
+          </div>*/}
         </div>
 
         <div className="overflow-hidden rounded-vs-md border border-vs-border-strong bg-white/80 shadow-vs-sm">
           <p className="px-5 pt-5 text-xs font-semibold uppercase tracking-[0.18em] text-vs-text-muted sm:px-6 sm:pt-6">
-            Dashboard analityki
+            Zrzut dashboardu analityki
           </p>
           <img
             src="/roaster-analytics.png"
@@ -143,8 +145,17 @@ export default function PartnerProgramLanding() {
       <section id="stan-zero" className="scroll-mt-[74px] mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:pb-20">
         <SectionHeading 
         eyebrow="Stan na dzisiaj"
-        title="Odzyskać dane + Uporządkować feedback"
-        lead="Chcemy razem z palarniami odzyskać informacje, które znikają z radaru po wypuszczeniu kawy w świat. Prototyp aplikacji odpowiada na pytania:" />
+        title={
+          <>
+          odzyskać dane +<br />uporządkować feedback
+          </>
+        }
+        lead={
+          <>
+          Chcemy razem z palarniami odzyskać informacje, które znikają z radaru, kiedy kawa trafia na rynek. Prototyp aplikacji odpowiada na pytania:
+          </>
+        }
+        />
         <div className="text-lg leading-relaxed text-vs-text-secondary">
           <ul className="grid gap-3 sm:grid-cols-2">
             {PROBLEM_QUESTIONS.map(question => (
@@ -156,13 +167,17 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section id="co-testujemy" className="scroll-mt-[74px] mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:pb-20">
+      <section id="co-badamy" className="scroll-mt-[74px] mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:pb-20">
         <SectionHeading
           eyebrow="Co badamy?"
-          title="zakres insightów + workflow fun•brew"
+          title={
+            <>
+            zakres insightów +<br />workflow fun•brew
+            </>
+          }
           lead={
             <>
-            Wspólnie ustalimy, które dane niosą największą realną wartość dla roastera. Pytamy o miejsce <b>fun•brew</b> w codziennej pracy palarni, próbując ustalić: 
+            Wspólnie ustalimy, które dane niosą największą realną wartość dla roastera. Zapytamy o miejsce <b>fun•brew</b> w codziennej pracy palarni, próbując ustalić: 
             </>
           }   
         />
@@ -177,33 +192,38 @@ export default function PartnerProgramLanding() {
         </div>
       </section>
 
-      <section id="jak-to-robimy" className="scroll-mt-[74px] mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:pb-20">
+      <section id="jak-to-robimy" className="scroll-mt-[74px] mx-auto grid w-full max-w-[1600px] gap-8 border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:pb-20">
         <SectionHeading
           eyebrow="Jak to robimy?"
           title={
             <>
-            Gdzie zaczynamy +
-            <br /> 
-            na czym kończymy
+            Gdzie zaczynamy +<br /> na czym kończymy
             </>
           }
-          lead="Pilotaż jest krótki i kontrolowany. Zasadniczo obejmuje następujące kroki:"
+          lead="Pilotaż jest kilkuetapowy, z kilkoma punktami kontrolnymi po drodze. Zasadniczo obejmuje następujące kroki:"
         />
-        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {COMMITMENTS.map(([title, copy]) => (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {COMMITMENTS.map(([title, copy], index) => (
             <article key={title} className="rounded-vs-md border border-vs-border-strong bg-white/80 p-5">
-              <h3 className="text-lg font-semibold text-vs-text-primary">{title}</h3>
+              <p className="font-display text-[24px] uppercase leading-[0.95] text-vs-text-primary sm:text-[32px]">
+                {String(index + 1).padStart(2, '0')}
+              </p>
+              <h3 className="mt-3 text-lg font-semibold text-vs-text-primary">{title}</h3>
               <p className="mt-3 text-lg leading-relaxed text-vs-text-secondary">{copy}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:pb-20">
+      <section id="co-w-zamian" className="scroll-mt-[74px] mx-auto w-full max-w-[1600px] border-x border-t border-vs-border-strong px-5 py-8 sm:px-8 lg:pb-20">
         <SectionHeading
-          eyebrow="Korzyści dla palarni"
-          title="Co otrzymuje palarnia?"
-          lead="Udział w programie daje realny wpływ na produkt i dostęp do efektów pracy po uruchomieniu fun•brew."
+          eyebrow="Co w zamian?"
+          title="Benefity dla palarni"
+          lead={
+            <>
+            Udział w pilotażu to okazja, by zyskać realny wpływ na produkt i dostęp do efektów pracy po uruchomieniu <b>fun•brew</b>.
+            </>
+          }
         />
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {BENEFITS.map(item => (
@@ -228,20 +248,31 @@ export default function PartnerProgramLanding() {
             ))}
           </ul>
         </div>
-        <PublicLeadForm
-          variant="partnerProgram"
-          formTitle="Zgłoś palarnię do programu"
-          leadSource="partner_program_home"
-          emailSubject="Web Inquiry from Landing"
-          submitLabel="Zgłoś palarnię do programu"
-          successMessage={
-            <>
-              Dziękujemy za zgłoszenie. Odezwiemy się w sprawie udziału w programie.
-              <br />
-              Ekipa <b>fun•brew</b>.
-            </>
-          }
-        />
+        <div className="rounded-vs-md border-2 border-vs-border-strong bg-vs-elevated p-5 shadow-vs-sm sm:p-6">
+          <h2 className="font-display text-[28px] uppercase leading-none tracking-[-0.03em] text-vs-text-primary sm:text-[32px]">
+            Dane kontaktowe
+          </h2>
+          <div className="mt-4 space-y-3 text-base font-medium text-vs-text-primary sm:text-lg">
+            <p>
+              <span className="font-semibold">Email:</span>{' '}
+              <a href="mailto:roasters@funbrew.site?subject=Web%20Inquiry%20from%20Landing" className="underline">
+                roasters@funbrew.site
+              </a>
+            </p>
+            <p>
+              <span className="font-semibold">Telefon:</span>{' '}
+              <a href="tel:+48573363234" className="underline">
+                +48 573 363 234
+              </a>
+            </p>
+            <p>
+              <span className="font-semibold">WhatsApp:</span>{' '}
+              <a href="https://wa.me/48573363234" className="underline">
+                +48 573 363 234
+              </a>
+            </p>
+          </div>
+        </div>
       </section>
 
     </main>

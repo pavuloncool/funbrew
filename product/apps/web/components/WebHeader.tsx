@@ -20,8 +20,9 @@ const MARKETING_NAV_ITEMS = [
 
 const HOME_NAV_ITEMS = [
   { type: 'link', label: 'Stan na dzisiaj', href: '#stan-zero' },
-  { type: 'link', label: 'Co badamy?', href: '#co-testujemy' },
+  { type: 'link', label: 'Co badamy?', href: '#co-badamy' },
   { type: 'link', label: 'Jak to robimy?', href: '#jak-to-robimy' },
+  { type: 'link', label: 'Co w zamian?', href: '#co-w-zamian' },
   { type: 'action', action: 'publicHub', label: 'Roaster Hub' },
 ] as const;
 
