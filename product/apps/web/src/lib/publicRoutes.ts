@@ -6,6 +6,11 @@ const PUBLIC_MARKETING_ROUTES = new Set([
   '/contact',
   '/privacy',
   '/business',
+  '/stan-na-dzisiaj',
+  '/co-badamy',
+  '/jak-to-robimy',
+  '/co-w-zamian',
+  '/kogo-zapraszamy',
   '/pricing',
   '/features',
   '/market',
@@ -26,4 +31,16 @@ export function isMarketingRoute(pathname: string): boolean {
   return MARKETING_ROUTES.has(pathname);
 }
 
-const MARKETING_ROUTES = new Set(['/', '/register', '/about', '/support', '/contact', '/business']);
+const MARKETING_ROUTES = new Set([
+  '/',
+  '/register',
+  '/about',
+  '/support',
+  '/contact',
+  '/business',
+  '/stan-na-dzisiaj',
+  '/co-badamy',
+  '/jak-to-robimy',
+  '/co-w-zamian',
+  '/kogo-zapraszamy',
+]);

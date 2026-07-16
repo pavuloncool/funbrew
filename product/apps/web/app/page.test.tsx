@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import HomePage from './page';
 
 describe('HomePage', () => {
-  it('renders the partner program landing page and lead form', () => {
+  it('renders the shortened partner program landing page with section teasers and contact', () => {
     render(<HomePage />);
 
     expect(
@@ -12,36 +12,27 @@ describe('HomePage', () => {
         name: 'Plus feedback. Plus dane. Plus decyzje.',
       })
     ).toBeInTheDocument();
-    expect(screen.getAllByText('Program Partnerów Branżowych')[0]).toBeInTheDocument();
-    expect(screen.getByText('Dashboard analityki')).toBeInTheDocument();
+    expect(screen.getByText('Zrzut dashboardu analityki')).toBeInTheDocument();
     expect(
       screen.getByRole('img', {
         name: 'Dashboard funbrew z filtrami, zakładkami analityki i panelami insightów dla palarni',
       })
     ).toHaveAttribute('src', '/roaster-analytics.png');
-    expect(screen.getByRole('heading', { name: 'zakres insightów + workflow fun•brew' })).toBeInTheDocument();
-    expect(screen.getByText('Czy feedback konsumenta pomaga lepiej opisać kawę?')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Jeśli działasz w palarni, która:' })).toBeInTheDocument();
-    expect(screen.getByText('posiada aktywną ofertę kaw specialty w sprzedaży detalicznej;')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Gdzie zaczynamy+ na czym kończymy' })).toBeInTheDocument();
-    expect(screen.getByText('Poznajemy się')).toBeInTheDocument();
-    expect(screen.getByText('Dopinamy mobile')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Co otrzymuje palarnia' })).toBeInTheDocument();
-    expect(screen.getByText('Preferencyjny dostęp do wersji produkcyjnej')).toBeInTheDocument();
-    expect(screen.getByLabelText('Nazwa palarni')).toBeInTheDocument();
-    expect(screen.getByLabelText('Osoba kontaktowa')).toBeInTheDocument();
-    expect(screen.getByLabelText('Email')).toBeInTheDocument();
-    expect(screen.getByLabelText('Strona / Instagram')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Liczba produktów w ofercie')).not.toBeInTheDocument();
-    expect(screen.getByText('Aktywne kanały sprzedaży')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Aktywne kanały sprzedaży' })).toHaveTextContent(
-      'Wybierz kanały sprzedaży'
+
+    expect(screen.getByRole('link', { name: /Stan na dzisiaj/i })).toHaveAttribute('href', '/stan-na-dzisiaj');
+    expect(screen.getByRole('link', { name: /Co badamy/i })).toHaveAttribute('href', '/co-badamy');
+    expect(screen.getByRole('link', { name: /Jak to robimy/i })).toHaveAttribute('href', '/jak-to-robimy');
+    expect(screen.getByRole('link', { name: /Co w zamian/i })).toHaveAttribute('href', '/co-w-zamian');
+    expect(screen.getByRole('link', { name: /Kogo zapraszamy/i })).toHaveAttribute('href', '/kogo-zapraszamy');
+
+    expect(screen.getByRole('heading', { name: 'Porozmawiajmy o udziale w programie' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'roasters@funbrew.site' })).toHaveAttribute(
+      'href',
+      'mailto:roasters@funbrew.site?subject=Web%20Inquiry%20from%20Landing'
     );
-    expect(
-      screen.getByLabelText(
-        'Czego najbardziej chcielibyście dowiedzieć się o tym, jak konsumenci odbierają Waszą kawę?'
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Zgłoś palarnię do programu' })).toBeInTheDocument();
+
+    expect(screen.queryByText('Jaki rating ma dana kawa wśród użytkowników na różnym poziomie doświadczenia sensorycznego?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Poznajemy się')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Osoba kontaktowa')).not.toBeInTheDocument();
   });
 });

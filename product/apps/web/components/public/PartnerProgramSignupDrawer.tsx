@@ -3,9 +3,24 @@
 import { useEffect, useState } from 'react';
 
 import PublicLeadForm from '@/components/public/PublicLeadForm';
+import PartnerProgramSignupButton, {
+  PARTNER_PROGRAM_SIGNUP_OPEN_EVENT,
+} from '@/components/public/PartnerProgramSignupButton';
 
 export default function PartnerProgramSignupDrawer() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    function handleOpenSignupDrawer() {
+      setOpen(true);
+    }
+
+    window.addEventListener(PARTNER_PROGRAM_SIGNUP_OPEN_EVENT, handleOpenSignupDrawer);
+
+    return () => {
+      window.removeEventListener(PARTNER_PROGRAM_SIGNUP_OPEN_EVENT, handleOpenSignupDrawer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -27,15 +42,12 @@ export default function PartnerProgramSignupDrawer() {
 
   return (
     <>
-      <button
-        type="button"
+      <PartnerProgramSignupButton
         className="fixed right-0 top-1/2 z-40 flex h-12 w-36 origin-bottom-right -rotate-90 items-center justify-center rounded-vs-sm border-2 border-vs-border-strong bg-vs-accent-secondary px-4 text-sm font-semibold leading-none text-vs-text-primary shadow-vs-md transition hover:bg-vs-accent-secondaryPressed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vs-border-strong sm:h-14 sm:w-44 sm:text-base"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
+        expanded={open}
       >
         <span className="whitespace-nowrap">Zgłoś palarnię</span>
-      </button>
+      </PartnerProgramSignupButton>
 
       {open ? (
         <div

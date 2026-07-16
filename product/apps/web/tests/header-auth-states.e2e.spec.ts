@@ -32,19 +32,18 @@ async function loginViaForm(page: Page, actor: TestActor): Promise<void> {
 }
 
 const MARKETING_NAV_ITEMS = ['Support', 'About', 'Contact', 'Business'];
-const PARTNER_HOME_NAV_ITEMS = ['Co badamy', 'Program', 'Zgłoś palarnię'];
+const PARTNER_HOME_NAV_ITEMS = ['Stan na dzisiaj', 'Co badamy?', 'Jak to robimy?', 'Co w zamian?', 'Kontakt'];
 const HIDDEN_NAV_ITEMS = ['News', 'Individuals'];
 
 async function expectMarketingHeader(page: Page): Promise<void> {
   for (const item of PARTNER_HOME_NAV_ITEMS) {
-    await expect(page.getByRole('link', { name: item })).toBeVisible();
+    await expect(page.getByRole('link', { name: item }).first()).toBeVisible();
   }
 
   for (const item of [...MARKETING_NAV_ITEMS, ...HIDDEN_NAV_ITEMS]) {
     await expect(page.getByRole('link', { name: item })).toHaveCount(0);
   }
 
-  await expect(page.getByText('EN')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Roaster Hub' })).toBeVisible();
 }
 
@@ -57,8 +56,7 @@ async function expectPartnerHomeHeader(page: Page): Promise<void> {
     await expect(page.getByRole('link', { name: item })).toHaveCount(0);
   }
 
-  await expect(page.getByText('EN')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Logowanie' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Roaster Hub' })).toBeVisible();
 }
 
 test.describe('header auth states across public routes and roaster workspace', () => {
@@ -96,7 +94,7 @@ test.describe('header auth states across public routes and roaster workspace', (
     await expect(page).toHaveURL(/\/$/);
     await expectPartnerHomeHeader(page);
 
-    await page.getByRole('link', { name: 'Logowanie' }).click();
+    await page.getByRole('button', { name: 'Roaster Hub' }).click();
     await page.waitForURL('**/login', { timeout: 15_000 });
     await expectMarketingHeader(page);
     await loginViaForm(page, actor);

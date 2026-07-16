@@ -3,9 +3,12 @@ import type { Metadata } from 'next';
 import PartnerProgramLanding from '@/components/public/PartnerProgramLanding';
 
 export const metadata: Metadata = {
-  title: 'fun•brew — Program Partnerów Branżowych dla palarni specialty',
+  title: 'fun•brew — aplikacja analityczna dla palarni specialty',
   description:
-    'fun•brew pomaga palarniom sprawdzić, jak kawa jest parzona, oceniana i rozumiana po zakupie. Szukamy kilku palarni do programu walidacji danych konsumenckich w kawie specialty.',
+    'Dzięki fun•brew dowiesz się, jak klient parzy, ocenia i odbiera Twoją kawę po zakupie.',
+  alternates: {
+    canonical: '/',
+  },
 };
 
 export default function HomePage() {

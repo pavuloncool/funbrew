@@ -12,6 +12,8 @@ describe('visualSystem', () => {
   });
 
   it('defines semantic states for primary actions', () => {
+    expect(semanticColors.canvas).toBe('#e9e37f');
+    expect(semanticColors.programCanvas).toBe('#f5f1df');
     expect(semanticColors.accentPrimary).toMatch(/^#/);
     expect(semanticColors.accentPrimaryPressed).toMatch(/^#/);
     expect(semanticColors.accentPrimaryDisabled).toMatch(/^#/);

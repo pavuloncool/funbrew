@@ -21,6 +21,7 @@ export default {
       colors: {
         vs: {
           canvas: 'rgb(var(--vs-canvas) / <alpha-value>)',
+          'program-canvas': 'rgb(var(--vs-program-canvas) / <alpha-value>)',
           surface: 'rgb(var(--vs-surface) / <alpha-value>)',
           elevated: 'rgb(var(--vs-elevated) / <alpha-value>)',
           muted: 'rgb(var(--vs-muted) / <alpha-value>)',

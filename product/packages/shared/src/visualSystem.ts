@@ -40,6 +40,7 @@ export const basePalette = {
 
 export const semanticColors = {
   canvas: '#e9e37f',
+  programCanvas: '#f5f1df',
   surface: '#e4e4e4',
   surfaceElevated: '#f2f2f2',
   surfaceMuted: '#d8d8d8',

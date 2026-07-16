@@ -10,7 +10,7 @@ describe('ContactPage', () => {
     expect(screen.getByRole('heading', { name: 'Talk to fun•brew' })).toBeInTheDocument();
     expect(screen.getByText('Contact details')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'roasters@funbrew.site' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '+48 691 810 000' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '+48 573 363 234' })).toHaveLength(2);
     expect(screen.queryByRole('link', { name: 'About' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Support' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Business' })).not.toBeInTheDocument();

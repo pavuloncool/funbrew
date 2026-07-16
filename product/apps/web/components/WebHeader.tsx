@@ -19,10 +19,11 @@ const MARKETING_NAV_ITEMS = [
 ] as const;
 
 const HOME_NAV_ITEMS = [
-  { type: 'link', label: 'Stan na dzisiaj', href: '#stan-zero' },
-  { type: 'link', label: 'Co badamy?', href: '#co-badamy' },
-  { type: 'link', label: 'Jak to robimy?', href: '#jak-to-robimy' },
-  { type: 'link', label: 'Co w zamian?', href: '#co-w-zamian' },
+  { type: 'link', label: 'Stan na dzisiaj', href: '/stan-na-dzisiaj' },
+  { type: 'link', label: 'Co badamy?', href: '/co-badamy' },
+  { type: 'link', label: 'Jak to robimy?', href: '/jak-to-robimy' },
+  { type: 'link', label: 'Co w zamian?', href: '/co-w-zamian' },
+  { type: 'link', label: 'Kontakt', href: '/#kontakt' },
   { type: 'action', action: 'publicHub', label: 'Roaster Hub' },
 ] as const;
 
@@ -37,10 +38,6 @@ function getNavLinkClass(pathname: string, href: string): string {
   return `inline-flex items-center text-[24px] font-medium text-vs-text-primary transition hover:underline ${
     isActive ? 'underline decoration-2 underline-offset-4' : ''
   }`;
-}
-
-function getHomeNavHref(href: string, isHomePage: boolean): string {
-  return isHomePage ? href : `/${href}`;
 }
 
 export default function WebHeader() {
@@ -66,8 +63,8 @@ export default function WebHeader() {
 
   useEffect(() => {
     function updateBackToTopVisibility() {
-      const stanZeroSection = document.getElementById('stan-zero');
-      if (!stanZeroSection) {
+      const contactSection = document.getElementById('kontakt');
+      if (!contactSection) {
         setShowBackToTop(false);
         return;
       }
@@ -75,7 +72,7 @@ export default function WebHeader() {
       const header = document.querySelector<HTMLElement>('[data-web-header]');
       const headerBottom = header?.getBoundingClientRect().bottom ?? STICKY_HEADER_FALLBACK_BOTTOM;
 
-      setShowBackToTop(stanZeroSection.getBoundingClientRect().top <= headerBottom);
+      setShowBackToTop(contactSection.getBoundingClientRect().top <= headerBottom);
     }
 
     updateBackToTopVisibility();
@@ -208,14 +205,10 @@ export default function WebHeader() {
                 >
                   {hubCtaLoading ? 'Opening…' : item.label}
                 </button>
-              ) : item.type === 'action' ? null : isHomePage ? (
-                <a key={item.href} href={item.href} className={getNavLinkClass(pathname, item.href)}>
-                  {item.label}
-                </a>
-              ) : (
+              ) : item.type === 'action' ? null : (
                 <Link
                   key={item.href}
-                  href={getHomeNavHref(item.href, isHomePage)}
+                  href={item.href}
                   className={getNavLinkClass(pathname, item.href)}
                 >
                   {item.label}
@@ -255,19 +248,10 @@ export default function WebHeader() {
                       >
                         {hubCtaLoading ? 'Opening…' : item.label}
                       </button>
-                    ) : item.type === 'action' ? null : isHomePage ? (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="inline-flex items-center rounded-vs-md border border-transparent px-3 py-2 text-base font-medium text-vs-text-primary hover:border-vs-border-default hover:bg-vs-surface"
-                      >
-                        {item.label}
-                      </a>
-                    ) : (
+                    ) : item.type === 'action' ? null : (
                       <Link
                         key={item.href}
-                        href={getHomeNavHref(item.href, isHomePage)}
+                        href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`inline-flex items-center rounded-vs-md border border-transparent px-3 py-2 text-base font-medium text-vs-text-primary hover:border-vs-border-default hover:bg-vs-surface ${
                           pathname === item.href ? 'bg-vs-surface underline decoration-2 underline-offset-4' : ''
@@ -284,13 +268,7 @@ export default function WebHeader() {
             {/* <div className="flex h-[74px] items-center border-l-2 border-vs-border-strong px-6">
               <span className="text-[22px] font-semibold">EN</span>
             </div> */}
-            {showPublicHubNavAction ? (
-              <>
-                {/* <a href="#zgloszenie" className="vs-button-primary text-[15px] font-semibold sm:text-[16px]">
-                  Zgłoś palarnię
-                </a> */}
-              </>
-            ) : (
+            {showPublicHubNavAction ? null : (
               <button
                 type="button"
                 onClick={() => void handleLogout()}
